@@ -581,7 +581,7 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 	border: 1px solid var(--mantis-border);
 	border-right: none;
 	border-radius: 8px 0 0 8px;
-	background: linear-gradient(to bottom, var(--mantis-bg) 0%, #e2e8f0 100%);
+	background: #f8fafc;
 	color: var(--mantis-text-muted);
 	font-size: 14px;
 	font-weight: 600;
@@ -597,8 +597,7 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 
 .mantis-seo-resize-tab:hover {
 	color: var(--mantis-accent);
-	background: linear-gradient(to bottom, var(--mantis-accent-muted) 0%, rgba(13, 148, 136, 0.18) 100%);
-	border-color: var(--mantis-accent);
+	background: #f8fafc;
 }
 
 /* Panel – fills the wrapper */
