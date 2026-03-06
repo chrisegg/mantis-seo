@@ -49,7 +49,7 @@ class Mantis_SEO_Metabox {
 				array( $this, 'render_metabox' ),
 				$post_type,
 				'side',
-				1
+				'high'
 			);
 		}
 	}
