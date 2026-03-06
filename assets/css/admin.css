@@ -546,8 +546,8 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 	opacity: 1;
 }
 
-/* Panel receives pointer events; backdrop lets clicks through to scroll post */
-.mantis-seo-slideout-panel {
+/* Panel wrapper – contains tab + panel, slides in from right */
+.mantis-seo-slideout-panel-wrap {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -555,62 +555,70 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 	width: 100%;
 	max-width: 420px;
 	pointer-events: auto;
-	background: #ffffff;
-	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
-	display: flex;
-	flex-direction: column;
 	transform: translateX(100%);
 	transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s ease;
-	overflow: hidden;
+	display: flex;
 }
 
-.mantis-seo-slideout-panel.mantis-seo-slideout-wide {
+.mantis-seo-slideout-panel-wrap.mantis-seo-slideout-wide {
 	max-width: 840px;
 }
 
-/* Resize tab – left edge of panel, click to expand/shrink */
+#mantis-seo-slideout.mantis-seo-slideout-open .mantis-seo-slideout-panel-wrap {
+	transform: translateX(0);
+}
+
+/* Resize tab – folder-style tab outside panel, sticks out to the left */
 .mantis-seo-resize-tab {
 	position: absolute;
-	left: 0;
+	left: -28px;
 	top: 50%;
 	transform: translateY(-50%);
-	width: 20px;
-	height: 48px;
+	width: 28px;
+	height: 64px;
 	margin: 0;
 	padding: 0;
 	border: 1px solid var(--mantis-border);
-	border-left: none;
-	border-radius: 0 6px 6px 0;
-	background: var(--mantis-bg);
+	border-right: none;
+	border-radius: 8px 0 0 8px;
+	background: linear-gradient(to bottom, var(--mantis-bg) 0%, #e2e8f0 100%);
 	color: var(--mantis-text-muted);
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: 600;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	transition: color var(--mantis-transition), background var(--mantis-transition), border-color var(--mantis-transition);
-	box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+	box-shadow: -3px 0 10px rgba(0, 0, 0, 0.08);
 	z-index: 10;
+	flex-shrink: 0;
 }
 
 .mantis-seo-resize-tab:hover {
 	color: var(--mantis-accent);
-	background: var(--mantis-accent-muted);
+	background: linear-gradient(to bottom, var(--mantis-accent-muted) 0%, rgba(13, 148, 136, 0.18) 100%);
 	border-color: var(--mantis-accent);
 }
 
-#mantis-seo-slideout.mantis-seo-slideout-open .mantis-seo-slideout-panel {
-	transform: translateX(0);
+/* Panel – fills the wrapper */
+.mantis-seo-slideout-panel {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	background: #ffffff;
+	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
+	overflow: hidden;
 }
 
 /* Offset below admin bar – WordPress adds .admin-bar to body */
-body.admin-bar .mantis-seo-slideout-panel {
+body.admin-bar .mantis-seo-slideout-panel-wrap {
 	top: 32px;
 }
 
 @media screen and (max-width: 782px) {
-	body.admin-bar .mantis-seo-slideout-panel {
+	body.admin-bar .mantis-seo-slideout-panel-wrap {
 		top: 46px;
 	}
 }

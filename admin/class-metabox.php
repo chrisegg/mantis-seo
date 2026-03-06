@@ -80,8 +80,9 @@ class Mantis_SEO_Metabox {
 		// Slide-out panel (stays in form for submission).
 		echo '<div id="mantis-seo-slideout" class="mantis-seo-slideout" aria-hidden="true">';
 		echo '<div class="mantis-seo-slideout-backdrop"></div>';
-		echo '<div class="mantis-seo-slideout-panel">';
+		echo '<div class="mantis-seo-slideout-panel-wrap">';
 		echo '<button type="button" class="mantis-seo-resize-tab" title="' . esc_attr__( 'Expand panel', 'mantis-seo' ) . '" aria-label="' . esc_attr__( 'Expand panel', 'mantis-seo' ) . '"><span aria-hidden="true">&lt;</span></button>';
+		echo '<div class="mantis-seo-slideout-panel">';
 		echo '<div class="mantis-seo-slideout-header">';
 		echo '<button type="button" class="mantis-seo-pin-toggle" title="' . esc_attr__( 'Pin panel open', 'mantis-seo' ) . '" aria-pressed="false">';
 		echo '<span class="mantis-seo-icon-tack" aria-hidden="true">';
@@ -126,11 +127,12 @@ class Mantis_SEO_Metabox {
 				} else {
 					$type       = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
 					$input_type = 'url' === $type ? 'url' : 'text';
-					$tag        = 'description' === $key ? 'textarea' : 'input';
+					$is_desc    = ( 'description' === $key || false !== strpos( $key, '_description' ) );
+					$tag        = $is_desc ? 'textarea' : 'input';
+					$rows       = $is_desc ? 4 : 2;
 					echo '<p>';
 					echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
 					if ( 'textarea' === $tag ) {
-						$rows = ( 'description' === $key || false !== strpos( $key, '_description' ) ) ? 4 : 2;
 						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 					} else {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
@@ -141,7 +143,7 @@ class Mantis_SEO_Metabox {
 			}
 			echo '</div></div>';
 		}
-		echo '</div></div></div>';
+		echo '</div></div></div></div>';
 	}
 
 	/**

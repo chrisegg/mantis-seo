@@ -64,12 +64,13 @@
 		}
 
 		const resizeTab = slideout.querySelector(SELECTORS.resizeTab);
-		if (resizeTab) {
+		const panelWrap = slideout.querySelector('.mantis-seo-slideout-panel-wrap');
+		if (resizeTab && panelWrap) {
 			resizeTab.addEventListener('click', toggleWide);
 			// Restore wide state from sessionStorage.
 			const wasWide = sessionStorage.getItem(STORAGE_KEYS.wide) === '1';
 			if (wasWide) {
-				slideout.querySelector('.mantis-seo-slideout-panel').classList.add(CLASSES.wide);
+				panelWrap.classList.add(CLASSES.wide);
 				updateResizeTab(resizeTab, true);
 			}
 		}
@@ -140,11 +141,11 @@
 
 	function toggleWide() {
 		const slideout = document.querySelector(SELECTORS.slideout);
-		const panel = slideout && slideout.querySelector('.mantis-seo-slideout-panel');
+		const panelWrap = slideout && slideout.querySelector('.mantis-seo-slideout-panel-wrap');
 		const resizeTab = slideout && slideout.querySelector(SELECTORS.resizeTab);
-		if (!panel || !resizeTab) return;
+		if (!panelWrap || !resizeTab) return;
 
-		const isWide = panel.classList.toggle(CLASSES.wide);
+		const isWide = panelWrap.classList.toggle(CLASSES.wide);
 		updateResizeTab(resizeTab, isWide);
 		sessionStorage.setItem(STORAGE_KEYS.wide, isWide ? '1' : '0');
 	}
