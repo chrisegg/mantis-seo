@@ -111,11 +111,11 @@
 		pinToggle.title = isPinned
 			? 'Unpin panel'
 			: 'Pin panel open';
-		// Toggle lock/unlock icon.
+		// Toggle tack icon (pinned = filled, unpinned = outline).
 		const icon = pinToggle.querySelector('.dashicons');
 		if (icon) {
-			icon.classList.remove('dashicons-lock', 'dashicons-unlock');
-			icon.classList.add(isPinned ? 'dashicons-unlock' : 'dashicons-lock');
+			icon.classList.remove('dashicons-location', 'dashicons-location-alt');
+			icon.classList.add(isPinned ? 'dashicons-location-alt' : 'dashicons-location');
 		}
 		sessionStorage.setItem(STORAGE_KEY, isPinned ? '1' : '0');
 	}

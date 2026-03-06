@@ -49,7 +49,7 @@ class Mantis_SEO_Metabox {
 				array( $this, 'render_metabox' ),
 				$post_type,
 				'side',
-				'high'
+				1
 			);
 		}
 	}
@@ -73,7 +73,7 @@ class Mantis_SEO_Metabox {
 		echo '<div class="mantis-seo-metabox-trigger">';
 		echo '<button type="button" class="button button-primary button-large mantis-seo-open-panel">';
 		echo '<span class="dashicons dashicons-admin-generic" style="margin-right:4px;margin-top:3px;"></span>';
-		echo esc_html__( 'Open SEO Settings', 'mantis-seo' );
+		echo esc_html__( 'SEO Settings', 'mantis-seo' );
 		echo '</button>';
 		echo '</div>';
 
@@ -83,7 +83,7 @@ class Mantis_SEO_Metabox {
 		echo '<div class="mantis-seo-slideout-panel">';
 		echo '<div class="mantis-seo-slideout-header">';
 		echo '<button type="button" class="mantis-seo-pin-toggle" title="' . esc_attr__( 'Pin panel open', 'mantis-seo' ) . '" aria-pressed="false">';
-		echo '<span class="dashicons dashicons-lock"></span>';
+		echo '<span class="dashicons dashicons-location"></span>';
 		echo '</button>';
 		echo '<div class="mantis-seo-slideout-header-text">';
 		echo '<h2>' . esc_html__( 'SEO Settings', 'mantis-seo' ) . '</h2>';
