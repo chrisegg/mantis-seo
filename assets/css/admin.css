@@ -1,7 +1,503 @@
-.mantis-seo-settings .form-table th {
-	width: 200px;
+/**
+ * Mantis SEO – Admin Styles
+ * Modern, clean design system for settings and redirects pages.
+ */
+
+/* Design tokens */
+:root {
+	--mantis-accent: #0d9488;
+	--mantis-accent-hover: #0f766e;
+	--mantis-accent-muted: rgba(13, 148, 136, 0.12);
+	--mantis-bg: #f8fafc;
+	--mantis-card-bg: #ffffff;
+	--mantis-border: #e2e8f0;
+	--mantis-text: #1e293b;
+	--mantis-text-muted: #64748b;
+	--mantis-radius: 8px;
+	--mantis-radius-sm: 6px;
+	--mantis-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+	--mantis-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+	--mantis-transition: 0.2s ease;
 }
 
+/* Base wrapper */
+.wrap.mantis-seo-settings,
+.wrap.mantis-redirects {
+	max-width: 900px;
+	margin: 0;
+	padding: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, sans-serif;
+}
+
+/* Page header */
+.wrap.mantis-seo-settings h1,
+.wrap.mantis-redirects h1 {
+	font-size: 1.75rem;
+	font-weight: 600;
+	color: var(--mantis-text);
+	margin: 0 0 1.5rem;
+	padding: 0;
+	letter-spacing: -0.02em;
+}
+
+/* Notices – toast-style */
+.wrap.mantis-seo-settings .notice,
+.wrap.mantis-redirects .notice {
+	margin: 0 0 1.5rem;
+	padding: 0.875rem 1rem;
+	border: none;
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+}
+
+.wrap.mantis-seo-settings .notice-success,
+.wrap.mantis-redirects .notice-success {
+	background: #ecfdf5;
+	color: #065f46;
+}
+
+.wrap.mantis-seo-settings .notice-info,
+.wrap.mantis-redirects .notice-info {
+	background: #eff6ff;
+	color: #1e40af;
+}
+
+.wrap.mantis-seo-settings .notice-error,
+.wrap.mantis-redirects .notice-error {
+	background: #fef2f2;
+	color: #991b1b;
+}
+
+.wrap.mantis-seo-settings .notice p,
+.wrap.mantis-redirects .notice p {
+	margin: 0;
+}
+
+/* ========== SETTINGS PAGE ========== */
+
+.mantis-seo-settings form[action="options.php"] {
+	background: var(--mantis-card-bg);
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+	padding: 0;
+	overflow: hidden;
+}
+
+/* Tabs – modern pill navigation */
+.mantis-seo-tabs .nav-tab-wrapper {
+	display: flex;
+	gap: 0;
+	margin: 0;
+	padding: 0 1rem;
+	background: var(--mantis-bg);
+	border-bottom: 1px solid var(--mantis-border);
+	overflow-x: auto;
+}
+
+.mantis-seo-tabs .nav-tab {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.875rem 1rem;
+	margin: 0;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: none;
+	color: var(--mantis-text-muted);
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: color var(--mantis-transition), border-color var(--mantis-transition);
+	margin-bottom: -1px;
+}
+
+.mantis-seo-tabs .nav-tab:hover {
+	color: var(--mantis-text);
+}
+
+.mantis-seo-tabs .nav-tab.nav-tab-active {
+	color: var(--mantis-accent);
+	border-bottom-color: var(--mantis-accent);
+}
+
+/* Tab panels */
+.mantis-seo-tabs .mantis-tab-panel {
+	padding: 2rem;
+}
+
+/* Section headers */
+.mantis-seo-tabs .mantis-tab-panel h2 {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--mantis-text);
+	margin: 0 0 1rem;
+	padding: 0 0 0.5rem;
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-seo-tabs .mantis-tab-panel h2:not(:first-child) {
+	margin-top: 2rem;
+}
+
+.mantis-seo-tabs .mantis-tab-panel .description {
+	font-size: 0.8125rem;
+	color: var(--mantis-text-muted);
+	margin: -0.5rem 0 1rem;
+}
+
+/* Form tables – card-like fields */
+.mantis-seo-tabs .form-table {
+	border: none;
+	margin: 0 0 1.5rem;
+}
+
+.mantis-seo-tabs .form-table tbody,
+.mantis-seo-tabs .form-table tr {
+	display: block;
+}
+
+.mantis-seo-tabs .form-table tr {
+	margin-bottom: 1.25rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-seo-tabs .form-table tr:last-child {
+	margin-bottom: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.mantis-seo-tabs .form-table th,
+.mantis-seo-tabs .form-table td {
+	display: block;
+	width: 100%;
+	padding: 0;
+	border: none;
+	vertical-align: top;
+}
+
+.mantis-seo-tabs .form-table th {
+	width: 100%;
+	padding-bottom: 0.375rem;
+}
+
+.mantis-seo-tabs .form-table th label {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--mantis-text);
+}
+
+.mantis-seo-tabs .form-table td label {
+	font-size: 0.8125rem;
+	color: var(--mantis-text-muted);
+}
+
+/* Inputs */
+.mantis-seo-tabs input[type="text"],
+.mantis-seo-tabs input[type="url"],
+.mantis-seo-tabs input[type="checkbox"],
+.mantis-seo-tabs select,
+.mantis-seo-tabs textarea {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	font-size: 0.875rem;
+	background: var(--mantis-card-bg);
+	color: var(--mantis-text);
+	transition: border-color var(--mantis-transition), box-shadow var(--mantis-transition);
+}
+
+.mantis-seo-tabs input[type="text"]:focus,
+.mantis-seo-tabs input[type="url"]:focus,
+.mantis-seo-tabs select:focus,
+.mantis-seo-tabs textarea:focus {
+	outline: none;
+	border-color: var(--mantis-accent);
+	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
+}
+
+.mantis-seo-tabs input.large-text,
+.mantis-seo-tabs textarea.large-text {
+	width: 100%;
+	max-width: 100%;
+}
+
+.mantis-seo-tabs input.small-text {
+	width: 6rem;
+}
+
+.mantis-seo-tabs input[type="checkbox"] {
+	width: 1rem;
+	height: 1rem;
+	margin-right: 0.5rem;
+	accent-color: var(--mantis-accent);
+}
+
+.mantis-seo-tabs .form-table td input[type="url"],
+.mantis-seo-tabs .form-table td input[name*="schema_same_as"] {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	margin-bottom: 0.5rem;
+}
+
+/* Checkbox rows */
+.mantis-seo-tabs .form-table td label {
+	display: inline-flex;
+	align-items: center;
+	margin-right: 1.5rem;
+	margin-bottom: 0.25rem;
+}
+
+.mantis-seo-tabs .form-table td br {
+	display: none;
+}
+
+/* Submit area */
+.mantis-seo-tabs ~ p.submit,
+.mantis-seo-settings form[action="options.php"] .submit {
+	margin: 0;
+	padding: 1.25rem 2rem;
+	background: var(--mantis-bg);
+	border-top: 1px solid var(--mantis-border);
+}
+
+.mantis-seo-settings .button-primary {
+	background: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	border-radius: var(--mantis-radius-sm);
+	padding: 0.5rem 1.25rem;
+	font-weight: 500;
+	transition: background var(--mantis-transition);
+}
+
+.mantis-seo-settings .button-primary:hover {
+	background: var(--mantis-accent-hover);
+	border-color: var(--mantis-accent-hover);
+}
+
+.mantis-seo-settings .button {
+	border-radius: var(--mantis-radius-sm);
+	padding: 0.5rem 1rem;
+}
+
+/* Yoast migration notice */
+.mantis-seo-settings .notice-info[style*="margin"] {
+	margin: 0 0 1.5rem !important;
+}
+
+.mantis-seo-settings .notice-info form {
+	margin-top: 0.75rem;
+}
+
+/* Import form */
+#mantis-import-form {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+#mantis-import-form input[type="file"] {
+	font-size: 0.875rem;
+}
+
+/* ========== REDIRECTS PAGE ========== */
+
+.mantis-redirects .mantis-redirect-form {
+	background: var(--mantis-card-bg);
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+	padding: 1.5rem 2rem;
+	margin-bottom: 2rem;
+}
+
+.mantis-redirects .mantis-redirect-form h2 {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--mantis-text);
+	margin: 0 0 1.25rem;
+	padding: 0;
+}
+
+.mantis-redirects .form-table tbody,
+.mantis-redirects .form-table tr {
+	display: block;
+}
+
+.mantis-redirects .form-table tr {
+	margin-bottom: 1rem;
+}
+
+.mantis-redirects .form-table tr:last-child {
+	margin-bottom: 0;
+}
+
+.mantis-redirects .form-table th,
+.mantis-redirects .form-table td {
+	display: block;
+	width: 100%;
+	padding: 0;
+	border: none;
+}
+
+.mantis-redirects .form-table th {
+	padding-bottom: 0.375rem;
+}
+
+.mantis-redirects .form-table th label {
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--mantis-text);
+}
+
+.mantis-redirects .form-table td {
+	display: flex;
+	gap: 0.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.mantis-redirects .form-table td input[type="text"],
+.mantis-redirects .form-table td input[type="url"] {
+	flex: 1;
+	min-width: 200px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	font-size: 0.875rem;
+}
+
+.mantis-redirects .form-table td input[type="text"]:focus,
+.mantis-redirects .form-table td input[type="url"]:focus {
+	outline: none;
+	border-color: var(--mantis-accent);
+}
+
+.mantis-redirects .form-table td select {
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	font-size: 0.875rem;
+	min-width: 100px;
+}
+
+.mantis-redirects .mantis-redirect-form .submit {
+	margin: 1.25rem 0 0;
+	padding: 0;
+}
+
+.mantis-redirects .mantis-redirect-form .submit .button {
+	margin-right: 0.5rem;
+}
+
+.mantis-redirects .mantis-redirect-form .submit .button-primary {
+	background: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	border-radius: var(--mantis-radius-sm);
+	padding: 0.5rem 1.25rem;
+	font-weight: 500;
+}
+
+.mantis-redirects .mantis-redirect-form .submit .button-primary:hover {
+	background: var(--mantis-accent-hover);
+	border-color: var(--mantis-accent-hover);
+}
+
+/* Redirects list */
+.mantis-redirects > h2 {
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--mantis-text);
+	margin: 0 0 1rem;
+}
+
+.mantis-redirects > p {
+	color: var(--mantis-text-muted);
+	font-size: 0.875rem;
+}
+
+/* Table – modern data grid */
+.mantis-redirects .wp-list-table {
+	border: none;
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+	overflow: hidden;
+}
+
+.mantis-redirects .wp-list-table thead th {
+	background: var(--mantis-bg);
+	color: var(--mantis-text-muted);
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	padding: 0.75rem 1rem;
+	border: none;
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-redirects .wp-list-table tbody tr {
+	background: var(--mantis-card-bg);
+	transition: background var(--mantis-transition);
+}
+
+.mantis-redirects .wp-list-table tbody tr:hover {
+	background: var(--mantis-bg);
+}
+
+.mantis-redirects .wp-list-table tbody td {
+	padding: 0.875rem 1rem;
+	border: none;
+	border-bottom: 1px solid var(--mantis-border);
+	font-size: 0.875rem;
+	color: var(--mantis-text);
+}
+
+.mantis-redirects .wp-list-table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.mantis-redirects .wp-list-table td code {
+	background: var(--mantis-bg);
+	padding: 0.25rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.8125rem;
+}
+
+.mantis-redirects .wp-list-table td a:not(.button-link-delete) {
+	color: var(--mantis-accent);
+	text-decoration: none;
+}
+
+.mantis-redirects .wp-list-table td a:not(.button-link-delete):hover {
+	text-decoration: underline;
+}
+
+.mantis-redirects .wp-list-table .button-link-delete {
+	color: #dc2626;
+}
+
+.mantis-redirects .wp-list-table form {
+	display: inline;
+}
+
+.mantis-redirects .wp-list-table td .button-link-delete {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	font-size: inherit;
+}
+
+.mantis-redirects .wp-list-table td a + form::before {
+	content: "·";
+	margin: 0 0.5rem;
+	color: var(--mantis-border);
+}
+
+/* Metabox (post editor) – keep existing, slight polish */
 .mantis-seo-metabox p {
 	margin-bottom: 1em;
 }
@@ -9,6 +505,7 @@
 .mantis-seo-metabox label {
 	display: block;
 	margin-bottom: 0.25em;
+	font-weight: 500;
 }
 
 .mantis-seo-metabox input[type="text"],
@@ -16,4 +513,16 @@
 .mantis-seo-metabox textarea {
 	width: 100%;
 	max-width: 600px;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+}
+
+/* Settings errors (WP settings_errors) */
+.mantis-seo-settings .settings-error,
+.mantis-seo-settings .updated {
+	margin: 0 0 1.5rem;
+	padding: 0.875rem 1rem;
+	border: none;
+	border-radius: var(--mantis-radius);
 }
