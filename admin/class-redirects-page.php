@@ -131,11 +131,15 @@ class Mantis_SEO_Redirects_Page {
 				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect deleted.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
 
-			<div id="mantis-redirect-form-wrap" class="mantis-redirect-form-wrap<?php echo $editing ? ' mantis-redirect-form-expanded' : ''; ?>">
-				<?php if ( ! $editing ) : ?>
-				<button type="button" class="button button-primary mantis-redirect-add-trigger"><?php esc_html_e( 'Add Redirect', 'mantis-seo' ); ?></button>
-				<?php endif; ?>
-				<div class="mantis-redirect-form<?php echo $editing ? '' : ' mantis-redirect-form-collapsed'; ?>">
+			<div id="mantis-redirect-accordion" class="mantis-redirect-accordion<?php echo $editing ? ' mantis-redirect-accordion-expanded' : ''; ?>">
+				<button type="button" id="mantis-redirect-accordion-header" class="mantis-redirect-accordion-header" aria-expanded="<?php echo $editing ? 'true' : 'false'; ?>" aria-controls="mantis-redirect-accordion-content">
+					<span class="mantis-redirect-accordion-title"><?php echo $editing ? esc_html__( 'Edit Redirect', 'mantis-seo' ) : esc_html__( 'Add Redirect', 'mantis-seo' ); ?></span>
+					<span class="mantis-redirect-accordion-icon" aria-hidden="true">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"/></svg>
+					</span>
+				</button>
+				<div id="mantis-redirect-accordion-content" class="mantis-redirect-accordion-content" role="region" aria-labelledby="mantis-redirect-accordion-header">
+				<div class="mantis-redirect-form">
 				<form method="post" action="">
 					<?php wp_nonce_field( 'mantis_redirect_save' ); ?>
 					<input type="hidden" name="mantis_redirect_save" value="1" />
@@ -173,10 +177,11 @@ class Mantis_SEO_Redirects_Page {
 						<?php if ( $editing ) : ?>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-redirects' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></a>
 						<?php else : ?>
-							<button type="button" class="button mantis-redirect-form-cancel"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></button>
+							<button type="button" class="button mantis-redirect-accordion-close"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></button>
 						<?php endif; ?>
 					</p>
 				</form>
+				</div>
 				</div>
 			</div>
 

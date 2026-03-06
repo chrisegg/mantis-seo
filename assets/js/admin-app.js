@@ -29,25 +29,21 @@
 	}
 
 	function initRedirectsPage() {
-		const wrap = document.getElementById('mantis-redirect-form-wrap');
-		const addTrigger = document.querySelector('.mantis-redirect-add-trigger');
-		const formEl = document.querySelector('.mantis-redirect-form');
-		const cancelBtn = document.querySelector('.mantis-redirect-form-cancel');
+		const accordion = document.getElementById('mantis-redirect-accordion');
+		const header = document.querySelector('.mantis-redirect-accordion-header');
+		const closeBtn = document.querySelector('.mantis-redirect-accordion-close');
 
-		if (addTrigger && formEl) {
-			addTrigger.addEventListener('click', function () {
-				if (wrap) wrap.classList.add('mantis-redirect-form-expanded');
-				formEl.classList.remove('mantis-redirect-form-collapsed');
-				addTrigger.style.display = 'none';
+		if (accordion && header) {
+			header.addEventListener('click', function () {
+				const expanded = accordion.classList.toggle('mantis-redirect-accordion-expanded');
+				header.setAttribute('aria-expanded', expanded ? 'true' : 'false');
 			});
 		}
 
-		if (cancelBtn && formEl) {
-			cancelBtn.addEventListener('click', function () {
-				if (wrap) wrap.classList.remove('mantis-redirect-form-expanded');
-				formEl.classList.add('mantis-redirect-form-collapsed');
-				const trigger = document.querySelector('.mantis-redirect-add-trigger');
-				if (trigger) trigger.style.display = '';
+		if (closeBtn && accordion && header) {
+			closeBtn.addEventListener('click', function () {
+				accordion.classList.remove('mantis-redirect-accordion-expanded');
+				header.setAttribute('aria-expanded', 'false');
 			});
 		}
 	}
