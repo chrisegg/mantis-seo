@@ -3,7 +3,7 @@
  * Modern, clean design system for settings and redirects pages.
  */
 
-/* Design tokens */
+/* Design tokens – light mode (default) */
 :root {
 	--mantis-accent: #0d9488;
 	--mantis-accent-hover: #0f766e;
@@ -13,6 +13,8 @@
 	--mantis-border: #e2e8f0;
 	--mantis-text: #1e293b;
 	--mantis-text-muted: #64748b;
+	--mantis-header-bg: #ffffff;
+	--mantis-header-border: #e2e8f0;
 	--mantis-radius: 8px;
 	--mantis-radius-sm: 6px;
 	--mantis-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -20,13 +22,159 @@
 	--mantis-transition: 0.2s ease;
 }
 
-/* Base wrapper */
+/* Dark mode */
+.mantis-seo-app.mantis-seo-dark {
+	--mantis-bg: #0f172a;
+	--mantis-card-bg: #1e293b;
+	--mantis-border: #334155;
+	--mantis-text: #f1f5f9;
+	--mantis-text-muted: #94a3b8;
+	--mantis-header-bg: #1e293b;
+	--mantis-header-border: #334155;
+	--mantis-accent-muted: rgba(13, 148, 136, 0.2);
+}
+
+/* ========== APP LAYOUT ========== */
+
+.mantis-seo-app {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, sans-serif;
+}
+
+.mantis-seo-app-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1rem 1.5rem;
+	background: var(--mantis-header-bg);
+	border-bottom: 1px solid var(--mantis-header-border);
+	flex-shrink: 0;
+}
+
+.mantis-seo-app-header-left {
+	display: flex;
+	align-items: center;
+}
+
+.mantis-seo-logo {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--mantis-text);
+	text-decoration: none;
+	letter-spacing: -0.02em;
+}
+
+.mantis-seo-logo:hover {
+	color: var(--mantis-accent);
+}
+
+.mantis-seo-app-header-right {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.mantis-seo-theme-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	padding: 0;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	background: var(--mantis-bg);
+	color: var(--mantis-text-muted);
+	cursor: pointer;
+	transition: color var(--mantis-transition), border-color var(--mantis-transition), background var(--mantis-transition);
+}
+
+.mantis-seo-theme-toggle:hover {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+}
+
+.mantis-seo-theme-toggle[aria-pressed="true"] {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
+}
+
+.mantis-seo-theme-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mantis-seo-theme-icon-dark {
+	display: none;
+}
+
+.mantis-seo-theme-toggle[aria-pressed="true"] .mantis-seo-theme-icon-light {
+	display: none;
+}
+
+.mantis-seo-theme-toggle[aria-pressed="true"] .mantis-seo-theme-icon-dark {
+	display: flex;
+}
+
+.mantis-seo-theme-icon svg {
+	display: block;
+}
+
+.mantis-seo-help-button {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	background: var(--mantis-bg);
+	color: var(--mantis-text-muted);
+	text-decoration: none;
+	font-size: 0.875rem;
+	font-weight: 500;
+	transition: color var(--mantis-transition), border-color var(--mantis-transition), background var(--mantis-transition);
+}
+
+.mantis-seo-help-button:hover {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
+}
+
+.mantis-seo-app-main {
+	flex: 1;
+	background: var(--mantis-bg);
+}
+
+.mantis-seo-app-content {
+	width: 100%;
+	max-width: none;
+	margin: 0;
+	padding: 1.5rem 2rem;
+	box-sizing: border-box;
+}
+
+@media (min-width: 1280px) {
+	.mantis-seo-app-content {
+		padding: 2rem 3rem;
+	}
+}
+
+@media (min-width: 1536px) {
+	.mantis-seo-app-content {
+		padding: 2rem 4rem;
+	}
+}
+
+/* Base wrapper – responsive, no fixed max-width */
 .wrap.mantis-seo-settings,
 .wrap.mantis-redirects {
-	max-width: 1200px;
+	max-width: none;
 	margin: 0;
 	padding: 0;
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, sans-serif;
 }
 
 /* Page header */
@@ -56,16 +204,31 @@
 	color: #065f46;
 }
 
+.mantis-seo-app.mantis-seo-dark .notice-success {
+	background: rgba(16, 185, 129, 0.2);
+	color: #6ee7b7;
+}
+
 .wrap.mantis-seo-settings .notice-info,
 .wrap.mantis-redirects .notice-info {
 	background: #eff6ff;
 	color: #1e40af;
 }
 
+.mantis-seo-app.mantis-seo-dark .notice-info {
+	background: rgba(59, 130, 246, 0.2);
+	color: #93c5fd;
+}
+
 .wrap.mantis-seo-settings .notice-error,
 .wrap.mantis-redirects .notice-error {
 	background: #fef2f2;
 	color: #991b1b;
+}
+
+.mantis-seo-app.mantis-seo-dark .notice-error {
+	background: rgba(239, 68, 68, 0.2);
+	color: #fca5a5;
 }
 
 .wrap.mantis-seo-settings .notice p,
@@ -590,7 +753,7 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 	align-items: center;
 	justify-content: center;
 	transition: color var(--mantis-transition), background var(--mantis-transition), border-color var(--mantis-transition);
-	box-shadow: -3px 0 10px rgba(0, 0, 0, 0.08);
+	box-shadow: -3px 0 6px rgba(0, 0, 0, 0.08);
 	z-index: 10;
 	flex-shrink: 0;
 }
@@ -598,6 +761,16 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 .mantis-seo-resize-tab:hover {
 	color: var(--mantis-accent);
 	background: #ffffff;
+}
+
+.mantis-seo-resize-tab .mantis-seo-resize-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mantis-seo-resize-tab .mantis-seo-resize-icon svg {
+	display: block;
 }
 
 /* Panel – fills the wrapper */

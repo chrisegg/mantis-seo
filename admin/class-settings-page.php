@@ -438,8 +438,12 @@ class Mantis_SEO_Settings_Page {
 
 		settings_errors( 'mantis_seo_messages' );
 		?>
-		<div class="wrap mantis-seo-settings">
-			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+		<div class="mantis-seo-app" id="mantis-seo-app">
+			<script>!function(){var e=document.getElementById("mantis-seo-app");e&&"dark"===localStorage.getItem("mantis_seo_theme")&&e.classList.add("mantis-seo-dark")}();</script>
+			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
+			<main class="mantis-seo-app-main">
+				<div class="mantis-seo-app-content wrap mantis-seo-settings">
+					<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 			<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
 			<div class="notice notice-info" style="margin:20px 0;">
@@ -638,6 +642,8 @@ class Mantis_SEO_Settings_Page {
 				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" style="margin-right:8px;" />
 				<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 			</form>
+				</div>
+			</main>
 		</div>
 
 		<script>

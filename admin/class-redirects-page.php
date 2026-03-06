@@ -116,8 +116,12 @@ class Mantis_SEO_Redirects_Page {
 			410 => __( '410 Gone', 'mantis-seo' ),
 		);
 		?>
-		<div class="wrap mantis-redirects">
-			<h1><?php esc_html_e( 'Redirects', 'mantis-seo' ); ?></h1>
+		<div class="mantis-seo-app" id="mantis-seo-app">
+			<script>!function(){var e=document.getElementById("mantis-seo-app");e&&"dark"===localStorage.getItem("mantis_seo_theme")&&e.classList.add("mantis-seo-dark")}();</script>
+			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
+			<main class="mantis-seo-app-main">
+				<div class="mantis-seo-app-content wrap mantis-redirects">
+					<h1><?php esc_html_e( 'Redirects', 'mantis-seo' ); ?></h1>
 
 			<?php if ( isset( $_GET['added'] ) ) : ?>
 				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect added.', 'mantis-seo' ); ?></p></div>
@@ -208,6 +212,8 @@ class Mantis_SEO_Redirects_Page {
 					</tbody>
 				</table>
 			<?php endif; ?>
+				</div>
+			</main>
 		</div>
 		<?php
 	}

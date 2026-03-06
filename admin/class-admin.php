@@ -81,5 +81,15 @@ class Mantis_SEO_Admin {
 				true
 			);
 		}
+
+		if ( strpos( $hook, 'mantis-seo' ) !== false ) {
+			wp_enqueue_script(
+				'mantis-seo-admin-app',
+				MANTIS_SEO_URL . 'assets/js/admin-app.js',
+				array(),
+				MANTIS_SEO_VERSION,
+				true
+			);
+		}
 	}
 }

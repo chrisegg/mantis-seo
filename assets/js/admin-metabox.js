@@ -151,7 +151,9 @@
 	}
 
 	function updateResizeTab(resizeTab, isWide) {
-		resizeTab.innerHTML = isWide ? '<span aria-hidden="true">&gt;</span>' : '<span aria-hidden="true">&lt;</span>';
+		const caretLeft = '<span class="mantis-seo-resize-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z"/></svg></span>';
+		const caretRight = '<span class="mantis-seo-resize-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/></svg></span>';
+		resizeTab.innerHTML = isWide ? caretRight : caretLeft;
 		resizeTab.setAttribute('title', isWide ? 'Shrink panel' : 'Expand panel');
 		resizeTab.setAttribute('aria-label', isWide ? 'Shrink panel' : 'Expand panel');
 	}
