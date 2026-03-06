@@ -10,9 +10,10 @@
 	const SELECTORS = {
 		trigger: '.mantis-seo-open-panel',
 		slideout: '#mantis-seo-slideout',
-		backdrop: '.mantis-seo-slideout-backdrop',
 		closeBtn: '.mantis-seo-slideout-close',
 		pinToggle: '.mantis-seo-pin-toggle',
+		tab: '.mantis-seo-tab',
+		tabPanel: '.mantis-seo-tab-panel',
 	};
 
 	const CLASSES = {
@@ -27,7 +28,6 @@
 		if (!slideout) return;
 
 		const trigger = document.querySelector(SELECTORS.trigger);
-		const backdrop = slideout.querySelector(SELECTORS.backdrop);
 		const closeBtn = slideout.querySelector(SELECTORS.closeBtn);
 		const pinToggle = slideout.querySelector(SELECTORS.pinToggle);
 
@@ -35,13 +35,15 @@
 			trigger.addEventListener('click', openPanel);
 		}
 
-		if (backdrop) {
-			backdrop.addEventListener('click', handleBackdropClick);
-		}
-
 		if (closeBtn) {
 			closeBtn.addEventListener('click', closePanel);
 		}
+
+		slideout.querySelectorAll(SELECTORS.tab).forEach(function (tabEl) {
+			tabEl.addEventListener('click', function () {
+				switchTab(slideout, tabEl.getAttribute('data-tab'));
+			});
+		});
 
 		if (pinToggle) {
 			pinToggle.addEventListener('click', togglePin);
@@ -50,16 +52,28 @@
 			if (wasPinned) {
 				slideout.classList.add(CLASSES.pinned);
 				pinToggle.setAttribute('aria-pressed', 'true');
-				pinToggle.title = 'Unpin panel (click outside to close)';
+				pinToggle.title = 'Unpin panel';
 				slideout.classList.add(CLASSES.open);
 			}
 		}
 
-		// Close on Escape key.
+		// Close on Escape key (when not pinned).
 		document.addEventListener('keydown', function (e) {
-			if (e.key === 'Escape' && slideout.classList.contains(CLASSES.open)) {
+			if (e.key === 'Escape' && slideout.classList.contains(CLASSES.open) && !slideout.classList.contains(CLASSES.pinned)) {
 				closePanel();
 			}
+		});
+	}
+
+	function switchTab(slideout, tabId) {
+		slideout.querySelectorAll(SELECTORS.tab).forEach(function (t) {
+			t.classList.toggle('mantis-seo-tab-active', t.getAttribute('data-tab') === tabId);
+			t.setAttribute('aria-selected', t.getAttribute('data-tab') === tabId ? 'true' : 'false');
+		});
+		slideout.querySelectorAll(SELECTORS.tabPanel).forEach(function (p) {
+			const isActive = p.id === 'mantis-seo-tab-' + tabId;
+			p.classList.toggle('mantis-seo-tab-panel-active', isActive);
+			p.setAttribute('aria-hidden', isActive ? 'false' : 'true');
 		});
 	}
 
@@ -68,8 +82,9 @@
 		if (slideout) {
 			slideout.classList.add(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'false');
-			// Focus first focusable in panel for accessibility.
-			const firstInput = slideout.querySelector('input, textarea, button');
+			// Focus first focusable in active tab for accessibility.
+			const activePanel = slideout.querySelector(SELECTORS.tabPanel + '.mantis-seo-tab-panel-active');
+			const firstInput = activePanel ? activePanel.querySelector('input:not([type="hidden"]), textarea') : null;
 			if (firstInput) {
 				setTimeout(function () {
 					firstInput.focus();
@@ -86,14 +101,6 @@
 		}
 	}
 
-	function handleBackdropClick() {
-		const slideout = document.querySelector(SELECTORS.slideout);
-		if (!slideout || !slideout.classList.contains(CLASSES.open)) return;
-		// Don't close if pinned.
-		if (slideout.classList.contains(CLASSES.pinned)) return;
-		closePanel();
-	}
-
 	function togglePin() {
 		const slideout = document.querySelector(SELECTORS.slideout);
 		const pinToggle = slideout && slideout.querySelector(SELECTORS.pinToggle);
@@ -102,7 +109,7 @@
 		const isPinned = slideout.classList.toggle(CLASSES.pinned);
 		pinToggle.setAttribute('aria-pressed', isPinned ? 'true' : 'false');
 		pinToggle.title = isPinned
-			? 'Unpin panel (click outside to close)'
+			? 'Unpin panel'
 			: 'Pin panel open';
 		// Toggle lock/unlock icon.
 		const icon = pinToggle.querySelector('.dashicons');

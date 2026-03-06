@@ -91,33 +91,53 @@ class Mantis_SEO_Metabox {
 		echo '</div>';
 		echo '<button type="button" class="mantis-seo-slideout-close" aria-label="' . esc_attr__( 'Close', 'mantis-seo' ) . '">&times;</button>';
 		echo '</div>';
-		echo '<div class="mantis-seo-slideout-body">';
-		echo '<div class="mantis-seo-metabox">';
-		foreach ( $fields as $key => $label ) {
-			$value = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
-			$meta_key = self::META_PREFIX . $key;
-			$placeholder = ( 'title' === $key && '' === trim( (string) $value ) ) ? $title_template : '';
-
-			if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
-				echo '<p>';
-				echo '<label><input type="checkbox" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $value, '1', false ) . ' /> ' . esc_html( $label ) . '</label>';
-				echo '</p>';
-			} else {
-				$type = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
-				$input_type = 'url' === $type ? 'url' : 'text';
-				$tag = 'description' === $key ? 'textarea' : 'input';
-				echo '<p>';
-				echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
-				if ( 'textarea' === $tag ) {
-					echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="2" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
-				} else {
-					$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
-					echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
-				}
-				echo '</p>';
-			}
+		echo '<nav class="mantis-seo-slideout-tabs" role="tablist">';
+		$tab_labels = array(
+			'meta'    => __( 'Meta', 'mantis-seo' ),
+			'og'      => __( 'OG', 'mantis-seo' ),
+			'twitter' => __( 'Twitter', 'mantis-seo' ),
+		);
+		$first = true;
+		foreach ( array_keys( $fields ) as $tab_id ) {
+			$active = $first ? ' mantis-seo-tab-active' : '';
+			echo '<button type="button" role="tab" class="mantis-seo-tab' . esc_attr( $active ) . '" data-tab="' . esc_attr( $tab_id ) . '" aria-selected="' . ( $first ? 'true' : 'false' ) . '">' . esc_html( $tab_labels[ $tab_id ] ?? $tab_id ) . '</button>';
+			$first  = false;
 		}
-		echo '</div></div></div></div>';
+		echo '</nav>';
+		echo '<div class="mantis-seo-slideout-body">';
+		$first = true;
+		foreach ( $fields as $tab_id => $tab_fields ) {
+			$active = $first ? ' mantis-seo-tab-panel-active' : '';
+			echo '<div class="mantis-seo-tab-panel' . esc_attr( $active ) . '" role="tabpanel" id="mantis-seo-tab-' . esc_attr( $tab_id ) . '" aria-hidden="' . ( $first ? 'false' : 'true' ) . '">';
+			$first  = false;
+			echo '<div class="mantis-seo-metabox">';
+			foreach ( $tab_fields as $key => $label ) {
+				$value     = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
+				$meta_key  = self::META_PREFIX . $key;
+				$placeholder = ( 'title' === $key && '' === trim( (string) $value ) ) ? $title_template : '';
+
+				if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
+					echo '<p>';
+					echo '<label><input type="checkbox" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $value, '1', false ) . ' /> ' . esc_html( $label ) . '</label>';
+					echo '</p>';
+				} else {
+					$type       = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
+					$input_type = 'url' === $type ? 'url' : 'text';
+					$tag        = 'description' === $key ? 'textarea' : 'input';
+					echo '<p>';
+					echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
+					if ( 'textarea' === $tag ) {
+						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="2" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
+					} else {
+						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
+						echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
+					}
+					echo '</p>';
+				}
+			}
+			echo '</div></div>';
+		}
+		echo '</div></div></div>';
 	}
 
 	/**
@@ -125,20 +145,31 @@ class Mantis_SEO_Metabox {
 	 *
 	 * @return array
 	 */
+	/**
+	 * Get field definitions grouped by tab.
+	 *
+	 * @return array Tab slug => array of key => label.
+	 */
 	private function get_field_definitions() {
 		return array(
-			'focus_keyword'       => __( 'Focus Keyword', 'mantis-seo' ),
-			'title'               => __( 'SEO Title', 'mantis-seo' ),
-			'description'         => __( 'Meta Description', 'mantis-seo' ),
-			'canonical'           => __( 'Canonical URL', 'mantis-seo' ),
-			'robots_noindex'      => __( 'Noindex', 'mantis-seo' ),
-			'robots_nofollow'     => __( 'Nofollow', 'mantis-seo' ),
-			'og_title'            => __( 'OG Title', 'mantis-seo' ),
-			'og_description'      => __( 'OG Description', 'mantis-seo' ),
-			'og_image'            => __( 'OG Image URL', 'mantis-seo' ),
-			'twitter_title'       => __( 'Twitter Title', 'mantis-seo' ),
-			'twitter_description' => __( 'Twitter Description', 'mantis-seo' ),
-			'twitter_image'       => __( 'Twitter Image URL', 'mantis-seo' ),
+			'meta'    => array(
+				'focus_keyword'   => __( 'Focus Keyword', 'mantis-seo' ),
+				'title'           => __( 'SEO Title', 'mantis-seo' ),
+				'description'     => __( 'Meta Description', 'mantis-seo' ),
+				'canonical'       => __( 'Canonical URL', 'mantis-seo' ),
+				'robots_noindex'  => __( 'Noindex', 'mantis-seo' ),
+				'robots_nofollow' => __( 'Nofollow', 'mantis-seo' ),
+			),
+			'og'      => array(
+				'og_title'       => __( 'OG Title', 'mantis-seo' ),
+				'og_description' => __( 'OG Description', 'mantis-seo' ),
+				'og_image'       => __( 'OG Image URL', 'mantis-seo' ),
+			),
+			'twitter' => array(
+				'twitter_title'       => __( 'Twitter Title', 'mantis-seo' ),
+				'twitter_description' => __( 'Twitter Description', 'mantis-seo' ),
+				'twitter_image'       => __( 'Twitter Image URL', 'mantis-seo' ),
+			),
 		);
 	}
 

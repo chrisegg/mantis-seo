@@ -517,35 +517,31 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
-	z-index: 100000;
+	z-index: 999999;
 	pointer-events: none;
 	visibility: hidden;
 	transition: visibility var(--mantis-transition);
 }
 
 #mantis-seo-slideout.mantis-seo-slideout-open {
-	pointer-events: auto;
 	visibility: visible;
 }
 
+/* Backdrop never blocks – page content stays scrollable */
 .mantis-seo-slideout-backdrop {
 	position: absolute;
 	inset: 0;
-	background: rgba(15, 23, 42, 0.15);
+	background: rgba(15, 23, 42, 0.12);
 	opacity: 0;
 	transition: opacity 0.25s ease;
-	pointer-events: auto;
+	pointer-events: none;
 }
 
 #mantis-seo-slideout.mantis-seo-slideout-open .mantis-seo-slideout-backdrop {
 	opacity: 1;
 }
 
-/* When pinned, backdrop doesn't close – allow clicks through to scroll post content */
-#mantis-seo-slideout.mantis-seo-slideout-pinned .mantis-seo-slideout-backdrop {
-	pointer-events: none;
-}
-
+/* Panel receives pointer events; backdrop lets clicks through to scroll post */
 .mantis-seo-slideout-panel {
 	position: absolute;
 	top: 0;
@@ -553,7 +549,8 @@
 	bottom: 0;
 	width: 100%;
 	max-width: 420px;
-	background: var(--mantis-card-bg);
+	pointer-events: auto;
+	background: #ffffff;
 	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
 	display: flex;
 	flex-direction: column;
@@ -564,6 +561,17 @@
 
 #mantis-seo-slideout.mantis-seo-slideout-open .mantis-seo-slideout-panel {
 	transform: translateX(0);
+}
+
+/* Offset below admin bar – WordPress adds .admin-bar to body */
+body.admin-bar .mantis-seo-slideout-panel {
+	top: 32px;
+}
+
+@media screen and (max-width: 782px) {
+	body.admin-bar .mantis-seo-slideout-panel {
+		top: 46px;
+	}
 }
 
 .mantis-seo-slideout-header {
@@ -653,10 +661,60 @@
 	background: var(--mantis-bg);
 }
 
+/* Tabs */
+.mantis-seo-slideout-tabs {
+	display: flex;
+	gap: 0;
+	padding: 0 1.5rem;
+	background: var(--mantis-bg);
+	border-bottom: 1px solid var(--mantis-border);
+	flex-shrink: 0;
+}
+
+.mantis-seo-tab {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	margin: 0;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: none;
+	color: var(--mantis-text-muted);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: color var(--mantis-transition), border-color var(--mantis-transition);
+	margin-bottom: -1px;
+}
+
+.mantis-seo-tab:hover {
+	color: var(--mantis-text);
+}
+
+.mantis-seo-tab.mantis-seo-tab-active {
+	color: var(--mantis-accent);
+	border-bottom-color: var(--mantis-accent);
+}
+
 .mantis-seo-slideout-body {
+	display: flex;
+	flex-direction: column;
 	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.mantis-seo-tab-panel {
+	display: none;
+	flex: 1;
+	min-height: 0;
 	overflow-y: auto;
 	padding: 1.25rem 1.5rem;
+}
+
+.mantis-seo-tab-panel.mantis-seo-tab-panel-active {
+	display: flex;
+	flex-direction: column;
 }
 
 /* Form fields inside slide-out */
