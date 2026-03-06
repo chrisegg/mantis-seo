@@ -653,11 +653,7 @@
 	font-size: inherit;
 }
 
-.mantis-redirects .wp-list-table td a + form::before {
-	content: "·";
-	margin: 0 0.5rem;
-	color: var(--mantis-border);
-}
+
 
 /* ========== METABOX – SIDEBAR TRIGGER & SLIDE-OUT ========== */
 
