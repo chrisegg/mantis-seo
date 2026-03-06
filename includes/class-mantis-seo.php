@@ -104,6 +104,10 @@ class Mantis_SEO_Main {
 		$defaults = self::get_default_settings();
 		$saved    = get_option( 'mantis_settings', array() );
 		$merged   = wp_parse_args( $saved, $defaults );
+		// Migrate legacy schema_same_as array to platform-specific fields.
+		if ( ! empty( $saved['schema_same_as'] ) && is_array( $saved['schema_same_as'] ) ) {
+			$merged = self::migrate_schema_same_as( $saved['schema_same_as'], $merged );
+		}
 		// Empty template fields should use defaults - migration/save may have stored ''.
 		$template_keys = array( 'title_home', 'title_post', 'title_page', 'metadesc_home', 'metadesc_post', 'metadesc_page' );
 		foreach ( $template_keys as $key ) {
@@ -138,8 +142,38 @@ class Mantis_SEO_Main {
 			'schema_organization_name' => '',
 			'schema_organization_url'  => '',
 			'schema_organization_logo'  => '',
-			'schema_same_as'         => array(),
+			'schema_same_as_facebook'   => '',
+			'schema_same_as_instagram'  => '',
+			'schema_same_as_x'          => '',
+			'schema_same_as_linkedin'   => '',
 		);
+	}
+
+	/**
+	 * Migrate legacy schema_same_as array to platform-specific fields.
+	 *
+	 * @param array $urls     Legacy URL array.
+	 * @param array $merged  Current merged settings.
+	 * @return array
+	 */
+	private static function migrate_schema_same_as( $urls, $merged ) {
+		foreach ( $urls as $url ) {
+			$url = esc_url_raw( $url );
+			if ( empty( $url ) ) {
+				continue;
+			}
+			$host = strtolower( (string) ( parse_url( $url, PHP_URL_HOST ) ?: '' ) );
+			if ( str_contains( $host, 'facebook.com' ) || str_contains( $host, 'fb.com' ) ) {
+				$merged['schema_same_as_facebook'] = $url;
+			} elseif ( str_contains( $host, 'instagram.com' ) ) {
+				$merged['schema_same_as_instagram'] = $url;
+			} elseif ( str_contains( $host, 'twitter.com' ) || str_contains( $host, 'x.com' ) ) {
+				$merged['schema_same_as_x'] = $url;
+			} elseif ( str_contains( $host, 'linkedin.com' ) ) {
+				$merged['schema_same_as_linkedin'] = $url;
+			}
+		}
+		return $merged;
 	}
 
 	/**

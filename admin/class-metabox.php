@@ -127,6 +127,7 @@ class Mantis_SEO_Metabox {
 				} else {
 					$type       = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
 					$input_type = 'url' === $type ? 'url' : 'text';
+					$is_image   = ( 'og_image' === $key || 'twitter_image' === $key );
 					$is_desc    = ( 'description' === $key || false !== strpos( $key, '_description' ) );
 					$tag        = $is_desc ? 'textarea' : 'input';
 					$rows       = $is_desc ? 4 : 2;
@@ -136,7 +137,16 @@ class Mantis_SEO_Metabox {
 						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 					} else {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
-						echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
+						if ( $is_image ) {
+							$input_id = 'mantis_meta_' . $key;
+							echo '<div class="mantis-image-field-wrap">';
+							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text mantis-image-input" style="width:100%"' . $place_attr . ' />';
+							echo ' <button type="button" class="button mantis-media-upload" data-target="#' . esc_attr( $input_id ) . '" aria-label="' . esc_attr__( 'Select image from media library', 'mantis-seo' ) . '">' . esc_html__( 'Upload / Select', 'mantis-seo' ) . '</button>';
+							echo '<span class="mantis-image-preview" data-for="#' . esc_attr( $input_id ) . '"></span>';
+							echo '</div>';
+						} else {
+							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
+						}
 					}
 					echo '</p>';
 				}

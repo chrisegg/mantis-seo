@@ -65,8 +65,14 @@ class Mantis_SEO_Schema {
 			if ( ! empty( $settings['schema_organization_logo'] ) ) {
 				$org['logo'] = $settings['schema_organization_logo'];
 			}
-			if ( ! empty( $settings['schema_same_as'] ) && is_array( $settings['schema_same_as'] ) ) {
-				$org['sameAs'] = array_values( array_filter( $settings['schema_same_as'] ) );
+			$same_as = array_values( array_filter( array(
+				$settings['schema_same_as_facebook'] ?? '',
+				$settings['schema_same_as_instagram'] ?? '',
+				$settings['schema_same_as_x'] ?? '',
+				$settings['schema_same_as_linkedin'] ?? '',
+			) ) );
+			if ( ! empty( $same_as ) ) {
+				$org['sameAs'] = $same_as;
 			}
 			$graph[] = $org;
 		}

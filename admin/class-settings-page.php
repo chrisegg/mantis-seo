@@ -291,6 +291,7 @@ class Mantis_SEO_Settings_Page {
 			'og_default_image', 'twitter_card_type',
 			'noindex_author', 'noindex_date', 'sitemap_enabled',
 			'schema_organization_name', 'schema_organization_url', 'schema_organization_logo',
+			'schema_same_as_facebook', 'schema_same_as_instagram', 'schema_same_as_x', 'schema_same_as_linkedin',
 		);
 
 		$mantis = array();
@@ -391,8 +392,11 @@ class Mantis_SEO_Settings_Page {
 			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
 
-		if ( isset( $input['schema_same_as'] ) && is_array( $input['schema_same_as'] ) ) {
-			$sanitized['schema_same_as'] = array_values( array_filter( array_map( 'esc_url_raw', $input['schema_same_as'] ) ) );
+		$social_fields = array( 'schema_same_as_facebook', 'schema_same_as_instagram', 'schema_same_as_x', 'schema_same_as_linkedin' );
+		foreach ( $social_fields as $field ) {
+			if ( isset( $input[ $field ] ) ) {
+				$sanitized[ $field ] = esc_url_raw( $input[ $field ] );
+			}
 		}
 
 		return wp_parse_args( $sanitized, Mantis_SEO_Main::get_default_settings() );
@@ -472,16 +476,18 @@ class Mantis_SEO_Settings_Page {
 			<form action="options.php" method="post">
 				<?php settings_fields( 'mantis_seo_settings' ); ?>
 
-				<div class="mantis-seo-tabs">
-					<nav class="nav-tab-wrapper">
-						<a href="#mantis-titles" class="nav-tab nav-tab-active"><?php esc_html_e( 'Titles & Meta', 'mantis-seo' ); ?></a>
-						<a href="#mantis-social" class="nav-tab"><?php esc_html_e( 'Social', 'mantis-seo' ); ?></a>
-						<a href="#mantis-schema" class="nav-tab"><?php esc_html_e( 'Schema', 'mantis-seo' ); ?></a>
-						<a href="#mantis-sitemap" class="nav-tab"><?php esc_html_e( 'Sitemap', 'mantis-seo' ); ?></a>
-						<a href="#mantis-advanced" class="nav-tab"><?php esc_html_e( 'Advanced', 'mantis-seo' ); ?></a>
-						<a href="#mantis-tools" class="nav-tab"><?php esc_html_e( 'Tools', 'mantis-seo' ); ?></a>
+				<div class="mantis-settings-layout">
+					<nav class="mantis-settings-sidebar" aria-label="<?php esc_attr_e( 'Settings sections', 'mantis-seo' ); ?>">
+						<ul class="mantis-settings-nav">
+							<li><a href="#mantis-titles" class="mantis-settings-nav-item mantis-settings-nav-active" data-panel="mantis-titles"><?php esc_html_e( 'Titles & Meta', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-social" class="mantis-settings-nav-item" data-panel="mantis-social"><?php esc_html_e( 'Social', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-schema" class="mantis-settings-nav-item" data-panel="mantis-schema"><?php esc_html_e( 'Schema', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-sitemap" class="mantis-settings-nav-item" data-panel="mantis-sitemap"><?php esc_html_e( 'Sitemap', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-advanced" class="mantis-settings-nav-item" data-panel="mantis-advanced"><?php esc_html_e( 'Advanced', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-tools" class="mantis-settings-nav-item" data-panel="mantis-tools"><?php esc_html_e( 'Tools', 'mantis-seo' ); ?></a></li>
+						</ul>
 					</nav>
-
+					<div class="mantis-settings-body">
 					<div id="mantis-titles" class="mantis-tab-panel">
 						<h2><?php esc_html_e( 'Title Templates', 'mantis-seo' ); ?></h2>
 						<p class="description"><?php esc_html_e( 'Use %post_title%, %site_name%, %site_description%, %excerpt%, %date%, %separator%', 'mantis-seo' ); ?></p>
@@ -525,8 +531,12 @@ class Mantis_SEO_Settings_Page {
 						<h2><?php esc_html_e( 'Open Graph & Twitter', 'mantis-seo' ); ?></h2>
 						<table class="form-table">
 							<tr>
-								<th><label for="mantis_og_default_image"><?php esc_html_e( 'Default OG Image URL', 'mantis-seo' ); ?></label></th>
-								<td><input type="url" id="mantis_og_default_image" name="mantis_settings[og_default_image]" value="<?php echo esc_url( $settings['og_default_image'] ); ?>" class="large-text" /></td>
+								<th><label for="mantis_og_default_image"><?php esc_html_e( 'Default OG Image', 'mantis-seo' ); ?></label></th>
+								<td class="mantis-image-field-wrap">
+									<input type="url" id="mantis_og_default_image" name="mantis_settings[og_default_image]" value="<?php echo esc_url( $settings['og_default_image'] ); ?>" class="large-text mantis-image-input" />
+									<button type="button" class="button mantis-media-upload" data-target="#mantis_og_default_image" aria-label="<?php esc_attr_e( 'Select image from media library', 'mantis-seo' ); ?>"><?php esc_html_e( 'Upload / Select', 'mantis-seo' ); ?></button>
+									<span class="mantis-image-preview" data-for="#mantis_og_default_image"></span>
+								</td>
 							</tr>
 							<tr>
 								<th><label for="mantis_twitter_card_type"><?php esc_html_e( 'Twitter Card Type', 'mantis-seo' ); ?></label></th>
@@ -552,22 +562,32 @@ class Mantis_SEO_Settings_Page {
 								<td><input type="url" id="mantis_schema_org_url" name="mantis_settings[schema_organization_url]" value="<?php echo esc_url( $settings['schema_organization_url'] ); ?>" class="large-text" /></td>
 							</tr>
 							<tr>
-								<th><label for="mantis_schema_org_logo"><?php esc_html_e( 'Logo URL', 'mantis-seo' ); ?></label></th>
-								<td><input type="url" id="mantis_schema_org_logo" name="mantis_settings[schema_organization_logo]" value="<?php echo esc_url( $settings['schema_organization_logo'] ); ?>" class="large-text" /></td>
+								<th><label for="mantis_schema_org_logo"><?php esc_html_e( 'Logo', 'mantis-seo' ); ?></label></th>
+								<td class="mantis-image-field-wrap">
+									<input type="url" id="mantis_schema_org_logo" name="mantis_settings[schema_organization_logo]" value="<?php echo esc_url( $settings['schema_organization_logo'] ); ?>" class="large-text mantis-image-input" />
+									<button type="button" class="button mantis-media-upload" data-target="#mantis_schema_org_logo" aria-label="<?php esc_attr_e( 'Select image from media library', 'mantis-seo' ); ?>"><?php esc_html_e( 'Upload / Select', 'mantis-seo' ); ?></button>
+									<span class="mantis-image-preview" data-for="#mantis_schema_org_logo"></span>
+								</td>
 							</tr>
 							<tr>
-								<th><label><?php esc_html_e( 'Social Profiles (sameAs)', 'mantis-seo' ); ?></label></th>
+								<th><label><?php esc_html_e( 'Social Profiles', 'mantis-seo' ); ?></label></th>
 								<td>
+									<p class="description" style="margin-bottom:12px;"><?php esc_html_e( 'Same As (schema.org) – URLs where your organization appears on social platforms.', 'mantis-seo' ); ?></p>
 									<?php
-									$same_as = isset( $settings['schema_same_as'] ) ? $settings['schema_same_as'] : array();
-									if ( empty( $same_as ) ) {
-										$same_as = array( '' );
-									}
-									foreach ( $same_as as $i => $url ) :
+									$social_platforms = array(
+										'facebook'  => array( 'label' => __( 'Facebook', 'mantis-seo' ), 'icon' => 'mantis-icon-facebook', 'url' => 'schema_same_as_facebook' ),
+										'instagram' => array( 'label' => __( 'Instagram', 'mantis-seo' ), 'icon' => 'mantis-icon-instagram', 'url' => 'schema_same_as_instagram' ),
+										'x'         => array( 'label' => __( 'X (Twitter)', 'mantis-seo' ), 'icon' => 'mantis-icon-x', 'url' => 'schema_same_as_x' ),
+										'linkedin'  => array( 'label' => __( 'LinkedIn', 'mantis-seo' ), 'icon' => 'mantis-icon-linkedin', 'url' => 'schema_same_as_linkedin' ),
+									);
+									foreach ( $social_platforms as $key => $platform ) :
+										$value = $settings[ $platform['url'] ] ?? '';
 										?>
-										<input type="url" name="mantis_settings[schema_same_as][]" value="<?php echo esc_url( $url ); ?>" class="large-text" placeholder="https://" style="margin-bottom:5px; display:block;" />
+										<div class="mantis-social-row">
+											<span class="mantis-social-icon <?php echo esc_attr( $platform['icon'] ); ?>" title="<?php echo esc_attr( $platform['label'] ); ?>" aria-hidden="true"></span>
+											<input type="url" name="mantis_settings[<?php echo esc_attr( $platform['url'] ); ?>]" value="<?php echo esc_url( $value ); ?>" class="large-text mantis-social-input" placeholder="https://<?php echo esc_attr( $key ); ?>.com/..." />
+										</div>
 									<?php endforeach; ?>
-									<p class="description"><?php esc_html_e( 'One URL per line for social profiles.', 'mantis-seo' ); ?></p>
 								</td>
 							</tr>
 						</table>
@@ -636,9 +656,10 @@ class Mantis_SEO_Settings_Page {
 							</tr>
 						</table>
 					</div>
-				</div>
 
 				<?php submit_button(); ?>
+					</div>
+				</div>
 			</form>
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" style="display:none;">
@@ -652,15 +673,17 @@ class Mantis_SEO_Settings_Page {
 
 		<script>
 		(function() {
-			var tabs = document.querySelectorAll('.mantis-seo-tabs .nav-tab');
-			var panels = document.querySelectorAll('.mantis-tab-panel');
+			var navItems = document.querySelectorAll('.mantis-settings-nav-item');
+			var panels = document.querySelectorAll('.mantis-settings-body .mantis-tab-panel');
 			var importForm = document.getElementById('mantis-import-form');
 			var importCell = document.getElementById('mantis-import-cell');
-			function showTab(targetId) {
-				tabs.forEach(function(t) { t.classList.remove('nav-tab-active'); });
+			function showPanel(targetId) {
+				navItems.forEach(function(n) { n.classList.remove('mantis-settings-nav-active'); });
 				panels.forEach(function(p) {
 					p.style.display = p.id === targetId ? 'block' : 'none';
 				});
+				var active = document.querySelector('.mantis-settings-nav-item[data-panel="' + targetId + '"]');
+				if (active) active.classList.add('mantis-settings-nav-active');
 				if (targetId === 'mantis-tools' && importForm && importCell) {
 					importCell.appendChild(importForm);
 					importForm.style.display = 'block';
@@ -668,21 +691,15 @@ class Mantis_SEO_Settings_Page {
 					importForm.style.display = 'none';
 				}
 			}
-			tabs.forEach(function(tab) {
-				tab.addEventListener('click', function(e) {
+			navItems.forEach(function(item) {
+				item.addEventListener('click', function(e) {
 					e.preventDefault();
-					var targetId = this.getAttribute('href').slice(1);
-					var prev = document.querySelector('.mantis-seo-tabs .nav-tab-active');
-					if (prev) prev.classList.remove('nav-tab-active');
-					this.classList.add('nav-tab-active');
-					showTab(targetId);
+					var targetId = this.getAttribute('data-panel') || this.getAttribute('href').slice(1);
+					showPanel(targetId);
 				});
 			});
-			// Switch to Tools tab if import error in URL.
-			if (window.location.search.indexOf('mantis_import_error') !== -1 && tabs[5]) {
-				tabs.forEach(function(t) { t.classList.remove('nav-tab-active'); });
-				tabs[5].classList.add('nav-tab-active');
-				showTab('mantis-tools');
+			if (window.location.search.indexOf('mantis_import_error') !== -1 && navItems[5]) {
+				showPanel('mantis-tools');
 			}
 		})();
 		</script>

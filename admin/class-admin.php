@@ -72,6 +72,18 @@ class Mantis_SEO_Admin {
 			MANTIS_SEO_VERSION
 		);
 
+		// Enqueue media library for image upload fields.
+		if ( strpos( $hook, 'mantis-seo' ) !== false || 'post.php' === $hook || 'post-new.php' === $hook ) {
+			wp_enqueue_media();
+			wp_enqueue_script(
+				'mantis-seo-media-upload',
+				MANTIS_SEO_URL . 'assets/js/media-upload.js',
+				array( 'jquery' ),
+				MANTIS_SEO_VERSION,
+				true
+			);
+		}
+
 		if ( 'post.php' === $hook || 'post-new.php' === $hook ) {
 			wp_enqueue_script(
 				'mantis-seo-metabox',
