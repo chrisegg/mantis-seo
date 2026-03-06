@@ -41,6 +41,11 @@
 	display: flex;
 	flex-direction: column;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, sans-serif;
+	/* Extend into WordPress admin padding to remove left margin */
+	margin-left: -20px;
+	margin-right: -20px;
+	padding-left: 20px;
+	padding-right: 20px;
 }
 
 .mantis-seo-app-header {
@@ -175,17 +180,6 @@
 	max-width: none;
 	margin: 0;
 	padding: 0;
-}
-
-/* Page header */
-.wrap.mantis-seo-settings h1,
-.wrap.mantis-redirects h1 {
-	font-size: 1.75rem;
-	font-weight: 600;
-	color: var(--mantis-text);
-	margin: 0 0 1.5rem;
-	padding: 0;
-	letter-spacing: -0.02em;
 }
 
 /* Notices – toast-style */
@@ -468,20 +462,30 @@
 
 /* ========== REDIRECTS PAGE ========== */
 
-.mantis-redirects .mantis-redirect-form {
+/* Redirect form – collapsible, with padding */
+.mantis-redirect-form-wrap {
+	margin-bottom: 1.5rem;
+}
+
+.mantis-redirect-form-wrap .mantis-redirect-add-trigger {
+	margin-bottom: 0;
+}
+
+.mantis-redirect-form {
 	background: var(--mantis-card-bg);
 	border-radius: var(--mantis-radius);
 	box-shadow: var(--mantis-shadow);
 	padding: 1.5rem 2rem;
-	margin-bottom: 2rem;
+	margin-top: 1rem;
+	border: 1px solid var(--mantis-border);
 }
 
-.mantis-redirects .mantis-redirect-form h2 {
-	font-size: 1rem;
-	font-weight: 600;
-	color: var(--mantis-text);
-	margin: 0 0 1.25rem;
-	padding: 0;
+.mantis-redirect-form.mantis-redirect-form-collapsed {
+	display: none;
+}
+
+.mantis-redirect-form-wrap.mantis-redirect-form-expanded .mantis-redirect-form {
+	display: block;
 }
 
 .mantis-redirects .form-table tbody,
@@ -569,14 +573,11 @@
 }
 
 /* Redirects list */
-.mantis-redirects > h2 {
-	font-size: 1rem;
-	font-weight: 600;
-	color: var(--mantis-text);
-	margin: 0 0 1rem;
+.mantis-redirects-list {
+	margin-top: 1rem;
 }
 
-.mantis-redirects > p {
+.mantis-redirects-list > p {
 	color: var(--mantis-text-muted);
 	font-size: 0.875rem;
 }

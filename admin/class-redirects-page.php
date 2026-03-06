@@ -121,8 +121,6 @@ class Mantis_SEO_Redirects_Page {
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-redirects">
-					<h1><?php esc_html_e( 'Redirects', 'mantis-seo' ); ?></h1>
-
 			<?php if ( isset( $_GET['added'] ) ) : ?>
 				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect added.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
@@ -133,8 +131,11 @@ class Mantis_SEO_Redirects_Page {
 				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect deleted.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
 
-			<div class="mantis-redirect-form" style="margin-bottom:30px;">
-				<h2><?php echo $editing ? esc_html__( 'Edit Redirect', 'mantis-seo' ) : esc_html__( 'Add Redirect', 'mantis-seo' ); ?></h2>
+			<div id="mantis-redirect-form-wrap" class="mantis-redirect-form-wrap<?php echo $editing ? ' mantis-redirect-form-expanded' : ''; ?>">
+				<?php if ( ! $editing ) : ?>
+				<button type="button" class="button button-primary mantis-redirect-add-trigger"><?php esc_html_e( 'Add Redirect', 'mantis-seo' ); ?></button>
+				<?php endif; ?>
+				<div class="mantis-redirect-form<?php echo $editing ? '' : ' mantis-redirect-form-collapsed'; ?>">
 				<form method="post" action="">
 					<?php wp_nonce_field( 'mantis_redirect_save' ); ?>
 					<input type="hidden" name="mantis_redirect_save" value="1" />
@@ -171,12 +172,15 @@ class Mantis_SEO_Redirects_Page {
 						<button type="submit" class="button button-primary"><?php echo $editing ? esc_html__( 'Update Redirect', 'mantis-seo' ) : esc_html__( 'Add Redirect', 'mantis-seo' ); ?></button>
 						<?php if ( $editing ) : ?>
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-redirects' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></a>
+						<?php else : ?>
+							<button type="button" class="button mantis-redirect-form-cancel"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></button>
 						<?php endif; ?>
 					</p>
 				</form>
+				</div>
 			</div>
 
-			<h2><?php esc_html_e( 'Existing Redirects', 'mantis-seo' ); ?></h2>
+			<div class="mantis-redirects-list">
 			<?php if ( empty( $redirects ) ) : ?>
 				<p><?php esc_html_e( 'No redirects yet.', 'mantis-seo' ); ?></p>
 			<?php else : ?>
@@ -212,6 +216,7 @@ class Mantis_SEO_Redirects_Page {
 					</tbody>
 				</table>
 			<?php endif; ?>
+			</div>
 				</div>
 			</main>
 		</div>

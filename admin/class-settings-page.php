@@ -443,8 +443,6 @@ class Mantis_SEO_Settings_Page {
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-seo-settings">
-					<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-
 			<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
 			<div class="notice notice-info" style="margin:20px 0;">
 				<p><strong><?php esc_html_e( 'Yoast SEO detected.', 'mantis-seo' ); ?></strong> <?php esc_html_e( 'You can migrate your SEO settings, post meta, and redirects to Mantis SEO.', 'mantis-seo' ); ?></p>
