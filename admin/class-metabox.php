@@ -77,10 +77,17 @@ class Mantis_SEO_Metabox {
 			'twitter_image'     => __( 'Twitter Image URL', 'mantis-seo' ),
 		);
 
+		$settings = Mantis_SEO_Main::get_settings();
+		$title_template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+		if ( '' === trim( (string) $title_template ) ) {
+			$title_template = '%post_title% %page% %separator% %site_name%';
+		}
+
 		echo '<div class="mantis-seo-metabox">';
 		foreach ( $fields as $key => $label ) {
 			$value = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
 			$meta_key = self::META_PREFIX . $key;
+			$placeholder = ( 'title' === $key && '' === trim( (string) $value ) ) ? $title_template : '';
 
 			if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
 				echo '<p>';
@@ -95,7 +102,8 @@ class Mantis_SEO_Metabox {
 				if ( 'textarea' === $tag ) {
 					echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="2" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 				} else {
-					echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%" />';
+					$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
+					echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
 				}
 				echo '</p>';
 			}

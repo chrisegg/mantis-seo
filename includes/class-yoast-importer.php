@@ -135,12 +135,12 @@ class Mantis_SEO_Yoast_Importer {
 				$value = self::convert_yoast_vars( $value );
 			}
 
-			// Use default template for empty/default Yoast title so every post has a title.
+			// Only migrate title when Yoast had a custom value - defaults are pushed separately.
 			if ( '_mantis_title' === $new_key ) {
 				$trimmed = trim( (string) $value );
 				$converted_default = self::convert_yoast_vars( '%%title%% %%page%% %%sep%% %%sitename%%' );
 				if ( '' === $trimmed || $trimmed === $converted_default ) {
-					$value = $converted_default;
+					continue;
 				}
 			}
 
