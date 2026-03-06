@@ -85,13 +85,16 @@ class Mantis_SEO_Settings_Page {
 			if ( isset( $imported['_import_type'] ) && 'yoast_keywords' === $imported['_import_type'] && ! empty( $imported['_post_updates'] ) ) {
 				$count = 0;
 				foreach ( $imported['_post_updates'] as $post_id => $meta ) {
+					if ( ! empty( $meta['focus_keyword'] ) ) {
+						update_post_meta( (int) $post_id, '_mantis_focus_keyword', $meta['focus_keyword'] );
+					}
 					if ( ! empty( $meta['title'] ) ) {
 						update_post_meta( (int) $post_id, '_mantis_title', $meta['title'] );
-						$count++;
 					}
 					if ( isset( $meta['description'] ) && '' !== $meta['description'] ) {
 						update_post_meta( (int) $post_id, '_mantis_description', $meta['description'] );
 					}
+					$count++;
 				}
 				wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'mantis_imported_posts' => $count ), $redirect_url ) );
 				exit;
@@ -229,11 +232,15 @@ class Mantis_SEO_Settings_Page {
 		}
 
 		$header = array_map( 'trim', str_getcsv( $lines[0] ) );
-		$idx_id    = array_search( 'ID', $header, true );
-		$idx_seo   = array_search( 'seo title', $header, true );
-		$idx_meta  = array_search( 'meta description', $header, true );
-		if ( false === $idx_id || ( false === $idx_seo && false === $idx_meta ) ) {
+		$idx_id       = array_search( 'ID', $header, true );
+		$idx_keyphrase = array_search( 'keyphrase', $header, true );
+		$idx_seo      = array_search( 'seo title', $header, true );
+		$idx_meta     = array_search( 'meta description', $header, true );
+		if ( false === $idx_id || ( false === $idx_seo && false === $idx_meta && false === $idx_keyphrase ) ) {
 			return array();
+		}
+		if ( false === $idx_keyphrase ) {
+			$idx_keyphrase = -1;
 		}
 		if ( false === $idx_seo ) {
 			$idx_seo = -1;
@@ -249,16 +256,18 @@ class Mantis_SEO_Settings_Page {
 			if ( ! $post_id || ! get_post( $post_id ) ) {
 				continue;
 			}
-			$title = ( $idx_seo >= 0 && isset( $row[ $idx_seo ] ) ) ? trim( (string) $row[ $idx_seo ] ) : '';
-			$desc  = ( $idx_meta >= 0 && isset( $row[ $idx_meta ] ) ) ? trim( (string) $row[ $idx_meta ] ) : '';
-			if ( '' === $title && '' === $desc ) {
+			$keyphrase = ( $idx_keyphrase >= 0 && isset( $row[ $idx_keyphrase ] ) ) ? trim( (string) $row[ $idx_keyphrase ] ) : '';
+			$title     = ( $idx_seo >= 0 && isset( $row[ $idx_seo ] ) ) ? trim( (string) $row[ $idx_seo ] ) : '';
+			$desc      = ( $idx_meta >= 0 && isset( $row[ $idx_meta ] ) ) ? trim( (string) $row[ $idx_meta ] ) : '';
+			if ( '' === $keyphrase && '' === $title && '' === $desc ) {
 				continue;
 			}
 			$title = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $title );
 			$desc  = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $desc );
 			$updates[ $post_id ] = array(
-				'title'       => $title,
-				'description' => $desc,
+				'focus_keyword' => $keyphrase,
+				'title'         => $title,
+				'description'   => $desc,
 			);
 		}
 		return $updates;

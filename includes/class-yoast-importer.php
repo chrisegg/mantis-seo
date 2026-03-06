@@ -20,6 +20,7 @@ class Mantis_SEO_Yoast_Importer {
 	 * @var array
 	 */
 	private static $meta_map = array(
+		'_yoast_wpseo_focuskw'              => '_mantis_focus_keyword',
 		'_yoast_wpseo_title'                => '_mantis_title',
 		'_yoast_wpseo_metadesc'             => '_mantis_description',
 		'_yoast_wpseo_canonical'            => '_mantis_canonical',
@@ -39,7 +40,6 @@ class Mantis_SEO_Yoast_Importer {
 	 * @var array
 	 */
 	private static $skip_keys = array(
-		'_yoast_wpseo_focuskw',
 		'_yoast_wpseo_linkdex',
 		'_yoast_wpseo_content_score',
 		'_yoast_wpseo_inclusive_language_score',
@@ -440,6 +440,13 @@ class Mantis_SEO_Yoast_Importer {
 			if ( ! empty( $wpseo_titles['company_logo'] ?? '' ) ) {
 				$settings['schema_organization_logo'] = $wpseo_titles['company_logo'];
 			}
+		} else {
+			// Yoast titles missing or invalid: set defaults so the inputs are populated.
+			$default_single = '%post_title% %page% %separator% %site_name%';
+			$default_home   = '%site_name% %page% %separator% %site_description%';
+			$settings['title_post'] = $default_single;
+			$settings['title_page'] = $default_single;
+			$settings['title_home'] = $default_home;
 		}
 
 		if ( is_array( $wpseo_social ) ) {

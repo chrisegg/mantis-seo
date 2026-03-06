@@ -114,8 +114,8 @@ class Mantis_SEO_Main {
 	public static function get_default_settings() {
 		return array(
 			'title_home'             => '%site_name% - %site_description%',
-			'title_post'             => '%post_title% | %site_name%',
-			'title_page'             => '%post_title% | %site_name%',
+			'title_post'             => '%post_title% %page% %separator% %site_name%',
+			'title_page'             => '%post_title% %page% %separator% %site_name%',
 			'separator'              => '|',
 			'metadesc_home'          => '',
 			'metadesc_post'          => '%excerpt%',

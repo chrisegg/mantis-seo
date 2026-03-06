@@ -63,6 +63,7 @@ class Mantis_SEO_Metabox {
 		wp_nonce_field( 'mantis_seo_metabox', 'mantis_seo_metabox_nonce' );
 
 		$fields = array(
+			'focus_keyword'     => __( 'Focus Keyword', 'mantis-seo' ),
 			'title'             => __( 'SEO Title', 'mantis-seo' ),
 			'description'       => __( 'Meta Description', 'mantis-seo' ),
 			'canonical'         => __( 'Canonical URL', 'mantis-seo' ),
@@ -120,7 +121,7 @@ class Mantis_SEO_Metabox {
 		}
 
 		$fields = array(
-			'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
+			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
 			'twitter_title', 'twitter_description', 'twitter_image',
 		);
 		foreach ( $fields as $field ) {
@@ -152,6 +153,10 @@ class Mantis_SEO_Metabox {
 		wp_nonce_field( 'mantis_seo_term', 'mantis_seo_term_nonce' );
 		?>
 		<div class="form-field">
+			<label for="mantis_term_focus_keyword"><?php esc_html_e( 'Focus Keyword', 'mantis-seo' ); ?></label>
+			<input type="text" id="mantis_term_focus_keyword" name="mantis_term_focus_keyword" value="" />
+		</div>
+		<div class="form-field">
 			<label for="mantis_term_title"><?php esc_html_e( 'SEO Title', 'mantis-seo' ); ?></label>
 			<input type="text" id="mantis_term_title" name="mantis_term_title" value="" />
 		</div>
@@ -170,9 +175,14 @@ class Mantis_SEO_Metabox {
 	 */
 	public function term_edit_fields( $term, $taxonomy ) {
 		wp_nonce_field( 'mantis_seo_term', 'mantis_seo_term_nonce' );
-		$title = get_term_meta( $term->term_id, self::META_PREFIX . 'title', true );
-		$description = get_term_meta( $term->term_id, self::META_PREFIX . 'description', true );
+		$focus_keyword = get_term_meta( $term->term_id, self::META_PREFIX . 'focus_keyword', true );
+		$title         = get_term_meta( $term->term_id, self::META_PREFIX . 'title', true );
+		$description   = get_term_meta( $term->term_id, self::META_PREFIX . 'description', true );
 		?>
+		<tr class="form-field">
+			<th><label for="mantis_term_focus_keyword"><?php esc_html_e( 'Focus Keyword', 'mantis-seo' ); ?></label></th>
+			<td><input type="text" id="mantis_term_focus_keyword" name="mantis_term_focus_keyword" value="<?php echo esc_attr( $focus_keyword ); ?>" class="large-text" /></td>
+		</tr>
 		<tr class="form-field">
 			<th><label for="mantis_term_title"><?php esc_html_e( 'SEO Title', 'mantis-seo' ); ?></label></th>
 			<td><input type="text" id="mantis_term_title" name="mantis_term_title" value="<?php echo esc_attr( $title ); ?>" class="large-text" /></td>
@@ -193,10 +203,12 @@ class Mantis_SEO_Metabox {
 		if ( ! isset( $_POST['mantis_seo_term_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_term_nonce'] ) ), 'mantis_seo_term' ) ) {
 			return;
 		}
-		if ( ! isset( $_POST['mantis_term_title'] ) ) {
-			return;
+		if ( isset( $_POST['mantis_term_focus_keyword'] ) ) {
+			update_term_meta( $term_id, self::META_PREFIX . 'focus_keyword', sanitize_text_field( wp_unslash( $_POST['mantis_term_focus_keyword'] ) ) );
 		}
-		update_term_meta( $term_id, self::META_PREFIX . 'title', sanitize_text_field( wp_unslash( $_POST['mantis_term_title'] ) ) );
+		if ( isset( $_POST['mantis_term_title'] ) ) {
+			update_term_meta( $term_id, self::META_PREFIX . 'title', sanitize_text_field( wp_unslash( $_POST['mantis_term_title'] ) ) );
+		}
 		$desc = isset( $_POST['mantis_term_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['mantis_term_description'] ) ) : '';
 		update_term_meta( $term_id, self::META_PREFIX . 'description', $desc );
 	}
