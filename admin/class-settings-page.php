@@ -91,14 +91,28 @@ class Mantis_SEO_Settings_Page {
 	 */
 	public function handle_migrate() {
 		if ( ! isset( $_POST['mantis_migrate_yoast'] ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG && isset( $_GET['mantis_debug'] ) ) {
+				error_log( 'Mantis SEO: handle_migrate skipped - no POST mantis_migrate_yoast' );
+			}
 			return;
 		}
 		if ( ! current_user_can( 'manage_options' ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'Mantis SEO: handle_migrate skipped - user cannot manage_options' );
+			}
 			return;
 		}
-		check_admin_referer( 'mantis_migrate_yoast' );
+		if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ?? '' ) ), 'mantis_migrate_yoast' ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'Mantis SEO: handle_migrate failed - nonce verification failed' );
+			}
+			return;
+		}
 
 		$result = Mantis_SEO_Yoast_Importer::migrate();
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( 'Mantis SEO: migration complete ' . wp_json_encode( $result ) );
+		}
 		set_transient( 'mantis_migrate_result', $result, 60 );
 		wp_safe_redirect( add_query_arg( 'mantis_migrated', 1, admin_url( 'admin.php?page=mantis-seo' ) ) );
 		exit;
@@ -181,20 +195,17 @@ class Mantis_SEO_Settings_Page {
 		<div class="wrap mantis-seo-settings">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-			<form action="options.php" method="post">
-				<?php settings_fields( 'mantis_seo_settings' ); ?>
+			<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
+			<div class="notice notice-info" style="margin:20px 0;">
+				<p><strong><?php esc_html_e( 'Yoast SEO detected.', 'mantis-seo' ); ?></strong> <?php esc_html_e( 'You can migrate your SEO settings, post meta, and redirects to Mantis SEO.', 'mantis-seo' ); ?></p>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" style="margin-top:10px;">
+					<?php wp_nonce_field( 'mantis_migrate_yoast' ); ?>
+					<button type="submit" name="mantis_migrate_yoast" value="1" class="button button-primary"><?php esc_html_e( 'Migrate from Yoast', 'mantis-seo' ); ?></button>
+				</form>
+			</div>
+			<?php endif; ?>
 
-				<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
-				<div class="notice notice-info" style="margin:20px 0;">
-					<p><strong><?php esc_html_e( 'Yoast SEO detected.', 'mantis-seo' ); ?></strong> <?php esc_html_e( 'You can migrate your SEO settings, post meta, and redirects to Mantis SEO.', 'mantis-seo' ); ?></p>
-					<form method="post" style="margin-top:10px;">
-						<?php wp_nonce_field( 'mantis_migrate_yoast' ); ?>
-						<button type="submit" name="mantis_migrate_yoast" value="1" class="button button-primary"><?php esc_html_e( 'Migrate from Yoast', 'mantis-seo' ); ?></button>
-					</form>
-				</div>
-				<?php endif; ?>
-
-				<?php if ( isset( $_GET['mantis_migrated'] ) && $migrate_result = get_transient( 'mantis_migrate_result' ) ) : ?>
+			<?php if ( isset( $_GET['mantis_migrated'] ) && $migrate_result = get_transient( 'mantis_migrate_result' ) ) : ?>
 					<?php delete_transient( 'mantis_migrate_result' ); ?>
 					<div class="notice notice-success"><p>
 						<?php
@@ -208,7 +219,10 @@ class Mantis_SEO_Settings_Page {
 						?>
 						<?php esc_html_e( 'Consider deactivating Yoast SEO to avoid duplicate meta output.', 'mantis-seo' ); ?>
 					</p></div>
-				<?php endif; ?>
+			<?php endif; ?>
+
+			<form action="options.php" method="post">
+				<?php settings_fields( 'mantis_seo_settings' ); ?>
 
 				<div class="mantis-seo-tabs">
 					<nav class="nav-tab-wrapper">
