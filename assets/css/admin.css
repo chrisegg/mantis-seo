@@ -446,7 +446,29 @@
 	margin-top: 0.75rem;
 }
 
-/* Import form */
+/* Tools tab – layout and compact buttons */
+.mantis-tools-panel .mantis-tools-intro {
+	margin-bottom: 1.5rem;
+}
+
+.mantis-tools-export,
+.mantis-tools-import {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.mantis-tools-export .description,
+.mantis-tools-import .description {
+	margin: 0;
+}
+
+.mantis-tools-button {
+	padding: 0.375rem 0.75rem !important;
+	font-size: 0.8125rem;
+	align-self: flex-start;
+}
+
 #mantis-import-form {
 	display: flex;
 	align-items: center;
@@ -455,7 +477,7 @@
 }
 
 #mantis-import-form input[type="file"] {
-	font-size: 0.875rem;
+	font-size: 0.8125rem;
 }
 
 /* ========== REDIRECTS PAGE ========== */

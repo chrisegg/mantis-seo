@@ -612,23 +612,29 @@ class Mantis_SEO_Settings_Page {
 						</table>
 					</div>
 
-					<div id="mantis-tools" class="mantis-tab-panel" style="display:none;">
+					<div id="mantis-tools" class="mantis-tab-panel mantis-tools-panel" style="display:none;">
 						<h2><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
-						<p class="description" style="margin-bottom:20px;"><?php esc_html_e( 'These tools are for Mantis SEO settings only. To migrate from Yoast SEO, use the "Migrate from Yoast" button at the top of this page.', 'mantis-seo' ); ?></p>
+						<p class="description mantis-tools-intro"><?php esc_html_e( 'Export your settings or import from a backup. You can also import directly from Yoast SEO (INI/text or Keywords CSV).', 'mantis-seo' ); ?></p>
 						<table class="form-table">
 							<tr>
 								<th><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></th>
 								<td>
-									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
-									<p class="description"><?php esc_html_e( 'Exports settings as JSON. Use Import below to restore on this or another site.', 'mantis-seo' ); ?></p>
+									<div class="mantis-tools-export">
+										<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button mantis-tools-button"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
+										<p class="description"><?php esc_html_e( 'Exports settings as JSON. Use Import below to restore on this or another site.', 'mantis-seo' ); ?></p>
+									</div>
 								</td>
 							</tr>
 							<tr>
 								<th><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></th>
-								<td id="mantis-import-cell"></td>
+								<td>
+									<div class="mantis-tools-import">
+										<div id="mantis-import-cell"></div>
+										<p class="description"><?php esc_html_e( 'Supports: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or CSV (key,value).', 'mantis-seo' ); ?></p>
+									</div>
+								</td>
 							</tr>
 						</table>
-						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import supports: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or CSV (key,value).', 'mantis-seo' ); ?></p>
 					</div>
 				</div>
 
@@ -637,8 +643,8 @@ class Mantis_SEO_Settings_Page {
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" style="display:none;">
 				<?php wp_nonce_field( 'mantis_import' ); ?>
-				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" style="margin-right:8px;" />
-				<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
+				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" />
+				<button type="submit" name="mantis_import" value="1" class="button mantis-tools-button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 			</form>
 				</div>
 			</main>
