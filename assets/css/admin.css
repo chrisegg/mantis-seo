@@ -416,8 +416,6 @@
 .mantis-seo-settings form[action="options.php"] .submit {
 	margin: 0;
 	padding: 1.25rem 2rem;
-	background: var(--mantis-bg);
-	border-top: 1px solid var(--mantis-border);
 }
 
 .mantis-seo-settings .button-primary {
