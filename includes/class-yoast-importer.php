@@ -130,6 +130,11 @@ class Mantis_SEO_Yoast_Importer {
 				$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
 			}
 
+			// Convert Yoast template variables in titles and descriptions.
+			if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
+				$value = self::convert_yoast_vars( $value );
+			}
+
 			if ( ! isset( $post_meta[ $row['post_id'] ] ) ) {
 				$post_meta[ $row['post_id'] ] = array();
 			}
@@ -181,6 +186,9 @@ class Mantis_SEO_Yoast_Importer {
 			if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
 				$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
 			}
+			if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
+				$value = self::convert_yoast_vars( $value );
+			}
 			if ( ! isset( $term_meta[ $row['term_id'] ] ) ) {
 				$term_meta[ $row['term_id'] ] = array();
 			}
@@ -195,6 +203,55 @@ class Mantis_SEO_Yoast_Importer {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * Normalize a redirect target URL from Yoast format.
+	 *
+	 * Yoast may store targets as relative paths (e.g. "category/page-builders") or
+	 * malformed URLs like "http://category/page-builders" where the host is
+	 * actually a path segment. This converts them to proper paths.
+	 *
+	 * @param string $target Raw target from Yoast.
+	 * @return string Normalized target (path with leading slash, or valid absolute URL).
+	 */
+	private static function normalize_redirect_target( $target ) {
+		$target = trim( $target );
+		if ( empty( $target ) ) {
+			return $target;
+		}
+
+		$parsed = wp_parse_url( $target );
+
+		// Malformed: http(s)://path-segment/more-path (e.g. http://category/page-builders).
+		// Real domains contain a dot; single-word hosts like "category" are path segments.
+		if ( ! empty( $parsed['scheme'] ) && in_array( $parsed['scheme'], array( 'http', 'https' ), true ) ) {
+			$host = isset( $parsed['host'] ) ? $parsed['host'] : '';
+			$path = isset( $parsed['path'] ) ? $parsed['path'] : '';
+			if ( $host && false === strpos( $host, '.' ) && ( '' !== $path || isset( $parsed['path'] ) ) ) {
+				return '/' . $host . $path;
+			}
+		}
+
+		// Protocol-relative with path-like host: //category/page-builders.
+		if ( 0 === strpos( $target, '//' ) ) {
+			$rest  = substr( $target, 2 );
+			$slash = strpos( $rest, '/' );
+			if ( false !== $slash ) {
+				$host = substr( $rest, 0, $slash );
+				$path = substr( $rest, $slash );
+				if ( false === strpos( $host, '.' ) ) {
+					return '/' . $host . $path;
+				}
+			}
+		}
+
+		// Relative path without leading slash: category/page-builders.
+		if ( '/' !== substr( $target, 0, 1 ) && 0 !== strpos( $target, 'http' ) && 0 !== strpos( $target, '//' ) ) {
+			return '/' . $target;
+		}
+
+		return $target;
 	}
 
 	/**
@@ -213,7 +270,7 @@ class Mantis_SEO_Yoast_Importer {
 			$post = get_post( $r['post_id'] );
 			if ( $post ) {
 				$origin = '/' . $post->post_name . '/';
-				$target = $r['meta_value'];
+				$target = self::normalize_redirect_target( $r['meta_value'] );
 				if ( Mantis_SEO_Redirects::add( $origin, $target, 301, 'plain' ) ) {
 					$count++;
 				}
@@ -247,10 +304,10 @@ class Mantis_SEO_Yoast_Importer {
 			foreach ( $redirects as $entry ) {
 				if ( isset( $entry['origin'], $entry['url'] ) ) {
 					$origin = $entry['origin'];
-					$target = $entry['url'];
+					$target = self::normalize_redirect_target( $entry['url'] );
 				} elseif ( isset( $entry['origin'], $entry['target'] ) ) {
 					$origin = $entry['origin'];
-					$target = $entry['target'];
+					$target = self::normalize_redirect_target( $entry['target'] );
 				} elseif ( is_string( $entry ) ) {
 					continue;
 				} else {
@@ -270,8 +327,9 @@ class Mantis_SEO_Yoast_Importer {
 		if ( is_array( $legacy_plain ) ) {
 			foreach ( $legacy_plain as $origin => $data ) {
 				if ( is_array( $data ) && isset( $data['url'] ) ) {
-					$type = isset( $data['type'] ) ? (int) $data['type'] : 301;
-					if ( Mantis_SEO_Redirects::add( $origin, $data['url'], $type, 'plain' ) ) {
+					$target = self::normalize_redirect_target( $data['url'] );
+					$type   = isset( $data['type'] ) ? (int) $data['type'] : 301;
+					if ( Mantis_SEO_Redirects::add( $origin, $target, $type, 'plain' ) ) {
 						$count++;
 					}
 				}
@@ -280,8 +338,9 @@ class Mantis_SEO_Yoast_Importer {
 		if ( is_array( $legacy_regex ) ) {
 			foreach ( $legacy_regex as $origin => $data ) {
 				if ( is_array( $data ) && isset( $data['url'] ) ) {
-					$type = isset( $data['type'] ) ? (int) $data['type'] : 301;
-					if ( Mantis_SEO_Redirects::add( $origin, $data['url'], $type, 'regex' ) ) {
+					$target = self::normalize_redirect_target( $data['url'] );
+					$type   = isset( $data['type'] ) ? (int) $data['type'] : 301;
+					if ( Mantis_SEO_Redirects::add( $origin, $target, $type, 'regex' ) ) {
 						$count++;
 					}
 				}
@@ -317,11 +376,11 @@ class Mantis_SEO_Yoast_Importer {
 				if ( $v ) {
 					$settings['title_home'] = self::convert_yoast_vars( $v );
 				}
-				$v = $get( array( 'title-post-wpseo', 'title-post', 'title_post' ) );
+				$v = $get( array( 'title-post-wpseo', 'title-post', 'title_post', 'title-pt-post' ) );
 				if ( $v ) {
 					$settings['title_post'] = self::convert_yoast_vars( $v );
 				}
-				$v = $get( array( 'title-page-wpseo', 'title-page', 'title_page' ) );
+				$v = $get( array( 'title-page-wpseo', 'title-page', 'title_page', 'title-pt-page' ) );
 				if ( $v ) {
 					$settings['title_page'] = self::convert_yoast_vars( $v );
 				}
@@ -379,6 +438,7 @@ class Mantis_SEO_Yoast_Importer {
 			'%%sitedesc%%'     => '%site_description%',
 			'%%sep%%'          => '%separator%',
 			'%%title%%'        => '%post_title%',
+			'%%postname%%'     => '%post_title%',
 			'%%page%%'         => '%page%',
 			'%%date%%'         => '%date%',
 			'%%name%%'         => '%name%',

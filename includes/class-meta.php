@@ -370,6 +370,15 @@ class Mantis_SEO_Meta {
 			'%date%'             => date_i18n( get_option( 'date_format' ) ),
 		);
 
+		// Pagination: "Page 2 of 8" on paged views, empty on first page.
+		$paged = get_query_var( 'paged' ) ? (int) get_query_var( 'paged' ) : ( get_query_var( 'page' ) ? (int) get_query_var( 'page' ) : 0 );
+		$replacements['%page%'] = '';
+		if ( $paged > 0 ) {
+			global $wp_query;
+			$max = isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 1;
+			$replacements['%page%'] = sprintf( /* translators: 1: current page, 2: total pages */ __( 'Page %1$d of %2$d', 'mantis-seo' ), $paged, $max );
+		}
+
 		if ( $post ) {
 			$replacements['%post_title%'] = $post->post_title;
 			$replacements['%title%']      = $post->post_title;
