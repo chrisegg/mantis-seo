@@ -358,10 +358,20 @@ class Mantis_SEO_Yoast_Importer {
 	private static function migrate_settings() {
 		$settings = Mantis_SEO_Main::get_settings();
 
-		// Read options directly - they exist in DB even if Yoast is deactivated.
 		$wpseo_titles = get_option( 'wpseo_titles', array() );
 		$wpseo_social = get_option( 'wpseo_social', array() );
 		$wpseo        = get_option( 'wpseo', array() );
+
+		// When Yoast is active, merge with its defaults - Yoast stores only customized keys; defaults live in code.
+		if ( class_exists( 'WPSEO_Option_Titles' ) && method_exists( 'WPSEO_Option_Titles', 'get_instance' ) ) {
+			$yoast_titles = WPSEO_Option_Titles::get_instance();
+			if ( $yoast_titles && method_exists( $yoast_titles, 'get_defaults' ) ) {
+				$defaults = $yoast_titles->get_defaults();
+				if ( is_array( $defaults ) ) {
+					$wpseo_titles = wp_parse_args( (array) $wpseo_titles, $defaults );
+				}
+			}
+		}
 
 		if ( is_array( $wpseo_titles ) ) {
 			$get = function( $keys, $fallback = '' ) use ( $wpseo_titles ) {
@@ -372,7 +382,6 @@ class Mantis_SEO_Yoast_Importer {
 				}
 				return $fallback;
 			};
-			// Yoast uses title-{post_type} (e.g. title-post, title-page). Default in code is %%title%% %%page%% %%sep%% %%sitename%%.
 			$yoast_default_single = '%%title%% %%page%% %%sep%% %%sitename%%';
 			$v = $get( array( 'title-home-wpseo', 'title_home' ) );
 			if ( $v ) {

@@ -399,11 +399,13 @@ class Mantis_SEO_Settings_Page {
 
 					<div id="mantis-tools" class="mantis-tab-panel" style="display:none;">
 						<h2><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
+						<p class="description" style="margin-bottom:20px;"><?php esc_html_e( 'These tools are for Mantis SEO settings only. To migrate from Yoast SEO, use the "Migrate from Yoast" button at the top of this page.', 'mantis-seo' ); ?></p>
 						<table class="form-table">
 							<tr>
 								<th><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></th>
 								<td>
 									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
+									<p class="description"><?php esc_html_e( 'Exports settings as JSON. Use Import below to restore on this or another site.', 'mantis-seo' ); ?></p>
 								</td>
 							</tr>
 							<tr>
@@ -411,6 +413,7 @@ class Mantis_SEO_Settings_Page {
 								<td id="mantis-import-cell"></td>
 							</tr>
 						</table>
+						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import accepts JSON files from Mantis SEO Export only. Yoast CSV/text exports are not supported—use Migrate from Yoast instead.', 'mantis-seo' ); ?></p>
 					</div>
 				</div>
 
