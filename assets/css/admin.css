@@ -510,6 +510,11 @@
 	align-items: center;
 }
 
+/* When Mantis SEO panel is open, block editor sidebar tabs stay below the panel */
+body.mantis-seo-panel-open .interface-complementary-area .components-panel__header {
+	z-index: 0 !important;
+}
+
 /* Slide-out overlay – fixed, covers viewport, right-aligned panel */
 #mantis-seo-slideout {
 	position: fixed;
@@ -611,10 +616,19 @@ body.admin-bar .mantis-seo-slideout-panel {
 	border-color: var(--mantis-accent);
 }
 
-.mantis-seo-pin-toggle .dashicons {
-	font-size: 18px;
-	width: 18px;
-	height: 18px;
+/* Push pin / tack icon */
+.mantis-seo-pin-toggle .mantis-seo-icon-tack {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.mantis-seo-pin-toggle .mantis-seo-icon-tack svg {
+	display: block;
+}
+
+.mantis-seo-pin-toggle .mantis-seo-icon-tack.mantis-seo-tack-pinned {
+	opacity: 0.8;
 }
 
 .mantis-seo-slideout-header-text {

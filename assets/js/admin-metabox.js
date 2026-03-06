@@ -54,6 +54,7 @@
 				pinToggle.setAttribute('aria-pressed', 'true');
 				pinToggle.title = 'Unpin panel';
 				slideout.classList.add(CLASSES.open);
+				document.body.classList.add('mantis-seo-panel-open');
 			}
 		}
 
@@ -82,6 +83,7 @@
 		if (slideout) {
 			slideout.classList.add(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'false');
+			document.body.classList.add('mantis-seo-panel-open');
 			// Focus first focusable in active tab for accessibility.
 			const activePanel = slideout.querySelector(SELECTORS.tabPanel + '.mantis-seo-tab-panel-active');
 			const firstInput = activePanel ? activePanel.querySelector('input:not([type="hidden"]), textarea') : null;
@@ -98,6 +100,7 @@
 		if (slideout) {
 			slideout.classList.remove(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'true');
+			document.body.classList.remove('mantis-seo-panel-open');
 		}
 	}
 
@@ -111,11 +114,10 @@
 		pinToggle.title = isPinned
 			? 'Unpin panel'
 			: 'Pin panel open';
-		// Toggle tack icon (pinned = filled, unpinned = outline).
-		const icon = pinToggle.querySelector('.dashicons');
+		// Toggle tack icon state (pinned = pushed in).
+		const icon = pinToggle.querySelector('.mantis-seo-icon-tack');
 		if (icon) {
-			icon.classList.remove('dashicons-location', 'dashicons-location-alt');
-			icon.classList.add(isPinned ? 'dashicons-location-alt' : 'dashicons-location');
+			icon.classList.toggle('mantis-seo-tack-pinned', isPinned);
 		}
 		sessionStorage.setItem(STORAGE_KEY, isPinned ? '1' : '0');
 	}

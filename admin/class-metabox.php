@@ -83,7 +83,9 @@ class Mantis_SEO_Metabox {
 		echo '<div class="mantis-seo-slideout-panel">';
 		echo '<div class="mantis-seo-slideout-header">';
 		echo '<button type="button" class="mantis-seo-pin-toggle" title="' . esc_attr__( 'Pin panel open', 'mantis-seo' ) . '" aria-pressed="false">';
-		echo '<span class="dashicons dashicons-location"></span>';
+		echo '<span class="mantis-seo-icon-tack" aria-hidden="true">';
+		echo '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="7" r="5" fill="currentColor"/><path d="M12 12v10M9 22h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+		echo '</span>';
 		echo '</button>';
 		echo '<div class="mantis-seo-slideout-header-text">';
 		echo '<h2>' . esc_html__( 'SEO Settings', 'mantis-seo' ) . '</h2>';
@@ -127,7 +129,8 @@ class Mantis_SEO_Metabox {
 					echo '<p>';
 					echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
 					if ( 'textarea' === $tag ) {
-						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="2" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
+						$rows = 'description' === $key ? 4 : 2;
+						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 					} else {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 						echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
