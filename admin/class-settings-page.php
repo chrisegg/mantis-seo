@@ -78,12 +78,8 @@ class Mantis_SEO_Settings_Page {
 
 		$imported = wp_parse_args( $data['settings'], Mantis_SEO_Main::get_default_settings() );
 		Mantis_SEO_Main::save_settings( $imported );
-		add_settings_error(
-			'mantis_seo_messages',
-			'mantis_import_success',
-			__( 'Settings imported successfully.', 'mantis-seo' ),
-			'success'
-		);
+		wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'settings-updated' => 1 ), admin_url( 'admin.php?page=mantis-seo' ) ) );
+		exit;
 	}
 
 	/**
@@ -182,10 +178,11 @@ class Mantis_SEO_Settings_Page {
 		$settings = Mantis_SEO_Main::get_settings();
 
 		if ( isset( $_GET['settings-updated'] ) ) {
+			$msg = isset( $_GET['mantis_imported'] ) ? __( 'Settings imported successfully.', 'mantis-seo' ) : __( 'Settings saved.', 'mantis-seo' );
 			add_settings_error(
 				'mantis_seo_messages',
 				'mantis_seo_message',
-				__( 'Settings saved.', 'mantis-seo' ),
+				$msg,
 				'success'
 			);
 		}
@@ -375,12 +372,8 @@ class Mantis_SEO_Settings_Page {
 							</tr>
 							<tr>
 								<th><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></th>
-								<td>
-									<form method="post" enctype="multipart/form-data">
-										<?php wp_nonce_field( 'mantis_import' ); ?>
-										<input type="file" name="mantis_import_file" accept=".json" />
-										<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
-									</form>
+								<td id="mantis-import-cell">
+									<?php /* Form output below, outside main form to avoid nested forms */ ?>
 								</td>
 							</tr>
 						</table>
@@ -388,6 +381,13 @@ class Mantis_SEO_Settings_Page {
 				</div>
 
 				<?php submit_button(); ?>
+			</form>
+
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" style="margin-top:20px;">
+				<?php wp_nonce_field( 'mantis_import' ); ?>
+				<label for="mantis_import_file"><strong><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></strong></label>
+				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json" style="margin:0 8px;" />
+				<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 			</form>
 		</div>
 

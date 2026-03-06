@@ -358,69 +358,66 @@ class Mantis_SEO_Yoast_Importer {
 	private static function migrate_settings() {
 		$settings = Mantis_SEO_Main::get_settings();
 
-		if ( class_exists( 'WPSEO_Options' ) ) {
-			$wpseo_titles = get_option( 'wpseo_titles', array() );
-			$wpseo_social = get_option( 'wpseo_social', array() );
-			$wpseo        = get_option( 'wpseo', array() );
+		// Read options directly - they exist in DB even if Yoast is deactivated.
+		$wpseo_titles = get_option( 'wpseo_titles', array() );
+		$wpseo_social = get_option( 'wpseo_social', array() );
+		$wpseo        = get_option( 'wpseo', array() );
 
-			if ( is_array( $wpseo_titles ) ) {
-				$get = function( $keys ) use ( $wpseo_titles ) {
-					foreach ( (array) $keys as $k ) {
-						if ( ! empty( $wpseo_titles[ $k ] ) ) {
-							return $wpseo_titles[ $k ];
-						}
+		if ( is_array( $wpseo_titles ) ) {
+			$get = function( $keys, $fallback = '' ) use ( $wpseo_titles ) {
+				foreach ( (array) $keys as $k ) {
+					if ( isset( $wpseo_titles[ $k ] ) && '' !== (string) $wpseo_titles[ $k ] ) {
+						return $wpseo_titles[ $k ];
 					}
-					return '';
-				};
-				$v = $get( array( 'title-home-wpseo', 'title_home' ) );
-				if ( $v ) {
-					$settings['title_home'] = self::convert_yoast_vars( $v );
 				}
-				$v = $get( array( 'title-post-wpseo', 'title-post', 'title_post', 'title-pt-post' ) );
-				if ( $v ) {
-					$settings['title_post'] = self::convert_yoast_vars( $v );
-				}
-				$v = $get( array( 'title-page-wpseo', 'title-page', 'title_page', 'title-pt-page' ) );
-				if ( $v ) {
-					$settings['title_page'] = self::convert_yoast_vars( $v );
-				}
-				$v = $get( array( 'metadesc-home-wpseo', 'metadesc_home' ) );
-				if ( $v ) {
-					$settings['metadesc_home'] = self::convert_yoast_vars( $v );
-				}
-				$v = $get( array( 'metadesc-post-wpseo', 'metadesc-post', 'metadesc_post' ) );
-				if ( $v ) {
-					$settings['metadesc_post'] = self::convert_yoast_vars( $v );
-				}
-				$v = $get( array( 'metadesc-page-wpseo', 'metadesc-page', 'metadesc_page' ) );
-				if ( $v ) {
-					$settings['metadesc_page'] = self::convert_yoast_vars( $v );
-				}
-				if ( ! empty( $wpseo_titles['separator'] ) ) {
-					$settings['separator'] = $wpseo_titles['separator'];
-				}
-				$settings['noindex_author'] = ! empty( $wpseo_titles['noindex-author-wpseo'] ?? $wpseo_titles['noindex_author'] ?? false );
-				$settings['noindex_date']  = ! empty( $wpseo_titles['noindex-archive-wpseo'] ?? $wpseo_titles['noindex_date'] ?? false );
-				if ( ! empty( $wpseo_titles['company_name'] ) ) {
-					$settings['schema_organization_name'] = $wpseo_titles['company_name'];
-				}
-				if ( ! empty( $wpseo_titles['company_logo'] ?? '' ) ) {
-					$settings['schema_organization_logo'] = $wpseo_titles['company_logo'];
-				}
+				return $fallback;
+			};
+			// Yoast uses title-{post_type} (e.g. title-post, title-page). Default in code is %%title%% %%page%% %%sep%% %%sitename%%.
+			$yoast_default_single = '%%title%% %%page%% %%sep%% %%sitename%%';
+			$v = $get( array( 'title-home-wpseo', 'title_home' ) );
+			if ( $v ) {
+				$settings['title_home'] = self::convert_yoast_vars( $v );
 			}
+			$v = $get( array( 'title-post-wpseo', 'title-post', 'title_post', 'title-pt-post' ), $yoast_default_single );
+			$settings['title_post'] = self::convert_yoast_vars( $v );
+			$v = $get( array( 'title-page-wpseo', 'title-page', 'title_page', 'title-pt-page' ), $yoast_default_single );
+			$settings['title_page'] = self::convert_yoast_vars( $v );
+			$v = $get( array( 'metadesc-home-wpseo', 'metadesc_home' ) );
+			if ( $v ) {
+				$settings['metadesc_home'] = self::convert_yoast_vars( $v );
+			}
+			$v = $get( array( 'metadesc-post-wpseo', 'metadesc-post', 'metadesc_post' ) );
+			if ( $v ) {
+				$settings['metadesc_post'] = self::convert_yoast_vars( $v );
+			}
+			$v = $get( array( 'metadesc-page-wpseo', 'metadesc-page', 'metadesc_page' ) );
+			if ( $v ) {
+				$settings['metadesc_page'] = self::convert_yoast_vars( $v );
+			}
+			if ( ! empty( $wpseo_titles['separator'] ) ) {
+				$settings['separator'] = $wpseo_titles['separator'];
+			}
+			$settings['noindex_author'] = ! empty( $wpseo_titles['noindex-author-wpseo'] ?? $wpseo_titles['noindex_author'] ?? false );
+			$settings['noindex_date']  = ! empty( $wpseo_titles['noindex-archive-wpseo'] ?? $wpseo_titles['noindex_date'] ?? false );
+			if ( ! empty( $wpseo_titles['company_name'] ) ) {
+				$settings['schema_organization_name'] = $wpseo_titles['company_name'];
+			}
+			if ( ! empty( $wpseo_titles['company_logo'] ?? '' ) ) {
+				$settings['schema_organization_logo'] = $wpseo_titles['company_logo'];
+			}
+		}
 
-			if ( is_array( $wpseo_social ) ) {
-				if ( ! empty( $wpseo_social['og_default_image'] ) ) {
-					$settings['og_default_image'] = $wpseo_social['og_default_image'];
-				}
-				if ( ! empty( $wpseo_social['twitter_card_type'] ?? '' ) ) {
-					$settings['twitter_card_type'] = $wpseo_social['twitter_card_type'];
-				}
+		if ( is_array( $wpseo_social ) ) {
+			if ( ! empty( $wpseo_social['og_default_image'] ) ) {
+				$settings['og_default_image'] = $wpseo_social['og_default_image'];
 			}
+			if ( ! empty( $wpseo_social['twitter_card_type'] ?? '' ) ) {
+				$settings['twitter_card_type'] = $wpseo_social['twitter_card_type'];
+			}
+		}
 
-			if ( is_array( $wpseo ) ) {
-				$settings['sitemap_enabled'] = ! empty( $wpseo['enable_xml_sitemap'] );
-			}
+		if ( is_array( $wpseo ) ) {
+			$settings['sitemap_enabled'] = ! empty( $wpseo['enable_xml_sitemap'] );
 		}
 
 		return Mantis_SEO_Main::save_settings( $settings );
