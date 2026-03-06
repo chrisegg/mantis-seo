@@ -48,7 +48,7 @@ class Mantis_SEO_Metabox {
 				__( 'Mantis SEO', 'mantis-seo' ),
 				array( $this, 'render_metabox' ),
 				$post_type,
-				'normal',
+				'side',
 				'high'
 			);
 		}
@@ -62,27 +62,36 @@ class Mantis_SEO_Metabox {
 	public function render_metabox( $post ) {
 		wp_nonce_field( 'mantis_seo_metabox', 'mantis_seo_metabox_nonce' );
 
-		$fields = array(
-			'focus_keyword'     => __( 'Focus Keyword', 'mantis-seo' ),
-			'title'             => __( 'SEO Title', 'mantis-seo' ),
-			'description'       => __( 'Meta Description', 'mantis-seo' ),
-			'canonical'         => __( 'Canonical URL', 'mantis-seo' ),
-			'robots_noindex'    => __( 'Noindex', 'mantis-seo' ),
-			'robots_nofollow'   => __( 'Nofollow', 'mantis-seo' ),
-			'og_title'          => __( 'OG Title', 'mantis-seo' ),
-			'og_description'    => __( 'OG Description', 'mantis-seo' ),
-			'og_image'          => __( 'OG Image URL', 'mantis-seo' ),
-			'twitter_title'     => __( 'Twitter Title', 'mantis-seo' ),
-			'twitter_description' => __( 'Twitter Description', 'mantis-seo' ),
-			'twitter_image'     => __( 'Twitter Image URL', 'mantis-seo' ),
-		);
-
+		$fields = $this->get_field_definitions();
 		$settings = Mantis_SEO_Main::get_settings();
 		$title_template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
 		if ( '' === trim( (string) $title_template ) ) {
 			$title_template = '%post_title% %page% %separator% %site_name%';
 		}
 
+		// Compact trigger button in sidebar.
+		echo '<div class="mantis-seo-metabox-trigger">';
+		echo '<button type="button" class="button button-primary button-large mantis-seo-open-panel">';
+		echo '<span class="dashicons dashicons-admin-generic" style="margin-right:4px;margin-top:3px;"></span>';
+		echo esc_html__( 'Open SEO Settings', 'mantis-seo' );
+		echo '</button>';
+		echo '</div>';
+
+		// Slide-out panel (stays in form for submission).
+		echo '<div id="mantis-seo-slideout" class="mantis-seo-slideout" aria-hidden="true">';
+		echo '<div class="mantis-seo-slideout-backdrop"></div>';
+		echo '<div class="mantis-seo-slideout-panel">';
+		echo '<div class="mantis-seo-slideout-header">';
+		echo '<button type="button" class="mantis-seo-pin-toggle" title="' . esc_attr__( 'Pin panel open', 'mantis-seo' ) . '" aria-pressed="false">';
+		echo '<span class="dashicons dashicons-lock"></span>';
+		echo '</button>';
+		echo '<div class="mantis-seo-slideout-header-text">';
+		echo '<h2>' . esc_html__( 'SEO Settings', 'mantis-seo' ) . '</h2>';
+		echo '<p class="mantis-seo-slideout-subtitle">' . esc_html__( 'Manage meta title, description, and social sharing.', 'mantis-seo' ) . '</p>';
+		echo '</div>';
+		echo '<button type="button" class="mantis-seo-slideout-close" aria-label="' . esc_attr__( 'Close', 'mantis-seo' ) . '">&times;</button>';
+		echo '</div>';
+		echo '<div class="mantis-seo-slideout-body">';
 		echo '<div class="mantis-seo-metabox">';
 		foreach ( $fields as $key => $label ) {
 			$value = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
@@ -108,7 +117,29 @@ class Mantis_SEO_Metabox {
 				echo '</p>';
 			}
 		}
-		echo '</div>';
+		echo '</div></div></div></div>';
+	}
+
+	/**
+	 * Get field definitions for the SEO metabox.
+	 *
+	 * @return array
+	 */
+	private function get_field_definitions() {
+		return array(
+			'focus_keyword'       => __( 'Focus Keyword', 'mantis-seo' ),
+			'title'               => __( 'SEO Title', 'mantis-seo' ),
+			'description'         => __( 'Meta Description', 'mantis-seo' ),
+			'canonical'           => __( 'Canonical URL', 'mantis-seo' ),
+			'robots_noindex'      => __( 'Noindex', 'mantis-seo' ),
+			'robots_nofollow'     => __( 'Nofollow', 'mantis-seo' ),
+			'og_title'            => __( 'OG Title', 'mantis-seo' ),
+			'og_description'      => __( 'OG Description', 'mantis-seo' ),
+			'og_image'            => __( 'OG Image URL', 'mantis-seo' ),
+			'twitter_title'       => __( 'Twitter Title', 'mantis-seo' ),
+			'twitter_description' => __( 'Twitter Description', 'mantis-seo' ),
+			'twitter_image'       => __( 'Twitter Image URL', 'mantis-seo' ),
+		);
 	}
 
 	/**

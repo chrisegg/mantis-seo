@@ -71,5 +71,15 @@ class Mantis_SEO_Admin {
 			array(),
 			MANTIS_SEO_VERSION
 		);
+
+		if ( 'post.php' === $hook || 'post-new.php' === $hook ) {
+			wp_enqueue_script(
+				'mantis-seo-metabox',
+				MANTIS_SEO_URL . 'assets/js/admin-metabox.js',
+				array(),
+				MANTIS_SEO_VERSION,
+				true
+			);
+		}
 	}
 }
