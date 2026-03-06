@@ -387,6 +387,4 @@ class Mantis_SEO_Yoast_Importer {
 		);
 		return str_replace( array_keys( $map ), array_values( $map ), $str );
 	}
-
-	}
 }
