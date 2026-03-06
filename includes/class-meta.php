@@ -26,8 +26,8 @@ class Mantis_SEO_Meta {
 	 */
 	public function __construct() {
 		add_action( 'wp_head', array( $this, 'output_meta' ), 1 );
-		add_filter( 'pre_get_document_title', array( $this, 'filter_title' ), 15 );
-		add_filter( 'document_title_parts', array( $this, 'filter_title_parts' ), 15 );
+		add_filter( 'pre_get_document_title', array( $this, 'filter_title' ), 9999 );
+		add_filter( 'document_title_parts', array( $this, 'filter_title_parts' ), 9999 );
 	}
 
 	/**
@@ -167,12 +167,13 @@ class Mantis_SEO_Meta {
 			return $meta;
 		}
 
-		$title = $this->get_post_meta( $object_id, 'title' );
-		if ( empty( $title ) ) {
-			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			$title    = ! empty( trim( (string) $template ) ) ? $this->replace_vars( $template, $post ) : $post->post_title;
+		$custom = $this->get_post_meta( $object_id, 'title' );
+		if ( ! empty( trim( (string) $custom ) ) ) {
+			$title = $this->replace_vars( $custom, $post );
 		} else {
-			$title = $this->replace_vars( $title, $post );
+			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+			$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
+			$title   = $this->replace_vars( $template, $post );
 		}
 		$meta['document_title'] = $title;
 
@@ -300,20 +301,23 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title( $title ) {
 		if ( is_singular() ) {
-			$post    = get_post( get_queried_object_id() );
-			$custom  = $this->get_post_meta( get_queried_object_id(), 'title' );
-			$settings = Mantis_SEO_Main::get_settings();
-			$template = $post && 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			if ( ! empty( $custom ) ) {
+			$post     = get_post( get_queried_object_id() );
+			if ( ! $post ) {
+				return $title;
+			}
+			$custom   = $this->get_post_meta( get_queried_object_id(), 'title' );
+			if ( ! empty( trim( (string) $custom ) ) ) {
 				return $this->replace_vars( $custom, $post );
 			}
-			if ( ! empty( trim( (string) $template ) ) ) {
-				return $this->replace_vars( $template, $post );
-			}
+			$settings = Mantis_SEO_Main::get_settings();
+			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+			$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
+			return $this->replace_vars( $template, $post );
 		}
 		if ( is_home() && ! is_front_page() ) {
 			$settings = Mantis_SEO_Main::get_settings();
-			return $this->replace_vars( $settings['title_home'] );
+			$template = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) ) ? $settings['title_home'] : '%site_name% - %site_description%';
+			return $this->replace_vars( $template );
 		}
 		return $title;
 	}
@@ -326,20 +330,21 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title_parts( $parts ) {
 		if ( is_singular() ) {
-			$post     = get_post( get_queried_object_id() );
-			$custom   = $this->get_post_meta( get_queried_object_id(), 'title' );
-			$settings = Mantis_SEO_Main::get_settings();
-			$template = $post && 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			$resolved = '';
-			if ( ! empty( $custom ) ) {
+			$post   = get_post( get_queried_object_id() );
+			if ( ! $post ) {
+				return $parts;
+			}
+			$custom = $this->get_post_meta( get_queried_object_id(), 'title' );
+			if ( ! empty( trim( (string) $custom ) ) ) {
 				$resolved = $this->replace_vars( $custom, $post );
-			} elseif ( ! empty( trim( (string) $template ) ) ) {
+			} else {
+				$settings = Mantis_SEO_Main::get_settings();
+				$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+				$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
 				$resolved = $this->replace_vars( $template, $post );
 			}
-			if ( '' !== $resolved ) {
-				$parts['title'] = $resolved;
-				unset( $parts['tagline'], $parts['site'] );
-			}
+			$parts['title'] = $resolved;
+			unset( $parts['tagline'], $parts['site'] );
 		}
 		return $parts;
 	}
