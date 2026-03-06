@@ -363,12 +363,28 @@ class Mantis_SEO_Yoast_Importer {
 		$wpseo        = get_option( 'wpseo', array() );
 
 		// When Yoast is active, merge with its defaults - Yoast stores only customized keys; defaults live in code.
+		// Important: Yoast stores "" for "use default" - we must NOT let empty values override defaults.
 		if ( class_exists( 'WPSEO_Option_Titles' ) && method_exists( 'WPSEO_Option_Titles', 'get_instance' ) ) {
 			$yoast_titles = WPSEO_Option_Titles::get_instance();
 			if ( $yoast_titles && method_exists( $yoast_titles, 'get_defaults' ) ) {
 				$defaults = $yoast_titles->get_defaults();
 				if ( is_array( $defaults ) ) {
-					$wpseo_titles = wp_parse_args( (array) $wpseo_titles, $defaults );
+					$non_empty = array_filter( (array) $wpseo_titles, function ( $v ) {
+						return '' !== trim( (string) $v );
+					} );
+					$wpseo_titles = wp_parse_args( $non_empty, $defaults );
+				}
+			}
+		} elseif ( is_array( $wpseo_titles ) ) {
+			// Yoast not active: apply our own defaults for title templates if missing.
+			$fallbacks = array(
+				'title-post' => '%%title%% %%page%% %%sep%% %%sitename%%',
+				'title-page' => '%%title%% %%page%% %%sep%% %%sitename%%',
+				'title-home-wpseo' => '%%sitename%% %%page%% %%sep%% %%sitedesc%%',
+			);
+			foreach ( $fallbacks as $key => $def ) {
+				if ( empty( trim( (string) ( $wpseo_titles[ $key ] ?? '' ) ) ) ) {
+					$wpseo_titles[ $key ] = $def;
 				}
 			}
 		}

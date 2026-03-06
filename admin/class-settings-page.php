@@ -79,7 +79,22 @@ class Mantis_SEO_Settings_Page {
 
 			$imported = $this->parse_import_file( $content );
 			if ( empty( $imported ) ) {
-				throw new Exception( __( 'No valid settings found in file. Supported formats: Mantis JSON, Yoast INI/text, CSV (key,value).', 'mantis-seo' ) );
+				throw new Exception( __( 'No valid settings found in file. Supported formats: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, CSV (key,value).', 'mantis-seo' ) );
+			}
+
+			if ( isset( $imported['_import_type'] ) && 'yoast_keywords' === $imported['_import_type'] && ! empty( $imported['_post_updates'] ) ) {
+				$count = 0;
+				foreach ( $imported['_post_updates'] as $post_id => $meta ) {
+					if ( ! empty( $meta['title'] ) ) {
+						update_post_meta( (int) $post_id, '_mantis_title', $meta['title'] );
+						$count++;
+					}
+					if ( isset( $meta['description'] ) && '' !== $meta['description'] ) {
+						update_post_meta( (int) $post_id, '_mantis_description', $meta['description'] );
+					}
+				}
+				wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'mantis_imported_posts' => $count ), $redirect_url ) );
+				exit;
 			}
 
 			$imported = wp_parse_args( $imported, Mantis_SEO_Main::get_default_settings() );
@@ -121,7 +136,16 @@ class Mantis_SEO_Settings_Page {
 			}
 		}
 
-		// Try CSV (key,value or key;value).
+		// Try Yoast Keywords CSV (ID, seo title, meta description per row).
+		$keywords = $this->parse_yoast_keywords_csv( $content );
+		if ( ! empty( $keywords ) ) {
+			return array(
+				'_import_type'   => 'yoast_keywords',
+				'_post_updates'  => $keywords,
+			);
+		}
+
+		// Try CSV (key,value or key;value) for global settings.
 		$parsed = $this->parse_csv_settings( $content );
 		if ( ! empty( $parsed ) ) {
 			return $parsed;
@@ -190,6 +214,54 @@ class Mantis_SEO_Settings_Page {
 		}
 
 		return $mantis;
+	}
+
+	/**
+	 * Parse Yoast SEO Keywords CSV export (per-post seo title, meta description).
+	 *
+	 * @param string $content Raw file content.
+	 * @return array List of [post_id => ['title' => '', 'description' => '']] or empty.
+	 */
+	private function parse_yoast_keywords_csv( $content ) {
+		$lines = preg_split( '/[\r\n]+/', trim( $content ), -1, PREG_SPLIT_NO_EMPTY );
+		if ( count( $lines ) < 2 ) {
+			return array();
+		}
+
+		$header = array_map( 'trim', str_getcsv( $lines[0] ) );
+		$idx_id    = array_search( 'ID', $header, true );
+		$idx_seo   = array_search( 'seo title', $header, true );
+		$idx_meta  = array_search( 'meta description', $header, true );
+		if ( false === $idx_id || ( false === $idx_seo && false === $idx_meta ) ) {
+			return array();
+		}
+		if ( false === $idx_seo ) {
+			$idx_seo = -1;
+		}
+		if ( false === $idx_meta ) {
+			$idx_meta = -1;
+		}
+
+		$updates = array();
+		for ( $i = 1; $i < count( $lines ); $i++ ) {
+			$row = str_getcsv( $lines[ $i ] );
+			$post_id = isset( $row[ $idx_id ] ) ? absint( $row[ $idx_id ] ) : 0;
+			if ( ! $post_id || ! get_post( $post_id ) ) {
+				continue;
+			}
+			$title = ( $idx_seo >= 0 && isset( $row[ $idx_seo ] ) ) ? trim( (string) $row[ $idx_seo ] ) : '';
+			$desc  = ( $idx_meta >= 0 && isset( $row[ $idx_meta ] ) ) ? trim( (string) $row[ $idx_meta ] ) : '';
+			if ( '' === $title && '' === $desc ) {
+				continue;
+			}
+			$title = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $title );
+			$desc  = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $desc );
+			$updates[ $post_id ] = array(
+				'title'       => $title,
+				'description' => $desc,
+			);
+		}
+		return $updates;
 	}
 
 	/**
@@ -327,8 +399,13 @@ class Mantis_SEO_Settings_Page {
 
 		$settings = Mantis_SEO_Main::get_settings();
 
-		if ( isset( $_GET['settings-updated'] ) ) {
-			$msg = isset( $_GET['mantis_imported'] ) ? __( 'Settings imported successfully.', 'mantis-seo' ) : __( 'Settings saved.', 'mantis-seo' );
+		if ( isset( $_GET['settings-updated'] ) || isset( $_GET['mantis_imported'] ) ) {
+			$posts_count = isset( $_GET['mantis_imported_posts'] ) ? (int) $_GET['mantis_imported_posts'] : 0;
+			if ( $posts_count > 0 ) {
+				$msg = sprintf( /* translators: %d: number of posts */ _n( '%d post updated with SEO data.', '%d posts updated with SEO data.', $posts_count, 'mantis-seo' ), $posts_count );
+			} else {
+				$msg = isset( $_GET['mantis_imported'] ) ? __( 'Settings imported successfully.', 'mantis-seo' ) : __( 'Settings saved.', 'mantis-seo' );
+			}
 			add_settings_error(
 				'mantis_seo_messages',
 				'mantis_seo_message',
@@ -540,7 +617,7 @@ class Mantis_SEO_Settings_Page {
 								<td id="mantis-import-cell"></td>
 							</tr>
 						</table>
-						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import supports: Mantis JSON, Yoast INI/text, or CSV (key,value).', 'mantis-seo' ); ?></p>
+						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import supports: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or CSV (key,value).', 'mantis-seo' ); ?></p>
 					</div>
 				</div>
 
