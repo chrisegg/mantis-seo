@@ -44,7 +44,7 @@
 	/* Extend into WordPress admin padding to remove left margin */
 	margin-left: -20px;
 	margin-right: -20px;
-	padding-left: 20px;
+	padding-left: 0px;
 	padding-right: 20px;
 }
 
@@ -179,7 +179,7 @@
 .wrap.mantis-redirects {
 	max-width: none;
 	margin: 0;
-	padding: 0;
+	padding: 25px;
 }
 
 /* Notices – toast-style */
