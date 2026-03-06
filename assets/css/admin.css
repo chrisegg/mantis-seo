@@ -614,9 +614,10 @@ body.admin-bar .mantis-seo-slideout-panel {
 .mantis-seo-pin-toggle[aria-pressed="true"] {
 	color: var(--mantis-accent);
 	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
 }
 
-/* Push pin / tack icon */
+/* Pin icon */
 .mantis-seo-pin-toggle .mantis-seo-icon-tack {
 	display: flex;
 	align-items: center;
@@ -625,10 +626,6 @@ body.admin-bar .mantis-seo-slideout-panel {
 
 .mantis-seo-pin-toggle .mantis-seo-icon-tack svg {
 	display: block;
-}
-
-.mantis-seo-pin-toggle .mantis-seo-icon-tack.mantis-seo-tack-pinned {
-	opacity: 0.8;
 }
 
 .mantis-seo-slideout-header-text {
