@@ -11,7 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <header class="mantis-seo-app-header">
 	<div class="mantis-seo-app-header-left">
-		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" class="mantis-seo-logo">MantiSEO</a>
+		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" class="mantis-seo-logo">
+			<img src="<?php echo esc_url( MANTIS_SEO_URL . 'assets/images/mantiseo-logo.png' ); ?>" alt="<?php esc_attr_e( 'MantiSEO', 'mantis-seo' ); ?>" class="mantis-seo-logo-img" />
+		</a>
 	</div>
 	<div class="mantis-seo-app-header-right">
 		<button type="button" class="mantis-seo-theme-toggle" aria-pressed="false" aria-label="<?php esc_attr_e( 'Toggle dark mode', 'mantis-seo' ); ?>" title="<?php esc_attr_e( 'Dark / Light mode', 'mantis-seo' ); ?>">

@@ -43,7 +43,7 @@
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, sans-serif;
 	/* Extend into WordPress admin padding to remove left margin */
 	margin-left: -20px;
-	margin-right: -20px;
+	margin-right: 0px;
 	padding-left: 0px;
 	padding-right: 20px;
 }
@@ -64,15 +64,19 @@
 }
 
 .mantis-seo-logo {
-	font-size: 1.25rem;
-	font-weight: 700;
-	color: var(--mantis-text);
+	display: flex;
+	align-items: center;
 	text-decoration: none;
-	letter-spacing: -0.02em;
 }
 
-.mantis-seo-logo:hover {
-	color: var(--mantis-accent);
+.mantis-seo-logo-img {
+	height: 32px;
+	width: auto;
+	display: block;
+}
+
+.mantis-seo-logo:hover .mantis-seo-logo-img {
+	opacity: 0.85;
 }
 
 .mantis-seo-app-header-right {
@@ -235,7 +239,6 @@
 .mantis-seo-settings form[action="options.php"] {
 	background: var(--mantis-card-bg);
 	border-radius: var(--mantis-radius);
-	box-shadow: var(--mantis-shadow);
 	padding: 0;
 	overflow: hidden;
 }
@@ -251,7 +254,6 @@
 	flex-shrink: 0;
 	width: 200px;
 	background: var(--mantis-bg);
-	border-right: 1px solid var(--mantis-border);
 	padding: 0.75rem 0;
 }
 
@@ -328,7 +330,6 @@
 .mantis-settings-body .submit {
 	padding: 1rem 2rem 1.5rem;
 	margin: 0;
-	border-top: 1px solid var(--mantis-border);
 	background: var(--mantis-bg);
 }
 
