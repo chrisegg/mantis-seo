@@ -64,22 +64,45 @@ class Mantis_SEO_Settings_Page {
 		}
 		check_admin_referer( 'mantis_import' );
 
-		$json = file_get_contents( $_FILES['mantis_import_file']['tmp_name'] );
-		$data = json_decode( $json, true );
-		if ( ! $data || empty( $data['mantis_seo_export'] ) || empty( $data['settings'] ) ) {
-			add_settings_error(
-				'mantis_seo_messages',
-				'mantis_import_error',
-				__( 'Invalid import file.', 'mantis-seo' ),
-				'error'
-			);
-			return;
-		}
+		$redirect_url = admin_url( 'admin.php?page=mantis-seo' );
+		$file_path    = isset( $_FILES['mantis_import_file']['tmp_name'] ) ? $_FILES['mantis_import_file']['tmp_name'] : '';
 
-		$imported = wp_parse_args( $data['settings'], Mantis_SEO_Main::get_default_settings() );
-		Mantis_SEO_Main::save_settings( $imported );
-		wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'settings-updated' => 1 ), admin_url( 'admin.php?page=mantis-seo' ) ) );
-		exit;
+		try {
+			if ( ! is_uploaded_file( $file_path ) ) {
+				throw new Exception( __( 'No valid file was uploaded.', 'mantis-seo' ) );
+			}
+
+			$json = file_get_contents( $file_path );
+			if ( false === $json ) {
+				throw new Exception( __( 'Could not read the uploaded file. It may be empty or inaccessible.', 'mantis-seo' ) );
+			}
+
+			$data = json_decode( $json, true );
+			if ( null === $data && json_last_error() !== JSON_ERROR_NONE ) {
+				$msg = function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : __( 'Invalid JSON', 'mantis-seo' );
+				throw new Exception( sprintf( /* translators: %s: JSON error message */ __( 'Invalid JSON in file: %s', 'mantis-seo' ), $msg ) );
+			}
+
+			if ( ! $data || empty( $data['mantis_seo_export'] ) || empty( $data['settings'] ) ) {
+				throw new Exception( __( 'Invalid import file. The file is not a valid Mantis SEO export.', 'mantis-seo' ) );
+			}
+
+			$imported = wp_parse_args( $data['settings'], Mantis_SEO_Main::get_default_settings() );
+			$saved    = Mantis_SEO_Main::save_settings( $imported );
+			if ( ! $saved ) {
+				throw new Exception( __( 'Failed to save settings.', 'mantis-seo' ) );
+			}
+
+			wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'settings-updated' => 1 ), $redirect_url ) );
+			exit;
+		} catch ( Exception $e ) {
+			set_transient( 'mantis_import_error', $e->getMessage(), 60 );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'Mantis SEO import error: ' . $e->getMessage() );
+			}
+			wp_safe_redirect( add_query_arg( 'mantis_import_error', 1, $redirect_url ) );
+			exit;
+		}
 	}
 
 	/**
@@ -185,6 +208,19 @@ class Mantis_SEO_Settings_Page {
 				$msg,
 				'success'
 			);
+		}
+
+		if ( isset( $_GET['mantis_import_error'] ) ) {
+			$err = get_transient( 'mantis_import_error' );
+			if ( $err ) {
+				delete_transient( 'mantis_import_error' );
+				add_settings_error(
+					'mantis_seo_messages',
+					'mantis_import_error',
+					sprintf( /* translators: %s: error message */ __( 'Import failed: %s', 'mantis-seo' ), esc_html( $err ) ),
+					'error'
+				);
+			}
 		}
 
 		settings_errors( 'mantis_seo_messages' );
@@ -372,9 +408,7 @@ class Mantis_SEO_Settings_Page {
 							</tr>
 							<tr>
 								<th><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></th>
-								<td id="mantis-import-cell">
-									<?php /* Form output below, outside main form to avoid nested forms */ ?>
-								</td>
+								<td id="mantis-import-cell"></td>
 							</tr>
 						</table>
 					</div>
@@ -383,10 +417,9 @@ class Mantis_SEO_Settings_Page {
 				<?php submit_button(); ?>
 			</form>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" style="margin-top:20px;">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" style="display:none;">
 				<?php wp_nonce_field( 'mantis_import' ); ?>
-				<label for="mantis_import_file"><strong><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></strong></label>
-				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json" style="margin:0 8px;" />
+				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json" style="margin-right:8px;" />
 				<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 			</form>
 		</div>
@@ -395,17 +428,36 @@ class Mantis_SEO_Settings_Page {
 		(function() {
 			var tabs = document.querySelectorAll('.mantis-seo-tabs .nav-tab');
 			var panels = document.querySelectorAll('.mantis-tab-panel');
+			var importForm = document.getElementById('mantis-import-form');
+			var importCell = document.getElementById('mantis-import-cell');
+			function showTab(targetId) {
+				tabs.forEach(function(t) { t.classList.remove('nav-tab-active'); });
+				panels.forEach(function(p) {
+					p.style.display = p.id === targetId ? 'block' : 'none';
+				});
+				if (targetId === 'mantis-tools' && importForm && importCell) {
+					importCell.appendChild(importForm);
+					importForm.style.display = 'block';
+				} else if (importForm) {
+					importForm.style.display = 'none';
+				}
+			}
 			tabs.forEach(function(tab) {
 				tab.addEventListener('click', function(e) {
 					e.preventDefault();
 					var targetId = this.getAttribute('href').slice(1);
-					tabs.forEach(function(t) { t.classList.remove('nav-tab-active'); });
-					panels.forEach(function(p) {
-						p.style.display = p.id === targetId ? 'block' : 'none';
-					});
+					var prev = document.querySelector('.mantis-seo-tabs .nav-tab-active');
+					if (prev) prev.classList.remove('nav-tab-active');
 					this.classList.add('nav-tab-active');
+					showTab(targetId);
 				});
 			});
+			// Switch to Tools tab if import error in URL.
+			if (window.location.search.indexOf('mantis_import_error') !== -1 && tabs[5]) {
+				tabs.forEach(function(t) { t.classList.remove('nav-tab-active'); });
+				tabs[5].classList.add('nav-tab-active');
+				showTab('mantis-tools');
+			}
 		})();
 		</script>
 		<?php
