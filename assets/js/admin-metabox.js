@@ -12,6 +12,7 @@
 		slideout: '#mantis-seo-slideout',
 		closeBtn: '.mantis-seo-slideout-close',
 		pinToggle: '.mantis-seo-pin-toggle',
+		resizeTab: '.mantis-seo-resize-tab',
 		tab: '.mantis-seo-tab',
 		tabPanel: '.mantis-seo-tab-panel',
 	};
@@ -19,9 +20,13 @@
 	const CLASSES = {
 		open: 'mantis-seo-slideout-open',
 		pinned: 'mantis-seo-slideout-pinned',
+		wide: 'mantis-seo-slideout-wide',
 	};
 
-	const STORAGE_KEY = 'mantis_seo_panel_pinned';
+	const STORAGE_KEYS = {
+		pinned: 'mantis_seo_panel_pinned',
+		wide: 'mantis_seo_panel_wide',
+	};
 
 	function init() {
 		const slideout = document.querySelector(SELECTORS.slideout);
@@ -48,13 +53,24 @@
 		if (pinToggle) {
 			pinToggle.addEventListener('click', togglePin);
 			// Restore pinned state from sessionStorage.
-			const wasPinned = sessionStorage.getItem(STORAGE_KEY) === '1';
+			const wasPinned = sessionStorage.getItem(STORAGE_KEYS.pinned) === '1';
 			if (wasPinned) {
 				slideout.classList.add(CLASSES.pinned);
 				pinToggle.setAttribute('aria-pressed', 'true');
 				pinToggle.title = 'Unpin panel';
 				slideout.classList.add(CLASSES.open);
 				document.body.classList.add('mantis-seo-panel-open');
+			}
+		}
+
+		const resizeTab = slideout.querySelector(SELECTORS.resizeTab);
+		if (resizeTab) {
+			resizeTab.addEventListener('click', toggleWide);
+			// Restore wide state from sessionStorage.
+			const wasWide = sessionStorage.getItem(STORAGE_KEYS.wide) === '1';
+			if (wasWide) {
+				slideout.querySelector('.mantis-seo-slideout-panel').classList.add(CLASSES.wide);
+				updateResizeTab(resizeTab, true);
 			}
 		}
 
@@ -119,7 +135,24 @@
 		if (icon) {
 			icon.classList.toggle('mantis-seo-tack-pinned', isPinned);
 		}
-		sessionStorage.setItem(STORAGE_KEY, isPinned ? '1' : '0');
+		sessionStorage.setItem(STORAGE_KEYS.pinned, isPinned ? '1' : '0');
+	}
+
+	function toggleWide() {
+		const slideout = document.querySelector(SELECTORS.slideout);
+		const panel = slideout && slideout.querySelector('.mantis-seo-slideout-panel');
+		const resizeTab = slideout && slideout.querySelector(SELECTORS.resizeTab);
+		if (!panel || !resizeTab) return;
+
+		const isWide = panel.classList.toggle(CLASSES.wide);
+		updateResizeTab(resizeTab, isWide);
+		sessionStorage.setItem(STORAGE_KEYS.wide, isWide ? '1' : '0');
+	}
+
+	function updateResizeTab(resizeTab, isWide) {
+		resizeTab.innerHTML = isWide ? '<span aria-hidden="true">&gt;</span>' : '<span aria-hidden="true">&lt;</span>';
+		resizeTab.setAttribute('title', isWide ? 'Shrink panel' : 'Expand panel');
+		resizeTab.setAttribute('aria-label', isWide ? 'Shrink panel' : 'Expand panel');
 	}
 
 	if (document.readyState === 'loading') {
