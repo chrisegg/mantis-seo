@@ -460,30 +460,60 @@
 
 /* ========== REDIRECTS PAGE ========== */
 
-/* Redirect form – collapsible, with padding */
-.mantis-redirect-form-wrap {
+/* Redirect accordion */
+.mantis-redirect-accordion {
 	margin-bottom: 1.5rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+	background: var(--mantis-card-bg);
+	overflow: hidden;
 }
 
-.mantis-redirect-form-wrap .mantis-redirect-add-trigger {
-	margin-bottom: 0;
+.mantis-redirect-accordion-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	margin: 0;
+	padding: 1rem 1.25rem;
+	border: none;
+	background: var(--mantis-bg);
+	color: var(--mantis-text);
+	font-size: 0.9375rem;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+	transition: background var(--mantis-transition);
+}
+
+.mantis-redirect-accordion-header:hover {
+	background: var(--mantis-accent-muted);
+}
+
+.mantis-redirect-accordion-icon {
+	display: flex;
+	align-items: center;
+	transition: transform var(--mantis-transition);
+}
+
+.mantis-redirect-accordion-expanded .mantis-redirect-accordion-icon {
+	transform: rotate(180deg);
+}
+
+.mantis-redirect-accordion-content {
+	display: none;
+	border-top: 1px solid var(--mantis-border);
+}
+
+.mantis-redirect-accordion-expanded .mantis-redirect-accordion-content {
+	display: block;
 }
 
 .mantis-redirect-form {
 	background: var(--mantis-card-bg);
-	border-radius: var(--mantis-radius);
-	box-shadow: var(--mantis-shadow);
 	padding: 1.5rem 2rem;
-	margin-top: 1rem;
-	border: 1px solid var(--mantis-border);
-}
-
-.mantis-redirect-form.mantis-redirect-form-collapsed {
-	display: none;
-}
-
-.mantis-redirect-form-wrap.mantis-redirect-form-expanded .mantis-redirect-form {
-	display: block;
+	border: none;
 }
 
 .mantis-redirects .form-table tbody,
@@ -545,7 +575,7 @@
 	border: 1px solid var(--mantis-border);
 	border-radius: var(--mantis-radius-sm);
 	font-size: 0.875rem;
-	min-width: 100px;
+	min-width: 200px;
 }
 
 .mantis-redirects .mantis-redirect-form .submit {
@@ -586,6 +616,39 @@
 	border-radius: var(--mantis-radius);
 	box-shadow: var(--mantis-shadow);
 	overflow: hidden;
+	table-layout: fixed;
+	width: 100%;
+}
+
+/* Column widths – Origin and Target get most space */
+.mantis-redirects .wp-list-table th:nth-child(1),
+.mantis-redirects .wp-list-table td:nth-child(1) {
+	width: 28%;
+	min-width: 0;
+}
+
+.mantis-redirects .wp-list-table th:nth-child(2),
+.mantis-redirects .wp-list-table td:nth-child(2) {
+	width: 42%;
+	min-width: 0;
+}
+
+.mantis-redirects .wp-list-table th:nth-child(3),
+.mantis-redirects .wp-list-table td:nth-child(3) {
+	width: 8%;
+	min-width: 4.5rem;
+}
+
+.mantis-redirects .wp-list-table th:nth-child(4),
+.mantis-redirects .wp-list-table td:nth-child(4) {
+	width: 8%;
+	min-width: 4rem;
+}
+
+.mantis-redirects .wp-list-table th:nth-child(5),
+.mantis-redirects .wp-list-table td:nth-child(5) {
+	width: 14%;
+	min-width: 6rem;
 }
 
 .mantis-redirects .wp-list-table thead th {
