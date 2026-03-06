@@ -581,7 +581,7 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 	border: 1px solid var(--mantis-border);
 	border-right: none;
 	border-radius: 8px 0 0 8px;
-	background: #f8fafc;
+	background: #ffffff;
 	color: var(--mantis-text-muted);
 	font-size: 14px;
 	font-weight: 600;
@@ -597,7 +597,7 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 
 .mantis-seo-resize-tab:hover {
 	color: var(--mantis-accent);
-	background: #f8fafc;
+	background: #ffffff;
 }
 
 /* Panel – fills the wrapper */
