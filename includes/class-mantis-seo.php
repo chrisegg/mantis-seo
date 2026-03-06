@@ -103,7 +103,15 @@ class Mantis_SEO_Main {
 	public static function get_settings() {
 		$defaults = self::get_default_settings();
 		$saved    = get_option( 'mantis_settings', array() );
-		return wp_parse_args( $saved, $defaults );
+		$merged   = wp_parse_args( $saved, $defaults );
+		// Empty template fields should use defaults - migration/save may have stored ''.
+		$template_keys = array( 'title_home', 'title_post', 'title_page', 'metadesc_home', 'metadesc_post', 'metadesc_page' );
+		foreach ( $template_keys as $key ) {
+			if ( isset( $merged[ $key ] ) && '' === trim( (string) $merged[ $key ] ) && isset( $defaults[ $key ] ) ) {
+				$merged[ $key ] = $defaults[ $key ];
+			}
+		}
+		return $merged;
 	}
 
 	/**

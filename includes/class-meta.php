@@ -170,9 +170,11 @@ class Mantis_SEO_Meta {
 		$title = $this->get_post_meta( $object_id, 'title' );
 		if ( empty( $title ) ) {
 			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			$title    = $this->replace_vars( $template, $post );
+			$title    = ! empty( trim( (string) $template ) ) ? $this->replace_vars( $template, $post ) : $post->post_title;
+		} else {
+			$title = $this->replace_vars( $title, $post );
 		}
-		// Title is filtered separately via document_title_parts.
+		$meta['document_title'] = $title;
 
 		$description = $this->get_post_meta( $object_id, 'description' );
 		if ( empty( $description ) ) {
@@ -241,11 +243,12 @@ class Mantis_SEO_Meta {
 	private function build_og( $meta ) {
 		$settings = Mantis_SEO_Main::get_settings();
 
+		$og_title = ! empty( $meta['og_title'] ) ? $meta['og_title'] : ( ! empty( $meta['document_title'] ) ? $meta['document_title'] : '' );
 		$og = array(
 			'locale'      => get_locale(),
 			'type'        => is_singular() ? 'article' : 'website',
 			'site_name'   => get_bloginfo( 'name' ),
-			'title'       => ! empty( $meta['og_title'] ) ? $meta['og_title'] : '',
+			'title'       => $og_title,
 			'description' => ! empty( $meta['og_description'] ) ? $meta['og_description'] : ( ! empty( $meta['description'] ) ? $meta['description'] : get_bloginfo( 'description' ) ),
 			'url'         => ! empty( $meta['canonical'] ) ? $meta['canonical'] : $this->get_canonical_url(),
 			'image'       => ! empty( $meta['og_image'] ) ? $meta['og_image'] : $settings['og_default_image'],
@@ -271,9 +274,10 @@ class Mantis_SEO_Meta {
 	 * @return array
 	 */
 	private function build_twitter( $meta, $settings ) {
+		$twitter_title = ! empty( $meta['twitter_title'] ) ? $meta['twitter_title'] : ( ! empty( $meta['document_title'] ) ? $meta['document_title'] : '' );
 		$twitter = array(
 			'card'        => $settings['twitter_card_type'],
-			'title'       => ! empty( $meta['twitter_title'] ) ? $meta['twitter_title'] : '',
+			'title'       => $twitter_title,
 			'description' => ! empty( $meta['twitter_description'] ) ? $meta['twitter_description'] : ( ! empty( $meta['description'] ) ? $meta['description'] : get_bloginfo( 'description' ) ),
 			'image'       => ! empty( $meta['twitter_image'] ) ? $meta['twitter_image'] : ( ! empty( $meta['og_image'] ) ? $meta['og_image'] : $settings['og_default_image'] ),
 		);
@@ -296,9 +300,15 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title( $title ) {
 		if ( is_singular() ) {
-			$custom = $this->get_post_meta( get_queried_object_id(), 'title' );
+			$post    = get_post( get_queried_object_id() );
+			$custom  = $this->get_post_meta( get_queried_object_id(), 'title' );
+			$settings = Mantis_SEO_Main::get_settings();
+			$template = $post && 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
 			if ( ! empty( $custom ) ) {
-				return $custom;
+				return $this->replace_vars( $custom, $post );
+			}
+			if ( ! empty( trim( (string) $template ) ) ) {
+				return $this->replace_vars( $template, $post );
 			}
 		}
 		if ( is_home() && ! is_front_page() ) {
@@ -316,9 +326,18 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title_parts( $parts ) {
 		if ( is_singular() ) {
-			$custom = $this->get_post_meta( get_queried_object_id(), 'title' );
+			$post     = get_post( get_queried_object_id() );
+			$custom   = $this->get_post_meta( get_queried_object_id(), 'title' );
+			$settings = Mantis_SEO_Main::get_settings();
+			$template = $post && 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+			$resolved = '';
 			if ( ! empty( $custom ) ) {
-				$parts['title'] = $custom;
+				$resolved = $this->replace_vars( $custom, $post );
+			} elseif ( ! empty( trim( (string) $template ) ) ) {
+				$resolved = $this->replace_vars( $template, $post );
+			}
+			if ( '' !== $resolved ) {
+				$parts['title'] = $resolved;
 				unset( $parts['tagline'], $parts['site'] );
 			}
 		}
