@@ -135,6 +135,15 @@ class Mantis_SEO_Yoast_Importer {
 				$value = self::convert_yoast_vars( $value );
 			}
 
+			// Use default template for empty/default Yoast title so every post has a title.
+			if ( '_mantis_title' === $new_key ) {
+				$trimmed = trim( (string) $value );
+				$converted_default = self::convert_yoast_vars( '%%title%% %%page%% %%sep%% %%sitename%%' );
+				if ( '' === $trimmed || $trimmed === $converted_default ) {
+					$value = $converted_default;
+				}
+			}
+
 			if ( ! isset( $post_meta[ $row['post_id'] ] ) ) {
 				$post_meta[ $row['post_id'] ] = array();
 			}
@@ -261,6 +270,12 @@ class Mantis_SEO_Yoast_Importer {
 		global $wpdb;
 		$count = 0;
 
+		// Ensure table exists (may have been dropped by wipe).
+		$table = $wpdb->prefix . 'mantis_redirects';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			Mantis_SEO_Redirects::create_table();
+		}
+
 		// Legacy per-post redirect (very old Yoast free).
 		$legacy_redirects = $wpdb->get_results(
 			"SELECT post_id, meta_value FROM $wpdb->postmeta WHERE meta_key = '_yoast_wpseo_redirect' AND meta_value != ''",
@@ -292,6 +307,8 @@ class Mantis_SEO_Yoast_Importer {
 
 		$sources = array(
 			'wpseo-premium-redirects-base',
+			'wpseo-premium-redirects-export-plain',
+			'wpseo-premium-redirects-export-regex',
 			'wpseo_redirect',
 		);
 
@@ -301,6 +318,7 @@ class Mantis_SEO_Yoast_Importer {
 				continue;
 			}
 
+			$is_regex_source = ( false !== strpos( $option_name, 'regex' ) );
 			foreach ( $redirects as $entry ) {
 				if ( isset( $entry['origin'], $entry['url'] ) ) {
 					$origin = $entry['origin'];
@@ -314,7 +332,7 @@ class Mantis_SEO_Yoast_Importer {
 					continue;
 				}
 				$type   = isset( $entry['type'] ) ? (int) $entry['type'] : 301;
-				$format = isset( $entry['format'] ) && 'regex' === $entry['format'] ? 'regex' : 'plain';
+				$format = isset( $entry['format'] ) && 'regex' === $entry['format'] ? 'regex' : ( $is_regex_source ? 'regex' : 'plain' );
 				if ( Mantis_SEO_Redirects::add( $origin, $target, $type, $format ) ) {
 					$count++;
 				}
