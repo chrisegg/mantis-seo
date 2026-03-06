@@ -72,22 +72,17 @@ class Mantis_SEO_Settings_Page {
 				throw new Exception( __( 'No valid file was uploaded.', 'mantis-seo' ) );
 			}
 
-			$json = file_get_contents( $file_path );
-			if ( false === $json ) {
+			$content = file_get_contents( $file_path );
+			if ( false === $content || '' === trim( $content ) ) {
 				throw new Exception( __( 'Could not read the uploaded file. It may be empty or inaccessible.', 'mantis-seo' ) );
 			}
 
-			$data = json_decode( $json, true );
-			if ( null === $data && json_last_error() !== JSON_ERROR_NONE ) {
-				$msg = function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : __( 'Invalid JSON', 'mantis-seo' );
-				throw new Exception( sprintf( /* translators: %s: JSON error message */ __( 'Invalid JSON in file: %s', 'mantis-seo' ), $msg ) );
+			$imported = $this->parse_import_file( $content );
+			if ( empty( $imported ) ) {
+				throw new Exception( __( 'No valid settings found in file. Supported formats: Mantis JSON, Yoast INI/text, CSV (key,value).', 'mantis-seo' ) );
 			}
 
-			if ( ! $data || empty( $data['mantis_seo_export'] ) || empty( $data['settings'] ) ) {
-				throw new Exception( __( 'Invalid import file. The file is not a valid Mantis SEO export.', 'mantis-seo' ) );
-			}
-
-			$imported = wp_parse_args( $data['settings'], Mantis_SEO_Main::get_default_settings() );
+			$imported = wp_parse_args( $imported, Mantis_SEO_Main::get_default_settings() );
 			$saved    = Mantis_SEO_Main::save_settings( $imported );
 			if ( ! $saved ) {
 				throw new Exception( __( 'Failed to save settings.', 'mantis-seo' ) );
@@ -103,6 +98,138 @@ class Mantis_SEO_Settings_Page {
 			wp_safe_redirect( add_query_arg( 'mantis_import_error', 1, $redirect_url ) );
 			exit;
 		}
+	}
+
+	/**
+	 * Parse import file content and return Mantis settings array.
+	 *
+	 * @param string $content File content.
+	 * @return array Mantis settings or empty array if unsupported format.
+	 */
+	private function parse_import_file( $content ) {
+		// Try Mantis JSON first.
+		$data = json_decode( $content, true );
+		if ( is_array( $data ) && ! empty( $data['mantis_seo_export'] ) && ! empty( $data['settings'] ) ) {
+			return $data['settings'];
+		}
+
+		// Try Yoast INI format ([wpseo_titles], [wpseo], etc).
+		if ( preg_match( '/\[' . preg_quote( 'wpseo', '/' ) . '[\w\-]*\]/', $content ) ) {
+			$parsed = $this->parse_yoast_ini( $content );
+			if ( ! empty( $parsed ) ) {
+				return $parsed;
+			}
+		}
+
+		// Try CSV (key,value or key;value).
+		$parsed = $this->parse_csv_settings( $content );
+		if ( ! empty( $parsed ) ) {
+			return $parsed;
+		}
+
+		return array();
+	}
+
+	/**
+	 * Parse Yoast INI/plain-text export into Mantis settings.
+	 *
+	 * @param string $content Raw file content.
+	 * @return array Mantis settings.
+	 */
+	private function parse_yoast_ini( $content ) {
+		$options = @parse_ini_string( $content, true, INI_SCANNER_RAW );
+		if ( ! is_array( $options ) || empty( $options ) ) {
+			return array();
+		}
+
+		$yoast_to_mantis = array(
+			'title-home-wpseo'      => 'title_home',
+			'title-post'            => 'title_post',
+			'title-page'            => 'title_page',
+			'separator'             => 'separator',
+			'metadesc-home-wpseo'   => 'metadesc_home',
+			'metadesc-post'         => 'metadesc_post',
+			'metadesc-page'         => 'metadesc_page',
+			'noindex-author-wpseo'  => 'noindex_author',
+			'noindex-archive-wpseo' => 'noindex_date',
+			'company_name'          => 'schema_organization_name',
+			'company_logo'          => 'schema_organization_logo',
+		);
+
+		$mantis = array();
+		$sections = array( 'wpseo_titles', 'wpseo', 'wpseo_social' );
+
+		foreach ( $sections as $section ) {
+			if ( empty( $options[ $section ] ) || ! is_array( $options[ $section ] ) ) {
+				continue;
+			}
+			foreach ( $options[ $section ] as $key => $value ) {
+				if ( isset( $yoast_to_mantis[ $key ] ) ) {
+					$mantis_key = $yoast_to_mantis[ $key ];
+					$val       = is_string( $value ) ? $value : (string) $value;
+					if ( in_array( $mantis_key, array( 'title_home', 'title_post', 'title_page', 'metadesc_home', 'metadesc_post', 'metadesc_page', 'separator' ), true ) ) {
+						$val = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $val );
+					}
+					if ( in_array( $mantis_key, array( 'noindex_author', 'noindex_date' ), true ) ) {
+						$mantis[ $mantis_key ] = (bool) $value;
+					} else {
+						$mantis[ $mantis_key ] = sanitize_text_field( $val );
+					}
+				}
+			}
+		}
+
+		if ( ! empty( $options['wpseo_social']['og_default_image'] ) ) {
+			$mantis['og_default_image'] = esc_url_raw( $options['wpseo_social']['og_default_image'] );
+		}
+		if ( ! empty( $options['wpseo_social']['twitter_card_type'] ) ) {
+			$mantis['twitter_card_type'] = sanitize_text_field( $options['wpseo_social']['twitter_card_type'] );
+		}
+		if ( ! empty( $options['wpseo']['enable_xml_sitemap'] ) ) {
+			$mantis['sitemap_enabled'] = true;
+		}
+
+		return $mantis;
+	}
+
+	/**
+	 * Parse CSV (key,value) into Mantis settings.
+	 *
+	 * @param string $content Raw file content.
+	 * @return array Mantis settings.
+	 */
+	private function parse_csv_settings( $content ) {
+		$lines = preg_split( '/[\r\n]+/', trim( $content ), -1, PREG_SPLIT_NO_EMPTY );
+		if ( empty( $lines ) ) {
+			return array();
+		}
+
+		$valid_keys = array(
+			'title_home', 'title_post', 'title_page', 'separator',
+			'metadesc_home', 'metadesc_post', 'metadesc_page',
+			'og_default_image', 'twitter_card_type',
+			'noindex_author', 'noindex_date', 'sitemap_enabled',
+			'schema_organization_name', 'schema_organization_url', 'schema_organization_logo',
+		);
+
+		$mantis = array();
+		foreach ( $lines as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+			$row = str_getcsv( $line );
+			if ( count( $row ) < 2 ) {
+				continue;
+			}
+			$key   = sanitize_key( trim( $row[0] ) );
+			$value = trim( $row[1] );
+			if ( in_array( $key, $valid_keys, true ) ) {
+				$mantis[ $key ] = sanitize_text_field( $value );
+			}
+		}
+
+		return $mantis;
 	}
 
 	/**
@@ -413,7 +540,7 @@ class Mantis_SEO_Settings_Page {
 								<td id="mantis-import-cell"></td>
 							</tr>
 						</table>
-						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import accepts JSON files from Mantis SEO Export only. Yoast CSV/text exports are not supported—use Migrate from Yoast instead.', 'mantis-seo' ); ?></p>
+						<p class="description" style="margin-top:-10px;"><?php esc_html_e( 'Import supports: Mantis JSON, Yoast INI/text, or CSV (key,value).', 'mantis-seo' ); ?></p>
 					</div>
 				</div>
 
@@ -422,7 +549,7 @@ class Mantis_SEO_Settings_Page {
 
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" style="display:none;">
 				<?php wp_nonce_field( 'mantis_import' ); ?>
-				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json" style="margin-right:8px;" />
+				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" style="margin-right:8px;" />
 				<button type="submit" name="mantis_import" value="1" class="button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 			</form>
 		</div>

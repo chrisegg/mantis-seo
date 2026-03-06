@@ -383,13 +383,23 @@ class Mantis_SEO_Yoast_Importer {
 				return $fallback;
 			};
 			$yoast_default_single = '%%title%% %%page%% %%sep%% %%sitename%%';
-			$v = $get( array( 'title-home-wpseo', 'title_home' ) );
+			$yoast_default_home   = '%%sitename%% %%page%% %%sep%% %%sitedesc%%';
+			$v = $get( array( 'title-home-wpseo', 'title_home' ), $yoast_default_home );
+			if ( '' === trim( (string) $v ) ) {
+				$v = $yoast_default_home;
+			}
 			if ( $v ) {
 				$settings['title_home'] = self::convert_yoast_vars( $v );
 			}
 			$v = $get( array( 'title-post-wpseo', 'title-post', 'title_post', 'title-pt-post' ), $yoast_default_single );
+			if ( '' === trim( (string) $v ) ) {
+				$v = $yoast_default_single;
+			}
 			$settings['title_post'] = self::convert_yoast_vars( $v );
 			$v = $get( array( 'title-page-wpseo', 'title-page', 'title_page', 'title-pt-page' ), $yoast_default_single );
+			if ( '' === trim( (string) $v ) ) {
+				$v = $yoast_default_single;
+			}
 			$settings['title_page'] = self::convert_yoast_vars( $v );
 			$v = $get( array( 'metadesc-home-wpseo', 'metadesc_home' ) );
 			if ( $v ) {
@@ -438,7 +448,7 @@ class Mantis_SEO_Yoast_Importer {
 	 * @param string $str String with Yoast vars.
 	 * @return string
 	 */
-	private static function convert_yoast_vars( $str ) {
+	public static function convert_yoast_vars( $str ) {
 		$map = array(
 			'%%sitename%%'     => '%site_name%',
 			'%%sitedesc%%'     => '%site_description%',
