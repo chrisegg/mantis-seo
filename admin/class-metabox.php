@@ -98,8 +98,8 @@ class Mantis_SEO_Metabox {
 		echo '<nav class="mantis-seo-slideout-tabs" role="tablist">';
 		$tab_labels = array(
 			'meta'    => __( 'Meta', 'mantis-seo' ),
-			'og'      => __( 'OG', 'mantis-seo' ),
-			'twitter' => __( 'Twitter', 'mantis-seo' ),
+			'og'      => __( 'Facebook', 'mantis-seo' ),
+			'twitter' => __( 'X', 'mantis-seo' ),
 		);
 		$first = true;
 		foreach ( array_keys( $fields ) as $tab_id ) {
@@ -110,11 +110,27 @@ class Mantis_SEO_Metabox {
 		echo '</nav>';
 		echo '<div class="mantis-seo-slideout-body">';
 		$first = true;
+		$seo_title     = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
+		$seo_desc      = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
+		$preview_title = ! empty( trim( (string) $seo_title ) ) ? $seo_title : get_the_title( $post );
+		$preview_desc  = $seo_desc;
+		$preview_url   = get_permalink( $post );
 		foreach ( $fields as $tab_id => $tab_fields ) {
 			$active = $first ? ' mantis-seo-tab-panel-active' : '';
 			echo '<div class="mantis-seo-tab-panel' . esc_attr( $active ) . '" role="tabpanel" id="mantis-seo-tab-' . esc_attr( $tab_id ) . '" aria-hidden="' . ( $first ? 'false' : 'true' ) . '">';
 			$first  = false;
 			echo '<div class="mantis-seo-metabox">';
+			if ( 'meta' === $tab_id ) {
+				echo '<div class="mantis-seo-preview">';
+				echo '<h3 class="mantis-seo-preview-heading">' . esc_html__( 'Preview', 'mantis-seo' ) . '</h3>';
+				echo '<div class="mantis-seo-snippet">';
+				echo '<a><span id="mantis-snippet-title">' . esc_html( $preview_title ) . '</span></a>';
+				echo '<cite id="mantis-snippet-url">' . esc_url( $preview_url ) . '</cite>';
+				echo '<span id="mantis-snippet-description">' . esc_html( $preview_desc ) . '</span>';
+				echo '</div>';
+				echo '<p class="mantis-seo-preview-counts"><span id="mantis-title-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . ' · <span id="mantis-desc-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . '</p>';
+				echo '</div>';
+			}
 			foreach ( $tab_fields as $key => $label ) {
 				$value     = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
 				$meta_key  = self::META_PREFIX . $key;
@@ -177,14 +193,14 @@ class Mantis_SEO_Metabox {
 				'robots_nofollow' => __( 'Nofollow', 'mantis-seo' ),
 			),
 			'og'      => array(
-				'og_title'       => __( 'OG Title', 'mantis-seo' ),
-				'og_description' => __( 'OG Description', 'mantis-seo' ),
-				'og_image'       => __( 'OG Image URL', 'mantis-seo' ),
+				'og_title'       => __( 'Facebook Title', 'mantis-seo' ),
+				'og_description' => __( 'Facebook Description', 'mantis-seo' ),
+				'og_image'       => __( 'Facebook Image URL', 'mantis-seo' ),
 			),
 			'twitter' => array(
-				'twitter_title'       => __( 'Twitter Title', 'mantis-seo' ),
-				'twitter_description' => __( 'Twitter Description', 'mantis-seo' ),
-				'twitter_image'       => __( 'Twitter Image URL', 'mantis-seo' ),
+				'twitter_title'       => __( 'X Title', 'mantis-seo' ),
+				'twitter_description' => __( 'X Description', 'mantis-seo' ),
+				'twitter_image'       => __( 'X Image URL', 'mantis-seo' ),
 			),
 		);
 	}
@@ -250,6 +266,11 @@ class Mantis_SEO_Metabox {
 			<label for="mantis_term_description"><?php esc_html_e( 'Meta Description', 'mantis-seo' ); ?></label>
 			<textarea id="mantis_term_description" name="mantis_term_description" rows="2"></textarea>
 		</div>
+		<div class="form-field">
+			<label><?php esc_html_e( 'Robots', 'mantis-seo' ); ?></label>
+			<label style="display: inline-block; margin-right: 1em;"><input type="checkbox" name="mantis_term_robots_noindex" value="1" /> <?php esc_html_e( 'Noindex', 'mantis-seo' ); ?></label>
+			<label style="display: inline-block;"><input type="checkbox" name="mantis_term_robots_nofollow" value="1" /> <?php esc_html_e( 'Nofollow', 'mantis-seo' ); ?></label>
+		</div>
 		<?php
 	}
 
@@ -264,6 +285,8 @@ class Mantis_SEO_Metabox {
 		$focus_keyword = get_term_meta( $term->term_id, self::META_PREFIX . 'focus_keyword', true );
 		$title         = get_term_meta( $term->term_id, self::META_PREFIX . 'title', true );
 		$description   = get_term_meta( $term->term_id, self::META_PREFIX . 'description', true );
+		$robots_noindex  = get_term_meta( $term->term_id, self::META_PREFIX . 'robots_noindex', true );
+		$robots_nofollow = get_term_meta( $term->term_id, self::META_PREFIX . 'robots_nofollow', true );
 		?>
 		<tr class="form-field">
 			<th><label for="mantis_term_focus_keyword"><?php esc_html_e( 'Focus Keyword', 'mantis-seo' ); ?></label></th>
@@ -276,6 +299,13 @@ class Mantis_SEO_Metabox {
 		<tr class="form-field">
 			<th><label for="mantis_term_description"><?php esc_html_e( 'Meta Description', 'mantis-seo' ); ?></label></th>
 			<td><textarea id="mantis_term_description" name="mantis_term_description" rows="2" class="large-text"><?php echo esc_textarea( $description ); ?></textarea></td>
+		</tr>
+		<tr class="form-field">
+			<th><label><?php esc_html_e( 'Robots', 'mantis-seo' ); ?></label></th>
+			<td>
+				<label style="display: inline-block; margin-right: 1em;"><input type="checkbox" name="mantis_term_robots_noindex" value="1" <?php checked( $robots_noindex, '1' ); ?> /> <?php esc_html_e( 'Noindex', 'mantis-seo' ); ?></label>
+				<label style="display: inline-block;"><input type="checkbox" name="mantis_term_robots_nofollow" value="1" <?php checked( $robots_nofollow, '1' ); ?> /> <?php esc_html_e( 'Nofollow', 'mantis-seo' ); ?></label>
+			</td>
 		</tr>
 		<?php
 	}
@@ -297,5 +327,7 @@ class Mantis_SEO_Metabox {
 		}
 		$desc = isset( $_POST['mantis_term_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['mantis_term_description'] ) ) : '';
 		update_term_meta( $term_id, self::META_PREFIX . 'description', $desc );
+		update_term_meta( $term_id, self::META_PREFIX . 'robots_noindex', isset( $_POST['mantis_term_robots_noindex'] ) ? '1' : '0' );
+		update_term_meta( $term_id, self::META_PREFIX . 'robots_nofollow', isset( $_POST['mantis_term_robots_nofollow'] ) ? '1' : '0' );
 	}
 }

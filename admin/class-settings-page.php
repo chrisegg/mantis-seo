@@ -387,7 +387,7 @@ class Mantis_SEO_Settings_Page {
 			}
 		}
 
-		$bool_fields = array( 'noindex_author', 'noindex_date', 'sitemap_enabled' );
+		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
 		foreach ( $bool_fields as $field ) {
 			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
@@ -396,6 +396,14 @@ class Mantis_SEO_Settings_Page {
 		foreach ( $social_fields as $field ) {
 			if ( isset( $input[ $field ] ) ) {
 				$sanitized[ $field ] = esc_url_raw( $input[ $field ] );
+			}
+		}
+
+		if ( isset( $input['sitemap_post_types'] ) && is_array( $input['sitemap_post_types'] ) ) {
+			$valid_types = get_post_types( array( 'public' => true ), 'names' );
+			$sanitized['sitemap_post_types'] = array_values( array_intersect( array_map( 'sanitize_key', $input['sitemap_post_types'] ), $valid_types ) );
+			if ( empty( $sanitized['sitemap_post_types'] ) ) {
+				$sanitized['sitemap_post_types'] = array( 'post', 'page' );
 			}
 		}
 
@@ -528,7 +536,7 @@ class Mantis_SEO_Settings_Page {
 					</div>
 
 					<div id="mantis-social" class="mantis-tab-panel" style="display:none;">
-						<h2><?php esc_html_e( 'Open Graph & Twitter', 'mantis-seo' ); ?></h2>
+						<h2><?php esc_html_e( 'Open Graph & X', 'mantis-seo' ); ?></h2>
 						<table class="form-table">
 							<tr>
 								<th><label for="mantis_og_default_image"><?php esc_html_e( 'Default OG Image', 'mantis-seo' ); ?></label></th>
@@ -539,7 +547,7 @@ class Mantis_SEO_Settings_Page {
 								</td>
 							</tr>
 							<tr>
-								<th><label for="mantis_twitter_card_type"><?php esc_html_e( 'Twitter Card Type', 'mantis-seo' ); ?></label></th>
+								<th><label for="mantis_twitter_card_type"><?php esc_html_e( 'X Card Type', 'mantis-seo' ); ?></label></th>
 								<td>
 									<select id="mantis_twitter_card_type" name="mantis_settings[twitter_card_type]">
 										<option value="summary" <?php selected( $settings['twitter_card_type'], 'summary' ); ?>><?php esc_html_e( 'Summary', 'mantis-seo' ); ?></option>
@@ -605,6 +613,21 @@ class Mantis_SEO_Settings_Page {
 									<?php endif; ?>
 								</td>
 							</tr>
+							<tr>
+								<th><label for="mantis_sitemap_post_types"><?php esc_html_e( 'Post Types', 'mantis-seo' ); ?></label></th>
+								<td>
+									<?php
+									$sitemap_post_types = isset( $settings['sitemap_post_types'] ) && is_array( $settings['sitemap_post_types'] ) ? $settings['sitemap_post_types'] : array( 'post', 'page' );
+									$public_post_types = get_post_types( array( 'public' => true ), 'objects' );
+									?>
+									<select id="mantis_sitemap_post_types" name="mantis_settings[sitemap_post_types][]" multiple="multiple" size="<?php echo esc_attr( min( 8, count( $public_post_types ) ) ); ?>" style="height:auto;min-height:120px;">
+										<?php foreach ( $public_post_types as $pt ) : ?>
+											<option value="<?php echo esc_attr( $pt->name ); ?>" <?php selected( in_array( $pt->name, $sitemap_post_types, true ) ); ?>><?php echo esc_html( $pt->labels->singular_name ?? $pt->name ); ?></option>
+										<?php endforeach; ?>
+									</select>
+									<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple. Include post types to appear in the sitemap.', 'mantis-seo' ); ?></p>
+								</td>
+							</tr>
 						</table>
 					</div>
 
@@ -615,7 +638,9 @@ class Mantis_SEO_Settings_Page {
 								<th><?php esc_html_e( 'Noindex Archives', 'mantis-seo' ); ?></th>
 								<td>
 									<label><input type="checkbox" name="mantis_settings[noindex_author]" value="1" <?php checked( $settings['noindex_author'] ); ?> /> <?php esc_html_e( 'Author archives', 'mantis-seo' ); ?></label><br>
-									<label><input type="checkbox" name="mantis_settings[noindex_date]" value="1" <?php checked( $settings['noindex_date'] ); ?> /> <?php esc_html_e( 'Date archives', 'mantis-seo' ); ?></label>
+									<label><input type="checkbox" name="mantis_settings[noindex_date]" value="1" <?php checked( $settings['noindex_date'] ); ?> /> <?php esc_html_e( 'Date archives', 'mantis-seo' ); ?></label><br>
+									<label><input type="checkbox" name="mantis_settings[noindex_category]" value="1" <?php checked( $settings['noindex_category'] ?? false ); ?> /> <?php esc_html_e( 'Category archives', 'mantis-seo' ); ?></label><br>
+									<label><input type="checkbox" name="mantis_settings[noindex_tag]" value="1" <?php checked( $settings['noindex_tag'] ?? false ); ?> /> <?php esc_html_e( 'Tag archives', 'mantis-seo' ); ?></label>
 								</td>
 							</tr>
 						</table>

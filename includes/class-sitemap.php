@@ -100,12 +100,22 @@ class Mantis_SEO_Sitemap {
 	 * @return Mantis_SEO_Sitemap_Provider[]
 	 */
 	private function get_providers() {
-		$providers = array(
-			'posts' => new Mantis_SEO_Sitemap_Posts( 'post' ),
-			'pages' => new Mantis_SEO_Sitemap_Posts( 'page' ),
-			'categories' => new Mantis_SEO_Sitemap_Terms( 'category' ),
-			'tags' => new Mantis_SEO_Sitemap_Terms( 'post_tag' ),
-		);
+		$settings  = Mantis_SEO_Main::get_settings();
+		$post_types = isset( $settings['sitemap_post_types'] ) && is_array( $settings['sitemap_post_types'] )
+			? $settings['sitemap_post_types']
+			: array( 'post', 'page' );
+
+		$valid_types = array_keys( get_post_types( array( 'public' => true ), 'names' ) );
+		$post_types  = array_intersect( $post_types, $valid_types );
+
+		$providers = array();
+		foreach ( $post_types as $post_type ) {
+			$key = $post_type . 's';
+			$providers[ $key ] = new Mantis_SEO_Sitemap_Posts( $post_type );
+		}
+
+		$providers['categories'] = new Mantis_SEO_Sitemap_Terms( 'category' );
+		$providers['tags']       = new Mantis_SEO_Sitemap_Terms( 'post_tag' );
 
 		return apply_filters( 'mantis_sitemap_providers', $providers );
 	}

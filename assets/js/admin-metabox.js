@@ -28,9 +28,54 @@
 		wide: 'mantis_seo_panel_wide',
 	};
 
+	function updatePreview() {
+		const titleEl = document.getElementById('_mantis_title');
+		const descEl = document.getElementById('_mantis_description');
+		const postTitleEl = document.getElementById('title');
+		const snippetTitle = document.getElementById('mantis-snippet-title');
+		const snippetDesc = document.getElementById('mantis-snippet-description');
+		const titleCount = document.getElementById('mantis-title-count');
+		const descCount = document.getElementById('mantis-desc-count');
+
+		if (!snippetTitle) return;
+
+		let title = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+		if (!title && postTitleEl) {
+			title = postTitleEl.value.trim();
+		}
+		snippetTitle.textContent = title || '(No title)';
+
+		const desc = (descEl && descEl.value) ? descEl.value.trim() : '';
+		snippetDesc.textContent = desc || '';
+
+		if (titleCount) titleCount.textContent = (titleEl ? titleEl.value.length : 0);
+		if (descCount) descCount.textContent = (descEl ? descEl.value.length : 0);
+	}
+
+	function bindPreviewEvents() {
+		const titleEl = document.getElementById('_mantis_title');
+		const descEl = document.getElementById('_mantis_description');
+		const postTitleEl = document.getElementById('title');
+		const events = ['input', 'change', 'paste'];
+
+		function bind(el, fn) {
+			if (!el) return;
+			events.forEach(function (ev) {
+				el.addEventListener(ev, fn);
+			});
+		}
+
+		bind(titleEl, updatePreview);
+		bind(descEl, updatePreview);
+		bind(postTitleEl, updatePreview);
+	}
+
 	function init() {
 		const slideout = document.querySelector(SELECTORS.slideout);
 		if (!slideout) return;
+
+		updatePreview();
+		bindPreviewEvents();
 
 		const trigger = document.querySelector(SELECTORS.trigger);
 		const closeBtn = slideout.querySelector(SELECTORS.closeBtn);

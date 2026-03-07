@@ -81,7 +81,7 @@ class Mantis_SEO_Meta {
 			return;
 		}
 
-		echo "\n<!-- Mantis SEO Twitter -->\n";
+		echo "\n<!-- Mantis SEO X (Twitter Cards) -->\n";
 		foreach ( $meta['twitter'] as $key => $value ) {
 			if ( ! empty( $value ) ) {
 				echo '<meta name="twitter:' . esc_attr( $key ) . '" content="' . esc_attr( $value ) . '">' . "\n";
@@ -219,6 +219,7 @@ class Mantis_SEO_Meta {
 	 * @return array
 	 */
 	private function get_taxonomy_meta( $term_id, $meta ) {
+		$settings = Mantis_SEO_Main::get_settings();
 		$title = self::get_term_meta( $term_id, 'title' );
 		$description = self::get_term_meta( $term_id, 'description' );
 
@@ -230,6 +231,24 @@ class Mantis_SEO_Meta {
 		}
 
 		$meta['robots'] = array( 'index', 'follow' );
+
+		// Global noindex for category/tag archives.
+		if ( is_category() && ! empty( $settings['noindex_category'] ) ) {
+			$meta['robots'] = array( 'noindex', 'follow' );
+		} elseif ( is_tag() && ! empty( $settings['noindex_tag'] ) ) {
+			$meta['robots'] = array( 'noindex', 'follow' );
+		}
+
+		// Per-term noindex/nofollow (overrides global when set).
+		$term_noindex  = self::get_term_meta( $term_id, 'robots_noindex' );
+		$term_nofollow = self::get_term_meta( $term_id, 'robots_nofollow' );
+		if ( $term_noindex || $term_nofollow ) {
+			$meta['robots'] = array(
+				$term_noindex ? 'noindex' : 'index',
+				$term_nofollow ? 'nofollow' : 'follow',
+			);
+		}
+
 		$meta['canonical'] = get_term_link( $term_id );
 
 		return $meta;

@@ -134,6 +134,8 @@ class Mantis_SEO_Main {
 			'metadesc_page'          => '%excerpt%',
 			'noindex_author'         => true,
 			'noindex_date'           => true,
+			'noindex_category'       => false,
+			'noindex_tag'             => false,
 			'og_default_image'       => '',
 			'twitter_card_type'      => 'summary_large_image',
 			'google_verify'           => '',
@@ -146,6 +148,7 @@ class Mantis_SEO_Main {
 			'schema_same_as_instagram'  => '',
 			'schema_same_as_x'          => '',
 			'schema_same_as_linkedin'   => '',
+			'sitemap_post_types'        => array( 'post', 'page' ),
 		);
 	}
 

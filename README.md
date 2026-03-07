@@ -9,7 +9,7 @@ A lightweight, powerful SEO plugin for WordPress. Metadata, redirects, schema, a
 
 ## Features
 
-- **Metadata**: Global and per-post/page/term SEO (titles, descriptions, canonical, robots, Open Graph, Twitter Cards)
+- **Metadata**: Global and per-post/page/term SEO (titles, descriptions, canonical, robots, Open Graph, X Cards)
 - **Redirects**: Manual redirect manager (301, 302, 307, 308, 410), auto-redirect on slug change, prompts when trashing/deleting posts
 - **Schema**: JSON-LD for Organization, WebSite, Article, WebPage, BreadcrumbList
 - **Sitemap**: XML sitemap index at `/sitemap_index.xml`

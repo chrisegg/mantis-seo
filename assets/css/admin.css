@@ -1148,6 +1148,65 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	padding: 0;
 }
 
+/* Meta preview – Google-style snippet */
+.mantis-seo-preview {
+	margin-bottom: 1.25rem;
+	padding: 1rem;
+	background: var(--mantis-bg);
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+}
+
+.mantis-seo-preview-heading {
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--mantis-text-muted);
+	margin: 0 0 0.75rem;
+}
+
+.mantis-seo-snippet {
+	display: block;
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.mantis-seo-snippet a {
+	color: #1a0dab;
+	text-decoration: none;
+	display: block;
+	margin-bottom: 0.25rem;
+}
+
+.mantis-seo-snippet a:hover {
+	text-decoration: underline;
+}
+
+.mantis-seo-snippet cite {
+	display: block;
+	color: #006621;
+	font-size: 14px;
+	font-style: normal;
+	margin-bottom: 0.25rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mantis-seo-snippet span#mantis-snippet-description {
+	display: block;
+	color: #545454;
+	line-height: 1.58;
+}
+
+.mantis-seo-preview-counts {
+	font-size: 0.75rem;
+	color: var(--mantis-text-muted);
+	margin: 0.5rem 0 0;
+}
+
 .mantis-seo-slideout .mantis-seo-metabox p {
 	margin-bottom: 1.25rem;
 }
