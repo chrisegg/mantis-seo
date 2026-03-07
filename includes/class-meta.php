@@ -437,6 +437,53 @@ class Mantis_SEO_Meta {
 	}
 
 	/**
+	 * Replace variables for preview output (public, for metabox/settings).
+	 *
+	 * @param string   $str  String with placeholders.
+	 * @param WP_Post  $post Optional post object.
+	 * @return string
+	 */
+	public static function replace_vars_for_preview( $str, $post = null ) {
+		if ( empty( $str ) ) {
+			return '';
+		}
+		$replacements = self::get_replacements_for_preview( $post );
+		return str_replace( array_keys( $replacements ), array_values( $replacements ), $str );
+	}
+
+	/**
+	 * Get replacement map for use in JavaScript (e.g. live preview).
+	 *
+	 * @param WP_Post|null $post Optional post object.
+	 * @return array Map of %var% => replacement value.
+	 */
+	public static function get_replacements_for_preview( $post = null ) {
+		$replacements = array(
+			'%site_name%'        => get_bloginfo( 'name' ),
+			'%site_description%' => get_bloginfo( 'description' ),
+			'%sitename%'         => get_bloginfo( 'name' ),
+			'%sitedesc%'         => get_bloginfo( 'description' ),
+			'%separator%'        => '|',
+			'%date%'             => date_i18n( get_option( 'date_format' ) ),
+		);
+
+		$replacements['%page%'] = '';
+
+		if ( $post ) {
+			$replacements['%post_title%'] = $post->post_title;
+			$replacements['%title%']      = $post->post_title;
+			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
+		}
+
+		$settings = Mantis_SEO_Main::get_settings();
+		if ( isset( $settings['separator'] ) ) {
+			$replacements['%separator%'] = $settings['separator'];
+		}
+
+		return $replacements;
+	}
+
+	/**
 	 * Get canonical URL for current request.
 	 *
 	 * @return string

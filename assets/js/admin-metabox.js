@@ -28,33 +28,49 @@
 		wide: 'mantis_seo_panel_wide',
 	};
 
-	function updatePreview() {
-		const titleEl = document.getElementById('_mantis_title');
-		const descEl = document.getElementById('_mantis_description');
+	function replaceVarsInString(str, replaceVars) {
+		if (!replaceVars || typeof str !== 'string') return str;
+		let out = str;
+		Object.keys(replaceVars).forEach(function (key) {
+			out = out.split(key).join(replaceVars[key]);
+		});
+		return out;
+	}
+
+	function updatePreview(slideout) {
+		const root = slideout || document;
+		const titleEl = root.querySelector('[name="_mantis_title"]') || document.getElementById('_mantis_title');
+		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
-		const snippetTitle = document.getElementById('mantis-snippet-title');
-		const snippetDesc = document.getElementById('mantis-snippet-description');
-		const titleCount = document.getElementById('mantis-title-count');
-		const descCount = document.getElementById('mantis-desc-count');
+		const snippetTitle = root.querySelector('#mantis-snippet-title') || document.getElementById('mantis-snippet-title');
+		const snippetDesc = root.querySelector('#mantis-snippet-description') || document.getElementById('mantis-snippet-description');
+		const titleCount = root.querySelector('#mantis-title-count') || document.getElementById('mantis-title-count');
+		const descCount = root.querySelector('#mantis-desc-count') || document.getElementById('mantis-desc-count');
 
 		if (!snippetTitle) return;
 
-		let title = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
-		if (!title && postTitleEl) {
-			title = postTitleEl.value.trim();
+		let titleRaw = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+		if (!titleRaw && postTitleEl) {
+			titleRaw = postTitleEl.value.trim();
 		}
-		snippetTitle.textContent = title || '(No title)';
+		const replaceVars = (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.replaceVars) ? mantisSeoMetabox.replaceVars : {};
+		const titleResolved = replaceVarsInString(titleRaw || '', replaceVars);
+		snippetTitle.textContent = titleResolved || '(No title)';
 
-		const desc = (descEl && descEl.value) ? descEl.value.trim() : '';
-		snippetDesc.textContent = desc || '';
+		const descRaw = (descEl && descEl.value) ? descEl.value.trim() : '';
+		const descResolved = replaceVarsInString(descRaw, replaceVars);
+		snippetDesc.textContent = descResolved || '';
 
-		if (titleCount) titleCount.textContent = (titleEl ? titleEl.value.length : 0);
-		if (descCount) descCount.textContent = (descEl ? descEl.value.length : 0);
+		const titleLen = titleEl ? titleEl.value.length : 0;
+		const descLen = descEl ? descEl.value.length : 0;
+		if (titleCount) titleCount.textContent = titleLen;
+		if (descCount) descCount.textContent = descLen;
 	}
 
-	function bindPreviewEvents() {
-		const titleEl = document.getElementById('_mantis_title');
-		const descEl = document.getElementById('_mantis_description');
+	function bindPreviewEvents(slideout) {
+		const root = slideout || document;
+		const titleEl = root.querySelector('[name="_mantis_title"]') || document.getElementById('_mantis_title');
+		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
 		const events = ['input', 'change', 'paste'];
 
@@ -65,17 +81,17 @@
 			});
 		}
 
-		bind(titleEl, updatePreview);
-		bind(descEl, updatePreview);
-		bind(postTitleEl, updatePreview);
+		bind(titleEl, function () { updatePreview(slideout); });
+		bind(descEl, function () { updatePreview(slideout); });
+		bind(postTitleEl, function () { updatePreview(slideout); });
 	}
 
 	function init() {
 		const slideout = document.querySelector(SELECTORS.slideout);
 		if (!slideout) return;
 
-		updatePreview();
-		bindPreviewEvents();
+		updatePreview(slideout);
+		bindPreviewEvents(slideout);
 
 		const trigger = document.querySelector(SELECTORS.trigger);
 		const closeBtn = slideout.querySelector(SELECTORS.closeBtn);
@@ -126,6 +142,70 @@
 				closePanel();
 			}
 		});
+
+		// Variable insert dropdown.
+		bindVariableInsert(slideout);
+	}
+
+	function bindVariableInsert(slideout) {
+		slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (btn) {
+			btn.addEventListener('click', function (e) {
+				e.preventDefault();
+				const wrap = btn.closest('.mantis-var-field-wrap');
+				if (!wrap) return;
+				const dropdown = wrap.querySelector('.mantis-var-dropdown');
+				const field = wrap.querySelector('.mantis-var-field');
+				if (!dropdown || !field) return;
+				const isOpen = dropdown.getAttribute('aria-hidden') !== 'true';
+				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
+					d.setAttribute('aria-hidden', 'true');
+				});
+				slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
+					b.setAttribute('aria-expanded', 'false');
+				});
+				if (!isOpen) return;
+				dropdown.setAttribute('aria-hidden', 'false');
+				btn.setAttribute('aria-expanded', 'true');
+			});
+		});
+		slideout.querySelectorAll('.mantis-var-option').forEach(function (opt) {
+			opt.addEventListener('click', function (e) {
+				e.preventDefault();
+				const wrap = opt.closest('.mantis-var-field-wrap');
+				if (!wrap) return;
+				const field = wrap.querySelector('.mantis-var-field');
+				const dropdown = wrap.querySelector('.mantis-var-dropdown');
+				const btn = wrap.querySelector('.mantis-var-insert-btn');
+				const v = opt.getAttribute('data-var');
+				if (!field || !v) return;
+				if (field.tagName === 'TEXTAREA') {
+					const start = field.selectionStart;
+					const end = field.selectionEnd;
+					const val = field.value;
+					field.value = val.slice(0, start) + v + val.slice(end);
+					field.selectionStart = field.selectionEnd = start + v.length;
+				} else {
+					const start = field.selectionStart;
+					const end = field.selectionEnd;
+					const val = field.value;
+					field.value = val.slice(0, start) + v + val.slice(end);
+					field.selectionStart = field.selectionEnd = start + v.length;
+				}
+				field.dispatchEvent(new Event('input', { bubbles: true }));
+				if (dropdown) dropdown.setAttribute('aria-hidden', 'true');
+				if (btn) btn.setAttribute('aria-expanded', 'false');
+			});
+		});
+		document.addEventListener('click', function (e) {
+			if (!slideout.contains(e.target) || !e.target.closest('.mantis-var-insert-wrap')) {
+				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
+					d.setAttribute('aria-hidden', 'true');
+				});
+				slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
+					b.setAttribute('aria-expanded', 'false');
+				});
+			}
+		});
 	}
 
 	function switchTab(slideout, tabId) {
@@ -146,6 +226,7 @@
 			slideout.classList.add(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'false');
 			document.body.classList.add('mantis-seo-panel-open');
+			updatePreview(slideout);
 			// Focus first focusable in active tab for accessibility.
 			const activePanel = slideout.querySelector(SELECTORS.tabPanel + '.mantis-seo-tab-panel-active');
 			const firstInput = activePanel ? activePanel.querySelector('input:not([type="hidden"]), textarea') : null;

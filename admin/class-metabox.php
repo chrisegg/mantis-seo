@@ -27,6 +27,7 @@ class Mantis_SEO_Metabox {
 	public function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_metabox' ) );
 		add_action( 'save_post', array( $this, 'save_metabox' ), 10, 2 );
+		add_action( 'admin_enqueue_scripts', array( $this, 'localize_metabox_script' ), 20 );
 		add_action( 'category_add_form_fields', array( $this, 'term_add_fields' ), 10, 2 );
 		add_action( 'category_edit_form_fields', array( $this, 'term_edit_fields' ), 10, 2 );
 		add_action( 'edit_category', array( $this, 'save_term_meta' ), 10, 2 );
@@ -110,10 +111,12 @@ class Mantis_SEO_Metabox {
 		echo '</nav>';
 		echo '<div class="mantis-seo-slideout-body">';
 		$first = true;
-		$seo_title     = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
-		$seo_desc      = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
-		$preview_title = ! empty( trim( (string) $seo_title ) ) ? $seo_title : get_the_title( $post );
-		$preview_desc  = $seo_desc;
+		$seo_title       = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
+		$seo_desc        = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
+		$preview_title_raw = ! empty( trim( (string) $seo_title ) ) ? $seo_title : get_the_title( $post );
+		$preview_desc_raw  = ! empty( trim( (string) $seo_desc ) ) ? $seo_desc : ( 'post' === $post->post_type ? ( Mantis_SEO_Main::get_settings()['metadesc_post'] ?? '' ) : ( Mantis_SEO_Main::get_settings()['metadesc_page'] ?? '' ) );
+		$preview_title = Mantis_SEO_Meta::replace_vars_for_preview( $preview_title_raw, $post );
+		$preview_desc  = Mantis_SEO_Meta::replace_vars_for_preview( $preview_desc_raw, $post );
 		$preview_url   = get_permalink( $post );
 		foreach ( $fields as $tab_id => $tab_fields ) {
 			$active = $first ? ' mantis-seo-tab-panel-active' : '';
@@ -147,10 +150,15 @@ class Mantis_SEO_Metabox {
 					$is_desc    = ( 'description' === $key || false !== strpos( $key, '_description' ) );
 					$tag        = $is_desc ? 'textarea' : 'input';
 					$rows       = $is_desc ? 4 : 2;
+					$has_vars   = in_array( $key, array( 'title', 'description', 'og_title', 'og_description', 'twitter_title', 'twitter_description' ), true );
 					echo '<p>';
 					echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
+					if ( $has_vars ) {
+						echo '<div class="mantis-var-field-wrap" data-field="' . esc_attr( $meta_key ) . '">';
+						echo '<div class="mantis-var-input-wrap">';
+					}
 					if ( 'textarea' === $tag ) {
-						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
+						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text mantis-var-field" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 					} else {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 						if ( $is_image ) {
@@ -161,8 +169,19 @@ class Mantis_SEO_Metabox {
 							echo '<span class="mantis-image-preview" data-for="#' . esc_attr( $input_id ) . '"></span>';
 							echo '</div>';
 						} else {
-							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text" style="width:100%"' . $place_attr . ' />';
+							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text mantis-var-field" style="width:100%"' . $place_attr . ' />';
 						}
+					}
+					if ( $has_vars ) {
+						echo '<div class="mantis-var-insert-wrap">';
+						echo '<button type="button" class="button button-small mantis-var-insert-btn" aria-haspopup="true" aria-expanded="false" aria-label="' . esc_attr__( 'Insert variable', 'mantis-seo' ) . '">';
+						echo '<span class="dashicons dashicons-plus-alt2" style="font-size:14px;width:14px;height:14px;"></span> ';
+						echo esc_html__( 'Insert variable', 'mantis-seo' ) . '</button>';
+						echo '<div class="mantis-var-dropdown" role="menu" aria-hidden="true">';
+						foreach ( $this->get_variable_options() as $var => $var_label ) {
+							echo '<button type="button" role="menuitem" class="mantis-var-option" data-var="' . esc_attr( $var ) . '">' . esc_html( $var_label ) . '</button>';
+						}
+						echo '</div></div></div>';
 					}
 					echo '</p>';
 				}
@@ -173,10 +192,44 @@ class Mantis_SEO_Metabox {
 	}
 
 	/**
-	 * Get field definitions for the SEO metabox.
+	 * Get variable options for the attribute selector.
 	 *
-	 * @return array
+	 * @return array Map of %var% => human-readable label.
 	 */
+	private function get_variable_options() {
+		return array(
+			'%post_title%'       => __( 'Post Title', 'mantis-seo' ),
+			'%title%'            => __( 'Post Title', 'mantis-seo' ),
+			'%site_name%'        => __( 'Site Title', 'mantis-seo' ),
+			'%sitename%'         => __( 'Site Title', 'mantis-seo' ),
+			'%site_description%' => __( 'Site Description', 'mantis-seo' ),
+			'%sitedesc%'         => __( 'Site Description', 'mantis-seo' ),
+			'%separator%'        => __( 'Separator', 'mantis-seo' ),
+			'%page%'             => __( 'Page', 'mantis-seo' ),
+			'%date%'             => __( 'Date', 'mantis-seo' ),
+			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
+		);
+	}
+
+	/**
+	 * Localize metabox script with replacement vars for live preview.
+	 *
+	 * @param string $hook Current admin page hook.
+	 */
+	public function localize_metabox_script( $hook ) {
+		if ( 'post.php' !== $hook && 'post-new.php' !== $hook ) {
+			return;
+		}
+		$post = null;
+		if ( 'post.php' === $hook && ! empty( $_GET['post'] ) ) {
+			$post = get_post( (int) $_GET['post'] );
+		}
+		$replacements = Mantis_SEO_Meta::get_replacements_for_preview( $post );
+		wp_localize_script( 'mantis-seo-metabox', 'mantisSeoMetabox', array(
+			'replaceVars' => $replacements,
+		) );
+	}
+
 	/**
 	 * Get field definitions grouped by tab.
 	 *
