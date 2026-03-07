@@ -905,6 +905,10 @@ body.mantis-seo-panel-open .interface-complementary-area .components-panel__head
 
 #mantis-seo-slideout.mantis-seo-slideout-open .mantis-seo-slideout-backdrop {
 	opacity: 1;
+	pointer-events: auto;
+}
+#mantis-seo-slideout.mantis-seo-slideout-open.mantis-seo-slideout-pinned .mantis-seo-slideout-backdrop {
+	pointer-events: none;
 }
 
 /* Panel wrapper – contains tab + panel, slides in from right */
@@ -1249,7 +1253,20 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
 }
 
-/* Variable insert dropdown */
+/* Variable insert – label row with Insert variable button above input */
+.mantis-var-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.375rem;
+}
+.mantis-var-label-row label {
+	margin-bottom: 0;
+}
+.mantis-var-label-row .mantis-var-insert-wrap {
+	margin-left: auto;
+}
 .mantis-var-field-wrap {
 	position: relative;
 }

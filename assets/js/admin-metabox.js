@@ -90,6 +90,12 @@
 		const slideout = document.querySelector(SELECTORS.slideout);
 		if (!slideout) return;
 
+		// Move slideout to body so it escapes block editor sidebar stacking context
+		// (fixes Layout/Reset Ratings from other plugins showing inside the panel).
+		if (slideout.parentNode !== document.body) {
+			document.body.appendChild(slideout);
+		}
+
 		updatePreview(slideout);
 		bindPreviewEvents(slideout);
 
@@ -105,6 +111,15 @@
 			closeBtn.addEventListener('click', closePanel);
 		}
 
+		const backdrop = slideout.querySelector('.mantis-seo-slideout-backdrop');
+		if (backdrop) {
+			backdrop.addEventListener('click', function () {
+				if (!slideout.classList.contains(CLASSES.pinned)) {
+					closePanel();
+				}
+			});
+		}
+
 		slideout.querySelectorAll(SELECTORS.tab).forEach(function (tabEl) {
 			tabEl.addEventListener('click', function () {
 				switchTab(slideout, tabEl.getAttribute('data-tab'));
@@ -112,16 +127,12 @@
 		});
 
 		if (pinToggle) {
-			pinToggle.addEventListener('click', togglePin);
-			// Restore pinned state from sessionStorage.
-			const wasPinned = sessionStorage.getItem(STORAGE_KEYS.pinned) === '1';
-			if (wasPinned) {
-				slideout.classList.add(CLASSES.pinned);
-				pinToggle.setAttribute('aria-pressed', 'true');
-				pinToggle.title = 'Unpin panel';
-				slideout.classList.add(CLASSES.open);
-				document.body.classList.add('mantis-seo-panel-open');
-			}
+			pinToggle.addEventListener('click', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				togglePin();
+			});
+			// Pin is off by default; do not restore from sessionStorage.
 		}
 
 		const resizeTab = slideout.querySelector(SELECTORS.resizeTab);
@@ -151,6 +162,7 @@
 		slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (btn) {
 			btn.addEventListener('click', function (e) {
 				e.preventDefault();
+				e.stopPropagation();
 				const wrap = btn.closest('.mantis-var-field-wrap');
 				if (!wrap) return;
 				const dropdown = wrap.querySelector('.mantis-var-dropdown');
@@ -171,6 +183,7 @@
 		slideout.querySelectorAll('.mantis-var-option').forEach(function (opt) {
 			opt.addEventListener('click', function (e) {
 				e.preventDefault();
+				e.stopPropagation();
 				const wrap = opt.closest('.mantis-var-field-wrap');
 				if (!wrap) return;
 				const field = wrap.querySelector('.mantis-var-field');
@@ -196,15 +209,15 @@
 				if (btn) btn.setAttribute('aria-expanded', 'false');
 			});
 		});
-		document.addEventListener('click', function (e) {
-			if (!slideout.contains(e.target) || !e.target.closest('.mantis-var-insert-wrap')) {
-				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
-					d.setAttribute('aria-hidden', 'true');
-				});
-				slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
-					b.setAttribute('aria-expanded', 'false');
-				});
-			}
+		// Defer so the same click that opened the dropdown doesn't immediately close it.
+		document.addEventListener('click', function closeDropdownHandler(e) {
+			if (slideout.contains(e.target) && e.target.closest('.mantis-var-insert-wrap')) return;
+			slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
+				d.setAttribute('aria-hidden', 'true');
+			});
+			slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
+				b.setAttribute('aria-expanded', 'false');
+			});
 		});
 	}
 
@@ -241,9 +254,16 @@
 	function closePanel() {
 		const slideout = document.querySelector(SELECTORS.slideout);
 		if (slideout) {
-			slideout.classList.remove(CLASSES.open);
+			slideout.classList.remove(CLASSES.open, CLASSES.pinned);
 			slideout.setAttribute('aria-hidden', 'true');
 			document.body.classList.remove('mantis-seo-panel-open');
+			const pinToggle = slideout.querySelector(SELECTORS.pinToggle);
+			if (pinToggle) {
+				pinToggle.setAttribute('aria-pressed', 'false');
+				pinToggle.title = 'Pin panel open';
+				const icon = pinToggle.querySelector('.mantis-seo-icon-tack');
+				if (icon) icon.classList.remove('mantis-seo-tack-pinned');
+			}
 		}
 	}
 
@@ -284,9 +304,28 @@
 		resizeTab.setAttribute('aria-label', isWide ? 'Shrink panel' : 'Expand panel');
 	}
 
+	function tryInit() {
+		const slideout = document.querySelector(SELECTORS.slideout);
+		if (slideout) {
+			init();
+			return;
+		}
+		// Block editor may load metabox late; retry a few times.
+		let attempts = 0;
+		const interval = setInterval(function () {
+			attempts++;
+			if (document.querySelector(SELECTORS.slideout)) {
+				clearInterval(interval);
+				init();
+			} else if (attempts >= 20) {
+				clearInterval(interval);
+			}
+		}, 250);
+	}
+
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', init);
+		document.addEventListener('DOMContentLoaded', tryInit);
 	} else {
-		init();
+		tryInit();
 	}
 })();
