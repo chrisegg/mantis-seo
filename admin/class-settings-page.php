@@ -526,8 +526,6 @@ class Mantis_SEO_Settings_Page {
 				);
 			}
 		}
-
-		settings_errors( 'mantis_seo_messages' );
 		?>
 		<div class="mantis-seo-app" id="mantis-seo-app">
 			<script>!function(){var e=document.getElementById("mantis-seo-app");e&&"dark"===localStorage.getItem("mantis_seo_theme")&&e.classList.add("mantis-seo-dark")}();</script>
@@ -576,6 +574,7 @@ class Mantis_SEO_Settings_Page {
 						</ul>
 					</nav>
 					<div class="mantis-settings-body">
+					<div class="mantis-settings-body__notices" role="status" aria-live="polite"><?php settings_errors( 'mantis_seo_messages' ); ?></div>
 					<div id="mantis-titles" class="mantis-tab-panel">
 						<h2><?php esc_html_e( 'Title Templates', 'mantis-seo' ); ?></h2>
 						<p class="description"><?php esc_html_e( 'Compose titles with text and variable pills. Set the separator character below; it appears where you place the Separator pill.', 'mantis-seo' ); ?></p>

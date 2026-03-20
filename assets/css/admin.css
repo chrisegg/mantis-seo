@@ -325,6 +325,17 @@
 	flex-direction: column;
 }
 
+/* Settings API messages – inside body so success/error stays visible on every tab */
+.mantis-settings-body__notices {
+	flex-shrink: 0;
+	padding: 1.5rem 2rem 0;
+	box-sizing: border-box;
+}
+
+.mantis-settings-body__notices:empty {
+	display: none;
+}
+
 .mantis-settings-body .mantis-tab-panel {
 	padding: 1.5rem 2rem;
 	flex: 1 0 auto;
