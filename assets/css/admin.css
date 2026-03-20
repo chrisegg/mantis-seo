@@ -587,6 +587,190 @@
 	align-self: flex-start;
 }
 
+/* ========== SITEMAP TAB – cards & toggles ========== */
+
+.mantis-sitemap-panel .mantis-sitemap-panel__page-title {
+	margin-bottom: 1.25rem;
+	padding-bottom: 0.75rem;
+}
+
+.mantis-sitemap-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.mantis-settings-card {
+	background: var(--mantis-card-bg);
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+	padding: 1.5rem 1.75rem;
+}
+
+.mantis-settings-card__title {
+	font-size: 0.9375rem;
+	font-weight: 600;
+	color: var(--mantis-text);
+	margin: 0 0 0.5rem;
+	padding: 0;
+	border: none;
+}
+
+.mantis-settings-card__lead {
+	font-size: 0.8125rem;
+	color: var(--mantis-text-muted);
+	line-height: 1.5;
+	margin: 0 0 1.25rem;
+	max-width: 42rem;
+}
+
+.mantis-settings-card__body {
+	margin: 0;
+	padding: 0;
+}
+
+/* Toggle switch (real checkbox for form + accessibility) */
+.mantis-toggle {
+	position: relative;
+	display: inline-block;
+	width: 2.75rem;
+	height: 1.5rem;
+	flex-shrink: 0;
+	vertical-align: middle;
+}
+
+.mantis-toggle__input {
+	position: absolute !important;
+	opacity: 0 !important;
+	width: 2.75rem !important;
+	height: 1.5rem !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: none !important;
+	cursor: pointer;
+	z-index: 2;
+	accent-color: transparent;
+}
+
+.mantis-toggle__input:focus {
+	outline: none;
+}
+
+.mantis-toggle__input:focus-visible + .mantis-toggle__track {
+	box-shadow: 0 0 0 2px var(--mantis-card-bg), 0 0 0 4px var(--mantis-accent);
+}
+
+.mantis-toggle__track {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: #cbd5e1;
+	border-radius: 999px;
+	transition: background var(--mantis-transition);
+	pointer-events: none;
+	position: relative;
+}
+
+.mantis-seo-dark .mantis-toggle__track {
+	background: #475569;
+}
+
+.mantis-toggle__track::after {
+	content: "";
+	position: absolute;
+	width: 1.125rem;
+	height: 1.125rem;
+	top: 0.1875rem;
+	left: 0.1875rem;
+	background: #fff;
+	border-radius: 50%;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	transition: transform var(--mantis-transition);
+}
+
+.mantis-toggle__input:checked + .mantis-toggle__track {
+	background: var(--mantis-accent);
+}
+
+.mantis-toggle__input:checked + .mantis-toggle__track::after {
+	transform: translateX(1.25rem);
+}
+
+/* Row: label left, toggle right */
+.mantis-toggle-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem 1.5rem;
+	width: 100%;
+	max-width: 36rem;
+	margin: 0;
+	padding: 0.875rem 0;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+.mantis-toggle-row__text {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.2rem;
+	min-width: 0;
+	flex: 1;
+}
+
+.mantis-toggle-row__label {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: var(--mantis-text);
+	line-height: 1.35;
+}
+
+.mantis-sitemap-view-link {
+	margin: 1rem 0 0;
+	padding: 0;
+	font-size: 0.875rem;
+}
+
+.mantis-sitemap-view-link a {
+	color: var(--mantis-accent);
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.mantis-sitemap-view-link a:hover {
+	text-decoration: underline;
+}
+
+.mantis-sitemap-type-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-width: 36rem;
+	border-top: 1px solid var(--mantis-border);
+}
+
+.mantis-sitemap-type-list__item {
+	margin: 0;
+	padding: 0;
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-sitemap-type-list__item:last-child {
+	border-bottom: none;
+}
+
+.mantis-sitemap-type-list .mantis-toggle-row {
+	max-width: none;
+	padding: 0.75rem 0;
+}
+
+.mantis-sitemap-type-list .mantis-toggle-row:hover .mantis-toggle-row__label {
+	color: var(--mantis-accent);
+}
+
 #mantis-import-form {
 	display: flex;
 	align-items: center;

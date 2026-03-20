@@ -624,34 +624,66 @@ class Mantis_SEO_Settings_Page {
 						</table>
 					</div>
 
-					<div id="mantis-sitemap" class="mantis-tab-panel" style="display:none;">
-						<h2><?php esc_html_e( 'XML Sitemap', 'mantis-seo' ); ?></h2>
-						<table class="form-table">
-							<tr>
-								<th><label for="mantis_sitemap_enabled"><?php esc_html_e( 'Enable Sitemap', 'mantis-seo' ); ?></label></th>
-								<td>
-									<label><input type="checkbox" id="mantis_sitemap_enabled" name="mantis_settings[sitemap_enabled]" value="1" <?php checked( $settings['sitemap_enabled'] ); ?> /> <?php esc_html_e( 'Enable XML sitemap', 'mantis-seo' ); ?></label>
+					<div id="mantis-sitemap" class="mantis-tab-panel mantis-sitemap-panel" style="display:none;">
+						<h2 class="mantis-sitemap-panel__page-title"><?php esc_html_e( 'XML Sitemap', 'mantis-seo' ); ?></h2>
+						<div class="mantis-sitemap-stack">
+							<section class="mantis-settings-card" aria-labelledby="mantis-sitemap-enable-heading">
+								<h3 id="mantis-sitemap-enable-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Enable Sitemap', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'When enabled, search engines can discover your public URLs from the XML sitemap.', 'mantis-seo' ); ?></p>
+								<div class="mantis-settings-card__body">
+									<label class="mantis-toggle-row" for="mantis_sitemap_enabled">
+										<span class="mantis-toggle-row__text">
+											<span class="mantis-toggle-row__label"><?php esc_html_e( 'Enable XML sitemap', 'mantis-seo' ); ?></span>
+										</span>
+										<span class="mantis-toggle">
+											<input type="checkbox" id="mantis_sitemap_enabled" class="mantis-toggle__input" name="mantis_settings[sitemap_enabled]" value="1" <?php checked( $settings['sitemap_enabled'] ); ?> />
+											<span class="mantis-toggle__track" aria-hidden="true"></span>
+										</span>
+									</label>
 									<?php if ( $settings['sitemap_enabled'] ) : ?>
-										<p class="description"><a href="<?php echo esc_url( home_url( '/sitemap_index.xml' ) ); ?>" target="_blank"><?php esc_html_e( 'View sitemap', 'mantis-seo' ); ?></a></p>
+										<p class="mantis-sitemap-view-link">
+											<a href="<?php echo esc_url( home_url( '/sitemap_index.xml' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View sitemap', 'mantis-seo' ); ?></a>
+										</p>
 									<?php endif; ?>
-								</td>
-							</tr>
-							<tr>
-								<th><label for="mantis_sitemap_post_types"><?php esc_html_e( 'Post Types', 'mantis-seo' ); ?></label></th>
-								<td>
-									<?php
-									$sitemap_post_types = isset( $settings['sitemap_post_types'] ) && is_array( $settings['sitemap_post_types'] ) ? $settings['sitemap_post_types'] : array( 'post', 'page' );
-									$public_post_types = get_post_types( array( 'public' => true ), 'objects' );
-									?>
-									<select id="mantis_sitemap_post_types" name="mantis_settings[sitemap_post_types][]" multiple="multiple" size="<?php echo esc_attr( min( 8, count( $public_post_types ) ) ); ?>" style="height:auto;min-height:120px;">
-										<?php foreach ( $public_post_types as $pt ) : ?>
-											<option value="<?php echo esc_attr( $pt->name ); ?>" <?php selected( in_array( $pt->name, $sitemap_post_types, true ) ); ?>><?php echo esc_html( $pt->labels->singular_name ?? $pt->name ); ?></option>
-										<?php endforeach; ?>
-									</select>
-									<p class="description"><?php esc_html_e( 'Hold Ctrl/Cmd to select multiple. Include post types to appear in the sitemap.', 'mantis-seo' ); ?></p>
-								</td>
-							</tr>
-						</table>
+								</div>
+							</section>
+							<section class="mantis-settings-card" aria-labelledby="mantis-sitemap-types-heading">
+								<h3 id="mantis-sitemap-types-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Post Types', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Turn each type on or off to control which content appears in the sitemap.', 'mantis-seo' ); ?></p>
+								<?php
+								$sitemap_post_types = isset( $settings['sitemap_post_types'] ) && is_array( $settings['sitemap_post_types'] ) ? $settings['sitemap_post_types'] : array( 'post', 'page' );
+								$public_post_types  = get_post_types( array( 'public' => true ), 'objects' );
+								uasort(
+									$public_post_types,
+									function ( $a, $b ) {
+										$la = $a->labels->singular_name ?? $a->name;
+										$lb = $b->labels->singular_name ?? $b->name;
+										return strcasecmp( $la, $lb );
+									}
+								);
+								?>
+								<ul class="mantis-sitemap-type-list" role="list">
+									<?php foreach ( $public_post_types as $pt ) : ?>
+										<?php
+										$pt_id    = 'mantis_sitemap_pt_' . $pt->name;
+										$pt_label = $pt->labels->singular_name ?? $pt->name;
+										$on       = in_array( $pt->name, $sitemap_post_types, true );
+										?>
+										<li class="mantis-sitemap-type-list__item">
+											<label class="mantis-toggle-row" for="<?php echo esc_attr( $pt_id ); ?>">
+												<span class="mantis-toggle-row__text">
+													<span class="mantis-toggle-row__label"><?php echo esc_html( $pt_label ); ?></span>
+												</span>
+												<span class="mantis-toggle">
+													<input type="checkbox" id="<?php echo esc_attr( $pt_id ); ?>" class="mantis-toggle__input" name="mantis_settings[sitemap_post_types][]" value="<?php echo esc_attr( $pt->name ); ?>" <?php checked( $on ); ?> />
+													<span class="mantis-toggle__track" aria-hidden="true"></span>
+												</span>
+											</label>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</section>
+						</div>
 					</div>
 
 					<div id="mantis-advanced" class="mantis-tab-panel" style="display:none;">
