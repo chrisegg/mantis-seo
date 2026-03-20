@@ -431,7 +431,11 @@ class Mantis_SEO_Settings_Page {
 
 		foreach ( $text_fields as $field ) {
 			if ( isset( $input[ $field ] ) ) {
-				$sanitized[ $field ] = sanitize_text_field( $input[ $field ] );
+				if ( in_array( $field, array( 'metadesc_home', 'metadesc_post', 'metadesc_page' ), true ) ) {
+					$sanitized[ $field ] = sanitize_textarea_field( $input[ $field ] );
+				} else {
+					$sanitized[ $field ] = sanitize_text_field( $input[ $field ] );
+				}
 			}
 		}
 
@@ -459,17 +463,22 @@ class Mantis_SEO_Settings_Page {
 	}
 
 	/**
-	 * Title template field: pills in the UI, hidden input stores %variable% syntax.
+	 * SEO template field: pills in the UI, hidden input stores %variable% syntax.
 	 *
 	 * @param string $field_id   HTML id for the editor (label `for`).
 	 * @param string $input_name Name attribute, e.g. mantis_settings[title_post].
 	 * @param string $value      Stored template string.
+	 * @param bool   $multiline  Taller editor for descriptions (optional line breaks).
 	 */
-	private function render_title_template_control( $field_id, $input_name, $value ) {
+	private function render_title_template_control( $field_id, $input_name, $value, $multiline = false ) {
 		$var_labels = Mantis_SEO_Meta::get_variable_dropdown_options();
+		$classes    = 'mantis-template-editor mantis-template-editor--settings';
+		if ( $multiline ) {
+			$classes .= ' mantis-template-editor--multiline';
+		}
 		echo '<div class="mantis-template-editor-wrap">';
 		echo '<input type="hidden" name="' . esc_attr( $input_name ) . '" class="mantis-template-hidden" value="' . esc_attr( $value ) . '" autocomplete="off" />';
-		echo '<div id="' . esc_attr( $field_id ) . '" class="mantis-template-editor mantis-template-editor--settings" data-mantis-template-editor data-pill-mode="label" tabindex="0" role="textbox"></div>';
+		echo '<div id="' . esc_attr( $field_id ) . '" class="' . esc_attr( $classes ) . '" data-mantis-template-editor data-pill-mode="label" tabindex="0" role="textbox"></div>';
 		echo '<div class="mantis-template-editor-toolbar">';
 		echo '<button type="button" class="button button-small mantis-settings-var-btn" aria-haspopup="true" aria-expanded="false">' . esc_html__( 'Insert variable', 'mantis-seo' ) . '</button>';
 		echo '<div class="mantis-var-dropdown mantis-settings-var-dropdown" role="menu" aria-hidden="true">';
@@ -606,18 +615,19 @@ class Mantis_SEO_Settings_Page {
 						</table>
 
 						<h2><?php esc_html_e( 'Meta Descriptions', 'mantis-seo' ); ?></h2>
+						<p class="description"><?php esc_html_e( 'Default meta description templates for each context. Use variable pills like title templates; per-post overrides live in the editor SEO panel.', 'mantis-seo' ); ?></p>
 						<table class="form-table">
 							<tr>
 								<th><label for="mantis_metadesc_home"><?php esc_html_e( 'Homepage Description', 'mantis-seo' ); ?></label></th>
-								<td><textarea id="mantis_metadesc_home" name="mantis_settings[metadesc_home]" rows="2" class="large-text"><?php echo esc_textarea( $settings['metadesc_home'] ); ?></textarea></td>
+								<td><?php $this->render_title_template_control( 'mantis_metadesc_home', 'mantis_settings[metadesc_home]', $settings['metadesc_home'], true ); ?></td>
 							</tr>
 							<tr>
 								<th><label for="mantis_metadesc_post"><?php esc_html_e( 'Post Description', 'mantis-seo' ); ?></label></th>
-								<td><input type="text" id="mantis_metadesc_post" name="mantis_settings[metadesc_post]" value="<?php echo esc_attr( $settings['metadesc_post'] ); ?>" class="large-text" /></td>
+								<td><?php $this->render_title_template_control( 'mantis_metadesc_post', 'mantis_settings[metadesc_post]', $settings['metadesc_post'], true ); ?></td>
 							</tr>
 							<tr>
 								<th><label for="mantis_metadesc_page"><?php esc_html_e( 'Page Description', 'mantis-seo' ); ?></label></th>
-								<td><input type="text" id="mantis_metadesc_page" name="mantis_settings[metadesc_page]" value="<?php echo esc_attr( $settings['metadesc_page'] ); ?>" class="large-text" /></td>
+								<td><?php $this->render_title_template_control( 'mantis_metadesc_page', 'mantis_settings[metadesc_page]', $settings['metadesc_page'], true ); ?></td>
 							</tr>
 						</table>
 					</div>
