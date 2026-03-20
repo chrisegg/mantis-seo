@@ -423,8 +423,12 @@ class Mantis_SEO_Meta {
 		}
 
 		if ( $post ) {
-			$replacements['%post_title%'] = $post->post_title;
-			$replacements['%title%']      = $post->post_title;
+			$post_title = $post->post_title;
+			if ( '' === trim( (string) $post_title ) ) {
+				$post_title = __( 'No title', 'mantis-seo' );
+			}
+			$replacements['%post_title%'] = $post_title;
+			$replacements['%title%']      = $post_title;
 			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
 		}
 
@@ -470,8 +474,12 @@ class Mantis_SEO_Meta {
 		$replacements['%page%'] = '';
 
 		if ( $post ) {
-			$replacements['%post_title%'] = $post->post_title;
-			$replacements['%title%']      = $post->post_title;
+			$post_title = $post->post_title;
+			if ( '' === trim( (string) $post_title ) ) {
+				$post_title = __( 'No title', 'mantis-seo' );
+			}
+			$replacements['%post_title%'] = $post_title;
+			$replacements['%title%']      = $post_title;
 			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
 		}
 
@@ -481,6 +489,26 @@ class Mantis_SEO_Meta {
 		}
 
 		return $replacements;
+	}
+
+	/**
+	 * Human-readable labels for SEO template variables (for UI pills).
+	 *
+	 * @return array Map of %var% => label.
+	 */
+	public static function get_variable_labels() {
+		return array(
+			'%post_title%'       => __( 'Post Title', 'mantis-seo' ),
+			'%title%'            => __( 'Post Title', 'mantis-seo' ),
+			'%site_name%'        => __( 'Site Title', 'mantis-seo' ),
+			'%sitename%'         => __( 'Site Title', 'mantis-seo' ),
+			'%site_description%' => __( 'Site Description', 'mantis-seo' ),
+			'%sitedesc%'         => __( 'Site Description', 'mantis-seo' ),
+			'%separator%'        => __( 'Separator', 'mantis-seo' ),
+			'%page%'             => __( 'Page', 'mantis-seo' ),
+			'%date%'             => __( 'Date', 'mantis-seo' ),
+			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
+		);
 	}
 
 	/**

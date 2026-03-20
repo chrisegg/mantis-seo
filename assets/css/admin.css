@@ -1370,6 +1370,86 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	border-radius: var(--mantis-radius-sm);
 }
 
+/* SEO title template editor (pills + editable text; hidden input holds %vars%) */
+.mantis-var-input-wrap > .mantis-template-editor-wrap {
+	flex: 1 1 100%;
+	width: 100%;
+	min-width: 0;
+}
+.mantis-template-editor-wrap {
+	width: 100%;
+}
+.mantis-template-editor {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem 0.25rem;
+	min-height: 2.5rem;
+	padding: 0.4rem 0.6rem;
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--mantis-border, #c3c4c7);
+	border-radius: var(--mantis-radius-sm, 4px);
+	background: var(--mantis-bg, #fff);
+	font-size: 0.875rem;
+	line-height: 1.5;
+	color: var(--mantis-text, #1e1e1e);
+}
+.mantis-template-editor:focus-within {
+	outline: none;
+	border-color: var(--mantis-accent, #2271b1);
+	box-shadow: 0 0 0 1px var(--mantis-accent, #2271b1);
+}
+.mantis-seo-slideout .mantis-template-editor:focus-within {
+	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
+}
+.mantis-template-chunk {
+	min-width: 0.35rem;
+	outline: none;
+	word-break: break-word;
+}
+.mantis-var-pill {
+	display: inline-flex;
+	align-items: center;
+	max-width: 100%;
+	padding: 0.15rem 0.6rem;
+	border-radius: 999px;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	line-height: 1.35;
+	vertical-align: middle;
+	background: var(--mantis-accent-muted, rgba(34, 113, 177, 0.14));
+	color: var(--mantis-accent, #2271b1);
+	border: 1px solid rgba(34, 113, 177, 0.35);
+	user-select: none;
+	cursor: default;
+}
+.mantis-var-pill-inner {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: min(100%, 280px);
+}
+.mantis-template-editor-toolbar {
+	position: relative;
+	margin-top: 0.5rem;
+}
+.mantis-seo-settings .mantis-template-editor--settings {
+	background: #fff;
+	border-color: #8c8f94;
+	min-height: 36px;
+}
+.mantis-seo-dark .mantis-seo-settings .mantis-template-editor--settings {
+	background: var(--mantis-panel, #1d2327);
+	border-color: var(--mantis-border, #3c434a);
+	color: var(--mantis-text, #f0f0f1);
+}
+.mantis-seo-dark .mantis-seo-settings .mantis-var-pill {
+	background: rgba(100, 180, 255, 0.12);
+	color: #9ecfff;
+	border-color: rgba(158, 207, 255, 0.35);
+}
+
 /* Settings errors (WP settings_errors) */
 .mantis-seo-settings .settings-error,
 .mantis-seo-settings .updated {

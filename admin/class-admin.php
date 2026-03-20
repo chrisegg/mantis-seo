@@ -84,11 +84,30 @@ class Mantis_SEO_Admin {
 			);
 		}
 
+		wp_register_script(
+			'mantis-template-editor',
+			MANTIS_SEO_URL . 'assets/js/mantis-template-editor.js',
+			array(),
+			MANTIS_SEO_VERSION,
+			true
+		);
+		wp_localize_script(
+			'mantis-template-editor',
+			'mantisSeoTemplateVars',
+			array(
+				'varLabels' => Mantis_SEO_Meta::get_variable_labels(),
+			)
+		);
+
+		if ( strpos( $hook, 'mantis-seo' ) !== false || 'post.php' === $hook || 'post-new.php' === $hook ) {
+			wp_enqueue_script( 'mantis-template-editor' );
+		}
+
 		if ( 'post.php' === $hook || 'post-new.php' === $hook ) {
 			wp_enqueue_script(
 				'mantis-seo-metabox',
 				MANTIS_SEO_URL . 'assets/js/admin-metabox.js',
-				array(),
+				array( 'mantis-template-editor' ),
 				MANTIS_SEO_VERSION,
 				true
 			);
@@ -98,7 +117,7 @@ class Mantis_SEO_Admin {
 			wp_enqueue_script(
 				'mantis-seo-admin-app',
 				MANTIS_SEO_URL . 'assets/js/admin-app.js',
-				array(),
+				array( 'mantis-template-editor' ),
 				MANTIS_SEO_VERSION,
 				true
 			);

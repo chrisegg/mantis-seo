@@ -28,6 +28,8 @@
 		wide: 'mantis_seo_panel_wide',
 	};
 
+	let blockEditorTitleSyncAttached = false;
+
 	function replaceVarsInString(str, replaceVars) {
 		if (!replaceVars || typeof str !== 'string') return str;
 		let out = str;
@@ -37,9 +39,15 @@
 		return out;
 	}
 
+	function getSeoTitleTemplateRaw(root) {
+		const r = root || document;
+		const hidden = r.querySelector('input.mantis-template-hidden[name="_mantis_title"]')
+			|| r.querySelector('input[type="hidden"][name="_mantis_title"]');
+		return hidden && hidden.value ? hidden.value.trim() : '';
+	}
+
 	function updatePreview(slideout) {
 		const root = slideout || document;
-		const titleEl = root.querySelector('[name="_mantis_title"]') || document.getElementById('_mantis_title');
 		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
 		const snippetTitle = root.querySelector('#mantis-snippet-title') || document.getElementById('mantis-snippet-title');
@@ -49,7 +57,10 @@
 
 		if (!snippetTitle) return;
 
-		let titleRaw = (titleEl && titleEl.value) ? titleEl.value.trim() : '';
+		let titleRaw = getSeoTitleTemplateRaw(root);
+		if (!titleRaw && typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.defaultTitleTemplate) {
+			titleRaw = String(mantisSeoMetabox.defaultTitleTemplate).trim();
+		}
 		if (!titleRaw && postTitleEl) {
 			titleRaw = postTitleEl.value.trim();
 		}
@@ -61,7 +72,7 @@
 		const descResolved = replaceVarsInString(descRaw, replaceVars);
 		snippetDesc.textContent = descResolved || '';
 
-		const titleLen = titleEl ? titleEl.value.length : 0;
+		const titleLen = titleResolved ? titleResolved.length : 0;
 		const descLen = descEl ? descEl.value.length : 0;
 		if (titleCount) titleCount.textContent = titleLen;
 		if (descCount) descCount.textContent = descLen;
@@ -69,9 +80,11 @@
 
 	function bindPreviewEvents(slideout) {
 		const root = slideout || document;
-		const titleEl = root.querySelector('[name="_mantis_title"]') || document.getElementById('_mantis_title');
+		const titleHidden = root.querySelector('input.mantis-template-hidden[name="_mantis_title"]')
+			|| root.querySelector('input[type="hidden"][name="_mantis_title"]');
 		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
+		const titleSurface = root.querySelector('[data-mantis-template-editor]');
 		const events = ['input', 'change', 'paste'];
 
 		function bind(el, fn) {
@@ -81,9 +94,15 @@
 			});
 		}
 
-		bind(titleEl, function () { updatePreview(slideout); });
+		bind(titleHidden, function () { updatePreview(slideout); });
+		bind(titleSurface, function () { updatePreview(slideout); });
 		bind(descEl, function () { updatePreview(slideout); });
-		bind(postTitleEl, function () { updatePreview(slideout); });
+		bind(postTitleEl, function () {
+			if (window.MantisTemplateEditor) {
+				MantisTemplateEditor.refreshPills(slideout);
+			}
+			updatePreview(slideout);
+		});
 	}
 
 	function init() {
@@ -94,6 +113,10 @@
 		// (fixes Layout/Reset Ratings from other plugins showing inside the panel).
 		if (slideout.parentNode !== document.body) {
 			document.body.appendChild(slideout);
+		}
+
+		if (window.MantisTemplateEditor) {
+			MantisTemplateEditor.init(slideout);
 		}
 
 		updatePreview(slideout);
@@ -162,6 +185,57 @@
 
 		// Sync slideout values into form on submit (slideout lives on body, outside form).
 		bindSubmitSync();
+
+		bindBlockEditorPostTitleSync(slideout);
+	}
+
+	/**
+	 * Block editor: no #title field — sync edited post title into replaceVars for pills + preview.
+	 *
+	 * @param {Element} slideout Slideout root.
+	 */
+	function bindBlockEditorPostTitleSync(slideout) {
+		function attach() {
+			if (blockEditorTitleSyncAttached) return;
+			if (!window.wp || !wp.data || typeof wp.data.subscribe !== 'function' || typeof wp.data.select !== 'function') {
+				return;
+			}
+			blockEditorTitleSyncAttached = true;
+			var last = null;
+			wp.data.subscribe(function () {
+				var s = slideout || document.querySelector(SELECTORS.slideout);
+				if (!s) return;
+				try {
+					var ed = wp.data.select('core/editor');
+					if (!ed || typeof ed.getEditedPostAttribute !== 'function') return;
+					var title = ed.getEditedPostAttribute('title');
+					if (typeof title !== 'string') return;
+					if (title === last) return;
+					last = title;
+					var disp = title.trim();
+					if (!disp) {
+						disp = (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.noTitlePlaceholder)
+							? mantisSeoMetabox.noTitlePlaceholder
+							: 'No title';
+					}
+					if (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.replaceVars) {
+						mantisSeoMetabox.replaceVars['%post_title%'] = disp;
+						mantisSeoMetabox.replaceVars['%title%'] = disp;
+					}
+					if (window.MantisTemplateEditor) {
+						MantisTemplateEditor.refreshPills(s);
+					}
+					updatePreview(s);
+				} catch (err) {
+					/* Classic editor or editor not mounted */
+				}
+			});
+		}
+		if (window.wp && wp.data) {
+			attach();
+		} else {
+			setTimeout(attach, 500);
+		}
 	}
 
 	/**
@@ -255,7 +329,8 @@
 				if (!wrap) return;
 				const dropdown = wrap.querySelector('.mantis-var-dropdown');
 				const field = wrap.querySelector('.mantis-var-field');
-				if (!dropdown || !field) return;
+				const tplSurface = wrap.querySelector('[data-mantis-template-editor]');
+				if (!dropdown || (!field && !tplSurface)) return;
 				const isOpen = dropdown.getAttribute('aria-hidden') !== 'true';
 				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
 					d.setAttribute('aria-hidden', 'true');
@@ -278,7 +353,15 @@
 				const dropdown = wrap.querySelector('.mantis-var-dropdown');
 				const btn = wrap.querySelector('.mantis-var-insert-btn');
 				const v = opt.getAttribute('data-var');
-				if (!field || !v) return;
+				if (!v) return;
+				if (wrap.querySelector('[data-mantis-template-editor]') && window.MantisTemplateEditor) {
+					MantisTemplateEditor.insertVar(wrap, v);
+					updatePreview(slideout);
+					if (dropdown) dropdown.setAttribute('aria-hidden', 'true');
+					if (btn) btn.setAttribute('aria-expanded', 'false');
+					return;
+				}
+				if (!field) return;
 				if (field.tagName === 'TEXTAREA') {
 					const start = field.selectionStart;
 					const end = field.selectionEnd;
@@ -327,6 +410,9 @@
 			slideout.classList.add(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'false');
 			document.body.classList.add('mantis-seo-panel-open');
+			if (window.MantisTemplateEditor) {
+				MantisTemplateEditor.refreshPills(slideout);
+			}
 			updatePreview(slideout);
 			// Focus first focusable in active tab for accessibility.
 			const activePanel = slideout.querySelector(SELECTORS.tabPanel + '.mantis-seo-tab-panel-active');

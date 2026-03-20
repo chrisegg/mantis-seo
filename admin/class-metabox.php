@@ -64,12 +64,8 @@ class Mantis_SEO_Metabox {
 	public function render_metabox( $post ) {
 		wp_nonce_field( 'mantis_seo_metabox', 'mantis_seo_metabox_nonce' );
 
-		$fields = $this->get_field_definitions();
-		$settings = Mantis_SEO_Main::get_settings();
-		$title_template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-		if ( '' === trim( (string) $title_template ) ) {
-			$title_template = '%post_title% %page% %separator% %site_name%';
-		}
+		$fields         = $this->get_field_definitions();
+		$title_template = $this->get_effective_default_title_template( $post->post_type );
 
 		// Compact trigger button in sidebar.
 		echo '<div class="mantis-seo-metabox-trigger">';
@@ -112,9 +108,9 @@ class Mantis_SEO_Metabox {
 		echo '</nav>';
 		echo '<div class="mantis-seo-slideout-body">';
 		$first = true;
-		$seo_title       = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
-		$seo_desc        = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
-		$preview_title_raw = ! empty( trim( (string) $seo_title ) ) ? $seo_title : get_the_title( $post );
+		$seo_title         = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
+		$seo_desc          = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
+		$preview_title_raw = ! empty( trim( (string) $seo_title ) ) ? $seo_title : $title_template;
 		$preview_desc_raw  = ! empty( trim( (string) $seo_desc ) ) ? $seo_desc : ( 'post' === $post->post_type ? ( Mantis_SEO_Main::get_settings()['metadesc_post'] ?? '' ) : ( Mantis_SEO_Main::get_settings()['metadesc_page'] ?? '' ) );
 		$preview_title = Mantis_SEO_Meta::replace_vars_for_preview( $preview_title_raw, $post );
 		$preview_desc  = Mantis_SEO_Meta::replace_vars_for_preview( $preview_desc_raw, $post );
@@ -136,9 +132,17 @@ class Mantis_SEO_Metabox {
 				echo '</div>';
 			}
 			foreach ( $tab_fields as $key => $label ) {
-				$value     = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
+				$stored    = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
+				$value     = $stored;
 				$meta_key  = self::META_PREFIX . $key;
-				$placeholder = ( 'title' === $key && '' === trim( (string) $value ) ) ? $title_template : '';
+				$title_template_value = $title_template;
+				if ( 'title' === $key && '' === trim( (string) $stored ) ) {
+					$value = $title_template;
+				}
+				if ( 'title' === $key ) {
+					$title_template_value = $value;
+				}
+				$placeholder = '';
 
 				if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
 					echo '<p>';
@@ -171,7 +175,12 @@ class Mantis_SEO_Metabox {
 					} else {
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
 					}
-					if ( 'textarea' === $tag ) {
+					if ( 'title' === $key ) {
+						echo '<div class="mantis-template-editor-wrap">';
+						echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" class="mantis-template-hidden" value="' . esc_attr( $title_template_value ) . '" autocomplete="off" />';
+						echo '<div id="' . esc_attr( $meta_key ) . '" class="mantis-template-editor" data-mantis-template-editor data-pill-mode="resolve" tabindex="0" role="textbox" aria-label="' . esc_attr( $label ) . '"></div>';
+						echo '</div>';
+					} elseif ( 'textarea' === $tag ) {
 						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text mantis-var-field" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
 					} else {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
@@ -203,23 +212,27 @@ class Mantis_SEO_Metabox {
 	}
 
 	/**
+	 * SEO title template from global settings for a post type (with fallback).
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return string
+	 */
+	private function get_effective_default_title_template( $post_type ) {
+		$settings = Mantis_SEO_Main::get_settings();
+		$template = 'post' === $post_type ? $settings['title_post'] : $settings['title_page'];
+		if ( '' === trim( (string) $template ) ) {
+			$template = '%post_title% %page% %separator% %site_name%';
+		}
+		return $template;
+	}
+
+	/**
 	 * Get variable options for the attribute selector.
 	 *
 	 * @return array Map of %var% => human-readable label.
 	 */
 	private function get_variable_options() {
-		return array(
-			'%post_title%'       => __( 'Post Title', 'mantis-seo' ),
-			'%title%'            => __( 'Post Title', 'mantis-seo' ),
-			'%site_name%'        => __( 'Site Title', 'mantis-seo' ),
-			'%sitename%'         => __( 'Site Title', 'mantis-seo' ),
-			'%site_description%' => __( 'Site Description', 'mantis-seo' ),
-			'%sitedesc%'         => __( 'Site Description', 'mantis-seo' ),
-			'%separator%'        => __( 'Separator', 'mantis-seo' ),
-			'%page%'             => __( 'Page', 'mantis-seo' ),
-			'%date%'             => __( 'Date', 'mantis-seo' ),
-			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
-		);
+		return Mantis_SEO_Meta::get_variable_labels();
 	}
 
 	/**
@@ -235,11 +248,21 @@ class Mantis_SEO_Metabox {
 		if ( 'post.php' === $hook && ! empty( $_GET['post'] ) ) {
 			$post = get_post( (int) $_GET['post'] );
 		}
-		$replacements = Mantis_SEO_Meta::get_replacements_for_preview( $post );
+		$replacements           = Mantis_SEO_Meta::get_replacements_for_preview( $post );
+		$default_title_template = '';
+		if ( $post ) {
+			$default_title_template = $this->get_effective_default_title_template( $post->post_type );
+		} elseif ( ! empty( $_GET['post_type'] ) && is_string( $_GET['post_type'] ) ) {
+			$default_title_template = $this->get_effective_default_title_template( sanitize_key( wp_unslash( $_GET['post_type'] ) ) );
+		} else {
+			$default_title_template = $this->get_effective_default_title_template( 'post' );
+		}
 		wp_localize_script( 'mantis-seo-metabox', 'mantisSeoMetabox', array(
-			'replaceVars' => $replacements,
-			'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-			'ajaxNonce'   => wp_create_nonce( 'mantis_seo_save_meta' ),
+			'replaceVars'          => $replacements,
+			'defaultTitleTemplate' => $default_title_template,
+			'noTitlePlaceholder'   => __( 'No title', 'mantis-seo' ),
+			'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
+			'ajaxNonce'            => wp_create_nonce( 'mantis_seo_save_meta' ),
 		) );
 	}
 
@@ -301,6 +324,13 @@ class Mantis_SEO_Metabox {
 				if ( 'description' === $field ) {
 					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
 				}
+				if ( 'title' === $field ) {
+					$default_t = $this->get_effective_default_title_template( $post->post_type );
+					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
+						delete_post_meta( $post_id, $meta_key );
+						continue;
+					}
+				}
 				update_post_meta( $post_id, $meta_key, $value );
 			}
 		}
@@ -319,8 +349,9 @@ class Mantis_SEO_Metabox {
 		if ( ! isset( $_POST['mantis_seo_ajax_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_ajax_nonce'] ) ), 'mantis_seo_save_meta' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'mantis-seo' ) ) );
 		}
-		$post_id = isset( $_POST['post_id'] ) ? (int) $_POST['post_id'] : 0;
-		if ( ! $post_id || ! get_post( $post_id ) ) {
+		$post_id  = isset( $_POST['post_id'] ) ? (int) $_POST['post_id'] : 0;
+		$post_obj = $post_id ? get_post( $post_id ) : null;
+		if ( ! $post_id || ! $post_obj ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid post.', 'mantis-seo' ) ) );
 		}
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
@@ -339,6 +370,13 @@ class Mantis_SEO_Metabox {
 					: sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
 				if ( 'description' === $field ) {
 					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
+				}
+				if ( 'title' === $field ) {
+					$default_t = $this->get_effective_default_title_template( $post_obj->post_type );
+					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
+						delete_post_meta( $post_id, $meta_key );
+						continue;
+					}
 				}
 				update_post_meta( $post_id, $meta_key, $value );
 			}

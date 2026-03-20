@@ -411,6 +411,30 @@ class Mantis_SEO_Settings_Page {
 	}
 
 	/**
+	 * Title template field: pills in the UI, hidden input stores %variable% syntax.
+	 *
+	 * @param string $field_id   HTML id for the editor (label `for`).
+	 * @param string $input_name Name attribute, e.g. mantis_settings[title_post].
+	 * @param string $value      Stored template string.
+	 */
+	private function render_title_template_control( $field_id, $input_name, $value ) {
+		$var_labels = Mantis_SEO_Meta::get_variable_labels();
+		unset( $var_labels['%title%'], $var_labels['%sitename%'], $var_labels['%sitedesc%'] );
+		echo '<div class="mantis-template-editor-wrap">';
+		echo '<input type="hidden" name="' . esc_attr( $input_name ) . '" class="mantis-template-hidden" value="' . esc_attr( $value ) . '" autocomplete="off" />';
+		echo '<div id="' . esc_attr( $field_id ) . '" class="mantis-template-editor mantis-template-editor--settings" data-mantis-template-editor data-pill-mode="label" tabindex="0" role="textbox"></div>';
+		echo '<div class="mantis-template-editor-toolbar">';
+		echo '<button type="button" class="button button-small mantis-settings-var-btn" aria-haspopup="true" aria-expanded="false">' . esc_html__( 'Insert variable', 'mantis-seo' ) . '</button>';
+		echo '<div class="mantis-var-dropdown mantis-settings-var-dropdown" role="menu" aria-hidden="true">';
+		foreach ( $var_labels as $var => $lbl ) {
+			echo '<button type="button" role="menuitem" class="mantis-var-option mantis-settings-var-option" data-var="' . esc_attr( $var ) . '">' . esc_html( $lbl ) . '</button>';
+		}
+		echo '</div>';
+		echo '</div>';
+		echo '</div>';
+	}
+
+	/**
 	 * Render settings page.
 	 */
 	public function render() {
@@ -498,19 +522,19 @@ class Mantis_SEO_Settings_Page {
 					<div class="mantis-settings-body">
 					<div id="mantis-titles" class="mantis-tab-panel">
 						<h2><?php esc_html_e( 'Title Templates', 'mantis-seo' ); ?></h2>
-						<p class="description"><?php esc_html_e( 'Use %post_title%, %site_name%, %site_description%, %excerpt%, %date%, %separator%', 'mantis-seo' ); ?></p>
+						<p class="description"><?php esc_html_e( 'Compose titles with text and variable pills. Set the separator character below; it appears where you place the Separator pill.', 'mantis-seo' ); ?></p>
 						<table class="form-table">
 							<tr>
 								<th><label for="mantis_title_home"><?php esc_html_e( 'Homepage Title', 'mantis-seo' ); ?></label></th>
-								<td><input type="text" id="mantis_title_home" name="mantis_settings[title_home]" value="<?php echo esc_attr( $settings['title_home'] ); ?>" class="large-text" /></td>
+								<td><?php $this->render_title_template_control( 'mantis_title_home', 'mantis_settings[title_home]', $settings['title_home'] ); ?></td>
 							</tr>
 							<tr>
 								<th><label for="mantis_title_post"><?php esc_html_e( 'Post Title', 'mantis-seo' ); ?></label></th>
-								<td><input type="text" id="mantis_title_post" name="mantis_settings[title_post]" value="<?php echo esc_attr( $settings['title_post'] ); ?>" class="large-text" /></td>
+								<td><?php $this->render_title_template_control( 'mantis_title_post', 'mantis_settings[title_post]', $settings['title_post'] ); ?></td>
 							</tr>
 							<tr>
 								<th><label for="mantis_title_page"><?php esc_html_e( 'Page Title', 'mantis-seo' ); ?></label></th>
-								<td><input type="text" id="mantis_title_page" name="mantis_settings[title_page]" value="<?php echo esc_attr( $settings['title_page'] ); ?>" class="large-text" /></td>
+								<td><?php $this->render_title_template_control( 'mantis_title_page', 'mantis_settings[title_page]', $settings['title_page'] ); ?></td>
 							</tr>
 							<tr>
 								<th><label for="mantis_separator"><?php esc_html_e( 'Separator', 'mantis-seo' ); ?></label></th>
