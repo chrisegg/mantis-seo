@@ -18,10 +18,58 @@ class Mantis_SEO_Settings_Page {
 	 * Constructor.
 	 */
 	public function __construct() {
+		add_action( 'admin_init', array( $this, 'maybe_append_tab_to_settings_redirect' ), 1 );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_init', array( $this, 'handle_migrate' ) );
 		add_action( 'admin_init', array( $this, 'handle_export' ) );
 		add_action( 'admin_init', array( $this, 'handle_import' ) );
+	}
+
+	/**
+	 * Valid settings UI panel element ids (sidebar tabs).
+	 *
+	 * @return string[]
+	 */
+	private function get_settings_panel_ids() {
+		return array(
+			'mantis-titles',
+			'mantis-social',
+			'mantis-schema',
+			'mantis-sitemap',
+			'mantis-advanced',
+			'mantis-tools',
+		);
+	}
+
+	/**
+	 * After options.php saves, append mantis_tab to the redirect so the correct panel is shown.
+	 */
+	public function maybe_append_tab_to_settings_redirect() {
+		if ( ! isset( $_POST['option_page'], $_POST['action'] ) || 'update' !== $_POST['action'] ) {
+			return;
+		}
+		if ( 'mantis_seo_settings' !== $_POST['option_page'] ) {
+			return;
+		}
+		if ( empty( $_POST['mantis_active_tab'] ) ) {
+			return;
+		}
+		$tab     = sanitize_key( wp_unslash( $_POST['mantis_active_tab'] ) );
+		$allowed = $this->get_settings_panel_ids();
+		if ( ! in_array( $tab, $allowed, true ) || 'mantis-titles' === $tab ) {
+			return;
+		}
+		add_filter(
+			'wp_redirect',
+			static function ( $location ) use ( $tab ) {
+				if ( false === strpos( $location, 'page=mantis-seo' ) ) {
+					return $location;
+				}
+				return add_query_arg( 'mantis_tab', $tab, $location );
+			},
+			10,
+			1
+		);
 	}
 
 	/**
@@ -64,7 +112,7 @@ class Mantis_SEO_Settings_Page {
 		}
 		check_admin_referer( 'mantis_import' );
 
-		$redirect_url = admin_url( 'admin.php?page=mantis-seo' );
+		$redirect_url = add_query_arg( 'mantis_tab', 'mantis-tools', admin_url( 'admin.php?page=mantis-seo' ) );
 		$file_path    = isset( $_FILES['mantis_import_file']['tmp_name'] ) ? $_FILES['mantis_import_file']['tmp_name'] : '';
 
 		try {
@@ -441,7 +489,15 @@ class Mantis_SEO_Settings_Page {
 			return;
 		}
 
-		$settings = Mantis_SEO_Main::get_settings();
+		$settings    = Mantis_SEO_Main::get_settings();
+		$panel_ids   = $this->get_settings_panel_ids();
+		$initial_tab = 'mantis-titles';
+		if ( isset( $_GET['mantis_tab'] ) ) {
+			$req = sanitize_key( wp_unslash( $_GET['mantis_tab'] ) );
+			if ( in_array( $req, $panel_ids, true ) ) {
+				$initial_tab = $req;
+			}
+		}
 
 		if ( isset( $_GET['settings-updated'] ) || isset( $_GET['mantis_imported'] ) ) {
 			$posts_count = isset( $_GET['mantis_imported_posts'] ) ? (int) $_GET['mantis_imported_posts'] : 0;
@@ -506,6 +562,7 @@ class Mantis_SEO_Settings_Page {
 
 			<form action="options.php" method="post">
 				<?php settings_fields( 'mantis_seo_settings' ); ?>
+				<input type="hidden" name="mantis_active_tab" id="mantis-settings-active-tab" value="<?php echo esc_attr( $initial_tab ); ?>" />
 
 				<div class="mantis-settings-layout">
 					<nav class="mantis-settings-sidebar" aria-label="<?php esc_attr_e( 'Settings sections', 'mantis-seo' ); ?>">
@@ -776,6 +833,8 @@ class Mantis_SEO_Settings_Page {
 			var panels = document.querySelectorAll('.mantis-settings-body .mantis-tab-panel');
 			var importForm = document.getElementById('mantis-import-form');
 			var importCell = document.getElementById('mantis-import-cell');
+			var activeTabInput = document.getElementById('mantis-settings-active-tab');
+			var allowedTabs = <?php echo wp_json_encode( $panel_ids ); ?>;
 			function showPanel(targetId) {
 				navItems.forEach(function(n) { n.classList.remove('mantis-settings-nav-active'); });
 				panels.forEach(function(p) {
@@ -783,6 +842,7 @@ class Mantis_SEO_Settings_Page {
 				});
 				var active = document.querySelector('.mantis-settings-nav-item[data-panel="' + targetId + '"]');
 				if (active) active.classList.add('mantis-settings-nav-active');
+				if (activeTabInput) activeTabInput.value = targetId;
 				if (targetId === 'mantis-tools' && importForm && importCell) {
 					importCell.appendChild(importForm);
 					importForm.style.display = 'block';
@@ -799,6 +859,14 @@ class Mantis_SEO_Settings_Page {
 			});
 			if (window.location.search.indexOf('mantis_import_error') !== -1) {
 				showPanel('mantis-tools');
+			} else {
+				var params = new URLSearchParams(window.location.search);
+				var tabParam = params.get('mantis_tab');
+				if (tabParam && allowedTabs.indexOf(tabParam) !== -1 && document.getElementById(tabParam)) {
+					showPanel(tabParam);
+				} else if (activeTabInput && activeTabInput.value && activeTabInput.value !== 'mantis-titles') {
+					showPanel(activeTabInput.value);
+				}
 			}
 		})();
 		</script>
