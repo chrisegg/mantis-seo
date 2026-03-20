@@ -418,8 +418,7 @@ class Mantis_SEO_Settings_Page {
 	 * @param string $value      Stored template string.
 	 */
 	private function render_title_template_control( $field_id, $input_name, $value ) {
-		$var_labels = Mantis_SEO_Meta::get_variable_labels();
-		unset( $var_labels['%title%'], $var_labels['%sitename%'], $var_labels['%sitedesc%'] );
+		$var_labels = Mantis_SEO_Meta::get_variable_dropdown_options();
 		echo '<div class="mantis-template-editor-wrap">';
 		echo '<input type="hidden" name="' . esc_attr( $input_name ) . '" class="mantis-template-hidden" value="' . esc_attr( $value ) . '" autocomplete="off" />';
 		echo '<div id="' . esc_attr( $field_id ) . '" class="mantis-template-editor mantis-template-editor--settings" data-mantis-template-editor data-pill-mode="label" tabindex="0" role="textbox"></div>';

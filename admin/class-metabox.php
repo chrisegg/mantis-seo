@@ -232,7 +232,7 @@ class Mantis_SEO_Metabox {
 	 * @return array Map of %var% => human-readable label.
 	 */
 	private function get_variable_options() {
-		return Mantis_SEO_Meta::get_variable_labels();
+		return Mantis_SEO_Meta::get_variable_dropdown_options();
 	}
 
 	/**

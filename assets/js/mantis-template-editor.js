@@ -1,12 +1,11 @@
 /**
- * SEO title template editor: variables as pills; stores %tokens% in a hidden input.
+ * SEO title template editor: one contenteditable + atomic pills; hidden input holds %tokens%.
  *
  * @package Mantis_SEO
  */
 (function (window, document) {
 	'use strict';
 
-	const CHUNK_CLASS = 'mantis-template-chunk';
 	const PILL_CLASS = 'mantis-var-pill';
 	const SURFACE_SELECTOR = '[data-mantis-template-editor]';
 
@@ -86,56 +85,60 @@
 		return labels[token] || token;
 	}
 
-	function createChunk(text) {
-		const span = document.createElement('span');
-		span.className = CHUNK_CLASS;
-		span.setAttribute('contenteditable', 'true');
-		span.textContent = text === '' ? '\u200b' : text;
-		return span;
-	}
-
 	function stripZwsp(str) {
 		return (str || '').replace(/\u200b/g, '').replace(/\ufeff/g, '');
 	}
 
-	function placeCaretInChunk(chunk, atEnd) {
-		if (!chunk) return;
+	function placeCaretInTextNode(textNode, offset) {
+		if (!textNode || textNode.nodeType !== 3) return;
 		const sel = window.getSelection();
 		const range = document.createRange();
-		const textNode = chunk.firstChild;
-		if (textNode && textNode.nodeType === 3) {
-			const len = textNode.textContent.length;
-			const pos = atEnd ? len : 0;
-			range.setStart(textNode, Math.min(pos, len));
-			range.collapse(true);
-		} else {
-			range.selectNodeContents(chunk);
-			range.collapse(atEnd !== false);
-		}
+		const max = textNode.textContent.length;
+		range.setStart(textNode, Math.min(Math.max(0, offset), max));
+		range.collapse(true);
 		sel.removeAllRanges();
 		sel.addRange(range);
 	}
 
-	function ensureEditableGaps(surface) {
-		let el = surface.firstElementChild;
-		while (el) {
-			const next = el.nextElementSibling;
-			if (el.classList.contains(PILL_CLASS) && next && next.classList.contains(PILL_CLASS)) {
-				surface.insertBefore(createChunk(''), next);
-				continue;
+	function ensureTextAfterPill(pill) {
+		if (!pill.nextSibling || pill.nextSibling.nodeType !== 3) {
+			pill.parentNode.insertBefore(document.createTextNode('\u200b'), pill.nextSibling);
+		}
+	}
+
+	/**
+	 * Insert ZWSP text nodes so there is always editable space around pills.
+	 */
+	function ensureTextGaps(surface) {
+		let n = surface.firstChild;
+		while (n) {
+			const next = n.nextSibling;
+			if (n.nodeType === 1 && n.classList.contains(PILL_CLASS)) {
+				if (next && next.nodeType === 1 && next.classList.contains(PILL_CLASS)) {
+					surface.insertBefore(document.createTextNode('\u200b'), next);
+					continue;
+				}
 			}
-			el = next;
+			n = next;
 		}
-		if (surface.firstElementChild && surface.firstElementChild.classList.contains(PILL_CLASS)) {
-			surface.insertBefore(createChunk(''), surface.firstElementChild);
+		if (surface.firstChild && surface.firstChild.nodeType === 1 && surface.firstChild.classList.contains(PILL_CLASS)) {
+			surface.insertBefore(document.createTextNode('\u200b'), surface.firstChild);
 		}
-		const last = surface.lastElementChild;
-		if (last && last.classList.contains(PILL_CLASS)) {
-			surface.appendChild(createChunk(''));
+		const last = surface.lastChild;
+		if (last && last.nodeType === 1 && last.classList.contains(PILL_CLASS)) {
+			surface.appendChild(document.createTextNode('\u200b'));
 		}
-		if (!surface.firstElementChild) {
-			surface.appendChild(createChunk(''));
+		if (!surface.firstChild) {
+			surface.appendChild(document.createTextNode('\u200b'));
 		}
+	}
+
+	function normalizeEmptyTextNodes(surface) {
+		Array.prototype.forEach.call(surface.childNodes, function (node) {
+			if (node.nodeType === 3 && node.textContent === '') {
+				node.textContent = '\u200b';
+			}
+		});
 	}
 
 	function createPill(token, mode) {
@@ -146,6 +149,7 @@
 		span.setAttribute('title', getVarLabels()[token] || token);
 		const inner = document.createElement('span');
 		inner.className = 'mantis-var-pill-inner';
+		inner.setAttribute('contenteditable', 'false');
 		inner.textContent = pillDisplayText(token, mode);
 		span.appendChild(inner);
 		return span;
@@ -156,60 +160,29 @@
 			return;
 		}
 		surface.dataset.mantisTeBound = '1';
+
 		surface.addEventListener('input', function () {
-			Array.prototype.forEach.call(surface.querySelectorAll('.' + CHUNK_CLASS), function (ch) {
-				if (ch.textContent === '') {
-					ch.textContent = '\u200b';
-				}
-			});
-			ensureEditableGaps(surface);
+			normalizeEmptyTextNodes(surface);
+			ensureTextGaps(surface);
 			syncToHidden(surface);
 		});
+
 		surface.addEventListener('blur', function () {
 			syncToHidden(surface);
 		}, true);
 
-		surface.addEventListener('focusin', function (e) {
-			if (e.target === surface) {
-				const first = surface.querySelector('.' + CHUNK_CLASS);
-				if (first) {
-					first.focus();
-					placeCaretInChunk(first, true);
-				}
-			}
-		});
-
+		/* Click pill: caret after pill (ready to type or insert next variable). */
 		surface.addEventListener('click', function (e) {
 			const pill = e.target.closest && e.target.closest('.' + PILL_CLASS);
-			if (pill && surface.contains(pill)) {
-				e.preventDefault();
-				let next = pill.nextElementSibling;
-				if (next && next.classList.contains(CHUNK_CLASS)) {
-					next.focus();
-					placeCaretInChunk(next, false);
-				} else {
-					const c = createChunk('');
-					if (pill.nextSibling) {
-						surface.insertBefore(c, pill.nextSibling);
-					} else {
-						surface.appendChild(c);
-					}
-					c.focus();
-					placeCaretInChunk(c, false);
-				}
+			if (!pill || !surface.contains(pill)) {
 				return;
 			}
-			if (e.target === surface) {
-				let last = surface.lastElementChild;
-				if (last && last.classList.contains(CHUNK_CLASS)) {
-					last.focus();
-					placeCaretInChunk(last, true);
-				} else {
-					const c = createChunk('');
-					surface.appendChild(c);
-					c.focus();
-					placeCaretInChunk(c, false);
-				}
+			e.preventDefault();
+			e.stopPropagation();
+			ensureTextAfterPill(pill);
+			const after = pill.nextSibling;
+			if (after && after.nodeType === 3) {
+				placeCaretInTextNode(after, after.textContent.length);
 			}
 		});
 
@@ -224,50 +197,43 @@
 			if (!sel.isCollapsed) {
 				return;
 			}
-			let node = sel.anchorNode;
+			const node = sel.anchorNode;
 			if (node.nodeType !== 3) {
 				return;
 			}
-			const chunk = node.parentElement;
-			if (!chunk || !chunk.classList.contains(CHUNK_CLASS) || !surface.contains(chunk)) {
-				return;
-			}
-			const text = node.textContent;
 			const offset = sel.anchorOffset;
+			const text = node.textContent;
 
 			if (e.key === 'Backspace' && offset === 0) {
-				const prev = chunk.previousElementSibling;
-				if (prev && prev.classList.contains(PILL_CLASS)) {
+				const prev = node.previousSibling;
+				if (prev && prev.nodeType === 1 && prev.classList.contains(PILL_CLASS)) {
 					e.preventDefault();
 					prev.remove();
-					const before = chunk.previousElementSibling;
-					if (before && before.classList.contains(CHUNK_CLASS)) {
-						const merged = stripZwsp(before.textContent) + stripZwsp(chunk.textContent);
+					const before = node.previousSibling;
+					if (before && before.nodeType === 3) {
+						const merged = before.textContent + node.textContent;
 						before.textContent = merged === '' ? '\u200b' : merged;
-						chunk.remove();
-						before.focus();
-						placeCaretInChunk(before, true);
+						surface.removeChild(node);
+						placeCaretInTextNode(before, before.textContent.length);
 					} else {
-						chunk.focus();
-						placeCaretInChunk(chunk, false);
+						placeCaretInTextNode(node, 0);
 					}
-					ensureEditableGaps(surface);
+					ensureTextGaps(surface);
 					syncToHidden(surface);
 				}
 			} else if (e.key === 'Delete' && offset === text.length) {
-				const next = chunk.nextElementSibling;
-				if (next && next.classList.contains(PILL_CLASS)) {
+				const next = node.nextSibling;
+				if (next && next.nodeType === 1 && next.classList.contains(PILL_CLASS)) {
 					e.preventDefault();
 					next.remove();
-					const after = chunk.nextElementSibling;
-					if (after && after.classList.contains(CHUNK_CLASS)) {
-						const merged = stripZwsp(chunk.textContent) + stripZwsp(after.textContent);
-						chunk.textContent = merged === '' ? '\u200b' : merged;
-						after.remove();
+					const after = node.nextSibling;
+					if (after && after.nodeType === 3) {
+						const merged = node.textContent + after.textContent;
+						node.textContent = merged === '' ? '\u200b' : merged;
+						surface.removeChild(after);
 					}
-					chunk.focus();
-					placeCaretInChunk(chunk, true);
-					ensureEditableGaps(surface);
+					placeCaretInTextNode(node, node.textContent.length);
+					ensureTextGaps(surface);
 					syncToHidden(surface);
 				}
 			}
@@ -276,29 +242,31 @@
 
 	function render(surface, templateStr, mode) {
 		surface.innerHTML = '';
+		surface.setAttribute('contenteditable', 'true');
+		surface.setAttribute('spellcheck', 'false');
 		const tokens = parseTemplate(templateStr);
 		if (tokens.length === 0) {
-			surface.appendChild(createChunk(''));
+			surface.appendChild(document.createTextNode('\u200b'));
 		} else {
 			tokens.forEach(function (tok) {
 				if (tok.type === 'var') {
 					surface.appendChild(createPill(tok.token, mode));
 				} else {
-					surface.appendChild(createChunk(tok.value));
+					surface.appendChild(document.createTextNode(tok.value === '' ? '\u200b' : tok.value));
 				}
 			});
 		}
-		ensureEditableGaps(surface);
+		ensureTextGaps(surface);
 		bindSurface(surface);
 	}
 
 	function serialize(surface) {
 		let out = '';
-		Array.prototype.forEach.call(surface.children, function (node) {
-			if (node.classList.contains(PILL_CLASS)) {
-				out += node.getAttribute('data-var') || '';
-			} else if (node.classList.contains(CHUNK_CLASS)) {
+		Array.prototype.forEach.call(surface.childNodes, function (node) {
+			if (node.nodeType === 3) {
 				out += stripZwsp(node.textContent);
+			} else if (node.nodeType === 1 && node.classList.contains(PILL_CLASS)) {
+				out += node.getAttribute('data-var') || '';
 			}
 		});
 		return out;
@@ -408,9 +376,32 @@
 		}
 	}
 
-	function init(root) {
-		(root || document).querySelectorAll(SURFACE_SELECTOR).forEach(initOne);
-		bindSettingsVarToolbars();
+	function collapseRangeToEndOfSurface(surface) {
+		const range = document.createRange();
+		const last = surface.lastChild;
+		if (!last) {
+			surface.appendChild(document.createTextNode('\u200b'));
+			range.setStart(surface.lastChild, 1);
+			range.collapse(true);
+			return range;
+		}
+		if (last.nodeType === 3) {
+			range.setStart(last, last.textContent.length);
+			range.collapse(true);
+			return range;
+		}
+		if (last.classList && last.classList.contains(PILL_CLASS)) {
+			ensureTextAfterPill(last);
+			const after = last.nextSibling;
+			if (after && after.nodeType === 3) {
+				range.setStart(after, after.textContent.length);
+				range.collapse(true);
+				return range;
+			}
+		}
+		range.selectNodeContents(surface);
+		range.collapse(false);
+		return range;
 	}
 
 	/**
@@ -425,51 +416,53 @@
 			return;
 		}
 		const mode = surface.getAttribute('data-pill-mode') || 'label';
-		const sel = window.getSelection();
-		let chunk = null;
-		if (sel.rangeCount > 0) {
-			let node = sel.anchorNode;
-			if (node.nodeType === 3) {
-				node = node.parentElement;
-			}
-			chunk = node && node.closest('.' + CHUNK_CLASS);
-			if (chunk && !surface.contains(chunk)) {
-				chunk = null;
-			}
-		}
-		if (!chunk) {
-			const last = surface.lastElementChild;
-			if (last && last.classList.contains(CHUNK_CLASS)) {
-				chunk = last;
-			}
-		}
-		if (!chunk) {
-			chunk = createChunk('');
-			surface.appendChild(chunk);
-		}
 		const pill = createPill(varToken, mode);
-		const range = sel.rangeCount ? sel.getRangeAt(0) : null;
-		if (range && chunk.contains(range.commonAncestorContainer)) {
-			try {
-				range.deleteContents();
-				range.insertNode(pill);
-				range.setStartAfter(pill);
-				range.collapse(true);
-				sel.removeAllRanges();
-				sel.addRange(range);
-			} catch (err) {
-				surface.appendChild(pill);
-			}
-		} else {
+		const sel = window.getSelection();
+
+		surface.focus();
+
+		let range = null;
+		if (sel.rangeCount > 0 && surface.contains(sel.anchorNode)) {
+			range = sel.getRangeAt(0).cloneRange();
+		}
+		if (!range) {
+			range = collapseRangeToEndOfSurface(surface);
+		}
+
+		range.deleteContents();
+		try {
+			range.insertNode(pill);
+		} catch (err) {
 			surface.appendChild(pill);
 		}
-		ensureEditableGaps(surface);
+
+		ensureTextAfterPill(pill);
+		const after = pill.nextSibling;
+		const r2 = document.createRange();
+		if (after && after.nodeType === 3) {
+			r2.setStart(after, after.textContent.length);
+			r2.collapse(true);
+		} else {
+			ensureTextAfterPill(pill);
+			const a2 = pill.nextSibling;
+			if (a2 && a2.nodeType === 3) {
+				r2.setStart(a2, a2.textContent.length);
+				r2.collapse(true);
+			} else {
+				r2.setStartAfter(pill);
+				r2.collapse(true);
+			}
+		}
+		sel.removeAllRanges();
+		sel.addRange(r2);
+
+		ensureTextGaps(surface);
 		syncToHidden(surface);
-		const focusChunk = pill.nextElementSibling && pill.nextElementSibling.classList.contains(CHUNK_CLASS)
-			? pill.nextElementSibling
-			: (pill.previousElementSibling && pill.previousElementSibling.classList.contains(CHUNK_CLASS) ? pill.previousElementSibling : chunk);
-		focusChunk.focus();
-		placeCaretInChunk(focusChunk, pill.nextElementSibling === focusChunk);
+	}
+
+	function init(root) {
+		(root || document).querySelectorAll(SURFACE_SELECTOR).forEach(initOne);
+		bindSettingsVarToolbars();
 	}
 
 	window.MantisTemplateEditor = {

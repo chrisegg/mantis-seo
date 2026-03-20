@@ -512,6 +512,23 @@ class Mantis_SEO_Meta {
 	}
 
 	/**
+	 * Variables shown in Insert dropdowns (one entry per concept; aliases omitted).
+	 *
+	 * @return array Map of %var% => label.
+	 */
+	public static function get_variable_dropdown_options() {
+		return array(
+			'%post_title%'       => __( 'Post Title', 'mantis-seo' ),
+			'%site_name%'        => __( 'Site Title', 'mantis-seo' ),
+			'%site_description%' => __( 'Site Description', 'mantis-seo' ),
+			'%separator%'        => __( 'Separator', 'mantis-seo' ),
+			'%page%'             => __( 'Page', 'mantis-seo' ),
+			'%date%'             => __( 'Date', 'mantis-seo' ),
+			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
+		);
+	}
+
+	/**
 	 * Get canonical URL for current request.
 	 *
 	 * @return string
