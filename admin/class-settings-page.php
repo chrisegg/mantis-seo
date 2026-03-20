@@ -499,6 +499,9 @@ class Mantis_SEO_Settings_Page {
 			}
 		}
 
+		// Custom markup only (no div.notice / div.updated): WP common.js relocates those after .wrap h1/h2,
+		// which drops feedback inside the hidden Titles tab. See wp-admin/js/common.js (insertAfter header).
+		$mantis_settings_alert = null;
 		if ( isset( $_GET['settings-updated'] ) || isset( $_GET['mantis_imported'] ) ) {
 			$posts_count = isset( $_GET['mantis_imported_posts'] ) ? (int) $_GET['mantis_imported_posts'] : 0;
 			if ( $posts_count > 0 ) {
@@ -506,11 +509,9 @@ class Mantis_SEO_Settings_Page {
 			} else {
 				$msg = isset( $_GET['mantis_imported'] ) ? __( 'Settings imported successfully.', 'mantis-seo' ) : __( 'Settings saved.', 'mantis-seo' );
 			}
-			add_settings_error(
-				'mantis_seo_messages',
-				'mantis_seo_message',
-				$msg,
-				'success'
+			$mantis_settings_alert = array(
+				'type'    => 'success',
+				'message' => $msg,
 			);
 		}
 
@@ -518,11 +519,13 @@ class Mantis_SEO_Settings_Page {
 			$err = get_transient( 'mantis_import_error' );
 			if ( $err ) {
 				delete_transient( 'mantis_import_error' );
-				add_settings_error(
-					'mantis_seo_messages',
-					'mantis_import_error',
-					sprintf( /* translators: %s: error message */ __( 'Import failed: %s', 'mantis-seo' ), esc_html( $err ) ),
-					'error'
+				$mantis_settings_alert = array(
+					'type'    => 'error',
+					'message' => sprintf(
+						/* translators: %s: error message */
+						__( 'Import failed: %s', 'mantis-seo' ),
+						$err
+					),
 				);
 			}
 		}
@@ -533,7 +536,7 @@ class Mantis_SEO_Settings_Page {
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-seo-settings">
 			<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
-			<div class="notice notice-info" style="margin:20px 0;">
+			<div class="notice notice-info inline" style="margin:20px 0;">
 				<p><strong><?php esc_html_e( 'Yoast SEO detected.', 'mantis-seo' ); ?></strong> <?php esc_html_e( 'You can migrate your SEO settings, post meta, and redirects to Mantis SEO.', 'mantis-seo' ); ?></p>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" style="margin-top:10px;">
 					<?php wp_nonce_field( 'mantis_migrate_yoast' ); ?>
@@ -544,7 +547,7 @@ class Mantis_SEO_Settings_Page {
 
 			<?php if ( isset( $_GET['mantis_migrated'] ) && $migrate_result = get_transient( 'mantis_migrate_result' ) ) : ?>
 					<?php delete_transient( 'mantis_migrate_result' ); ?>
-					<div class="notice notice-success"><p>
+					<div class="notice notice-success inline"><p>
 						<?php
 						printf(
 							/* translators: 1: posts count, 2: terms count, 3: redirects count */
@@ -574,7 +577,12 @@ class Mantis_SEO_Settings_Page {
 						</ul>
 					</nav>
 					<div class="mantis-settings-body">
-					<div class="mantis-settings-body__notices" role="status" aria-live="polite"><?php settings_errors( 'mantis_seo_messages' ); ?></div>
+					<div class="mantis-settings-body__notices" role="status" aria-live="polite"><?php
+					if ( ! empty( $mantis_settings_alert ) ) {
+						$alert_role = 'error' === $mantis_settings_alert['type'] ? 'alert' : 'status';
+						echo '<div class="mantis-settings-feedback mantis-settings-feedback--' . esc_attr( $mantis_settings_alert['type'] ) . '" role="' . esc_attr( $alert_role ) . '"><p>' . esc_html( $mantis_settings_alert['message'] ) . '</p></div>';
+					}
+					?></div>
 					<div id="mantis-titles" class="mantis-tab-panel">
 						<h2><?php esc_html_e( 'Title Templates', 'mantis-seo' ); ?></h2>
 						<p class="description"><?php esc_html_e( 'Compose titles with text and variable pills. Set the separator character below; it appears where you place the Separator pill.', 'mantis-seo' ); ?></p>

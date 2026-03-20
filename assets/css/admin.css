@@ -336,6 +336,39 @@
 	display: none;
 }
 
+/* Notices here must NOT use div.notice / div.updated — WP common.js moves those after .wrap h1/h2. */
+.mantis-settings-feedback {
+	margin: 0 0 1rem;
+	padding: 0.875rem 1rem;
+	border: none;
+	border-radius: var(--mantis-radius);
+	box-shadow: var(--mantis-shadow);
+}
+
+.mantis-settings-feedback p {
+	margin: 0;
+}
+
+.mantis-settings-feedback--success {
+	background: #ecfdf5;
+	color: #065f46;
+}
+
+.mantis-seo-app.mantis-seo-dark .mantis-settings-feedback--success {
+	background: rgba(16, 185, 129, 0.2);
+	color: #6ee7b7;
+}
+
+.mantis-settings-feedback--error {
+	background: #fef2f2;
+	color: #991b1b;
+}
+
+.mantis-seo-app.mantis-seo-dark .mantis-settings-feedback--error {
+	background: rgba(239, 68, 68, 0.2);
+	color: #fca5a5;
+}
+
 .mantis-settings-body .mantis-tab-panel {
 	padding: 1.5rem 2rem;
 	flex: 1 0 auto;
