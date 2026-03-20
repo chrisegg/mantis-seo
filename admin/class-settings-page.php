@@ -686,19 +686,39 @@ class Mantis_SEO_Settings_Page {
 						</div>
 					</div>
 
-					<div id="mantis-advanced" class="mantis-tab-panel" style="display:none;">
-						<h2><?php esc_html_e( 'Indexing', 'mantis-seo' ); ?></h2>
-						<table class="form-table">
-							<tr>
-								<th><?php esc_html_e( 'Noindex Archives', 'mantis-seo' ); ?></th>
-								<td>
-									<label><input type="checkbox" name="mantis_settings[noindex_author]" value="1" <?php checked( $settings['noindex_author'] ); ?> /> <?php esc_html_e( 'Author archives', 'mantis-seo' ); ?></label><br>
-									<label><input type="checkbox" name="mantis_settings[noindex_date]" value="1" <?php checked( $settings['noindex_date'] ); ?> /> <?php esc_html_e( 'Date archives', 'mantis-seo' ); ?></label><br>
-									<label><input type="checkbox" name="mantis_settings[noindex_category]" value="1" <?php checked( $settings['noindex_category'] ?? false ); ?> /> <?php esc_html_e( 'Category archives', 'mantis-seo' ); ?></label><br>
-									<label><input type="checkbox" name="mantis_settings[noindex_tag]" value="1" <?php checked( $settings['noindex_tag'] ?? false ); ?> /> <?php esc_html_e( 'Tag archives', 'mantis-seo' ); ?></label>
-								</td>
-							</tr>
-						</table>
+					<div id="mantis-advanced" class="mantis-tab-panel mantis-advanced-panel" style="display:none;">
+						<h2 class="mantis-advanced-panel__section-title"><?php esc_html_e( 'Indexing', 'mantis-seo' ); ?></h2>
+						<section class="mantis-settings-card mantis-advanced-noindex-card" aria-labelledby="mantis-advanced-noindex-heading">
+							<h3 id="mantis-advanced-noindex-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Noindex Archives', 'mantis-seo' ); ?></h3>
+							<p class="mantis-settings-card__lead"><?php esc_html_e( 'When enabled, the noindex directive is sent for the matching archive templates so they are less likely to appear in search results.', 'mantis-seo' ); ?></p>
+							<?php
+							$noindex_archive_options = array(
+								'noindex_author'   => __( 'Author archives', 'mantis-seo' ),
+								'noindex_date'     => __( 'Date archives', 'mantis-seo' ),
+								'noindex_category' => __( 'Category archives', 'mantis-seo' ),
+								'noindex_tag'      => __( 'Tag archives', 'mantis-seo' ),
+							);
+							?>
+							<ul class="mantis-sitemap-type-list" role="list">
+								<?php foreach ( $noindex_archive_options as $field => $option_label ) : ?>
+									<?php
+									$input_id = 'mantis_' . $field;
+									$on       = ! empty( $settings[ $field ] );
+									?>
+									<li class="mantis-sitemap-type-list__item">
+										<label class="mantis-toggle-row" for="<?php echo esc_attr( $input_id ); ?>">
+											<span class="mantis-toggle-row__text">
+												<span class="mantis-toggle-row__label"><?php echo esc_html( $option_label ); ?></span>
+											</span>
+											<span class="mantis-toggle">
+												<input type="checkbox" id="<?php echo esc_attr( $input_id ); ?>" class="mantis-toggle__input" name="mantis_settings[<?php echo esc_attr( $field ); ?>]" value="1" <?php checked( $on ); ?> />
+												<span class="mantis-toggle__track" aria-hidden="true"></span>
+											</span>
+										</label>
+									</li>
+								<?php endforeach; ?>
+							</ul>
+						</section>
 						<h2><?php esc_html_e( 'Webmaster Verification', 'mantis-seo' ); ?></h2>
 						<table class="form-table">
 							<tr>
