@@ -50,53 +50,24 @@ class Mantis_SEO_Schema {
 	 * @return array
 	 */
 	public function generate_graph() {
-		$graph   = array();
-		$settings = Mantis_SEO_Main::get_settings();
+		$graph     = array();
+		$settings  = Mantis_SEO_Main::get_settings();
+		$lang      = $this->get_in_language();
+		$home_url  = trailingslashit( home_url( '/' ) );
+		$website_id = $home_url . '#website';
 
-		// Organization (if configured).
+		$organization_id = null;
 		if ( ! empty( $settings['schema_organization_name'] ) ) {
-			$org = array(
-				'@type' => 'Organization',
-				'name'  => $settings['schema_organization_name'],
-			);
-			if ( ! empty( $settings['schema_organization_url'] ) ) {
-				$org['url'] = $settings['schema_organization_url'];
-			}
-			if ( ! empty( $settings['schema_organization_logo'] ) ) {
-				$org['logo'] = $settings['schema_organization_logo'];
-			}
-			$same_as = array_values( array_filter( array(
-				$settings['schema_same_as_facebook'] ?? '',
-				$settings['schema_same_as_instagram'] ?? '',
-				$settings['schema_same_as_x'] ?? '',
-				$settings['schema_same_as_linkedin'] ?? '',
-			) ) );
-			if ( ! empty( $same_as ) ) {
-				$org['sameAs'] = $same_as;
-			}
-			$graph[] = $org;
+			$organization_id = $this->get_organization_node_id( $settings );
+			$graph[]         = $this->build_organization( $settings, $organization_id );
 		}
 
-		// WebSite.
-		$website = array(
-			'@type'          => 'WebSite',
-			'name'           => get_bloginfo( 'name' ),
-			'url'            => home_url( '/' ),
-			'potentialAction' => array(
-				'@type'       => 'SearchAction',
-				'target'      => array(
-					'@type'       => 'EntryPoint',
-					'urlTemplate' => home_url( '/?s={search_term_string}' ),
-				),
-				'query-input' => 'required name=search_term_string',
-			),
-		);
-		$graph[] = $website;
+		$graph[] = $this->build_website( $website_id, $home_url, $lang, $organization_id );
 
 		if ( is_singular() ) {
-			$page_schema = $this->get_singular_schema();
-			if ( ! empty( $page_schema ) ) {
-				$graph = array_merge( $graph, $page_schema );
+			$post = get_post( get_queried_object_id() );
+			if ( $post ) {
+				$graph = array_merge( $graph, $this->build_singular_nodes( $post, $website_id, $lang, $organization_id ) );
 			}
 		}
 
@@ -104,32 +75,166 @@ class Mantis_SEO_Schema {
 	}
 
 	/**
-	 * Get schema for singular post/page.
+	 * BCP 47 style language tag for schema.
 	 *
+	 * @return string
+	 */
+	private function get_in_language() {
+		$lang = get_bloginfo( 'language' );
+		if ( is_string( $lang ) && '' !== $lang ) {
+			return $lang;
+		}
+		return str_replace( '_', '-', get_locale() );
+	}
+
+	/**
+	 * Stable @id for Organization node.
+	 *
+	 * @param array $settings Plugin settings.
+	 * @return string
+	 */
+	private function get_organization_node_id( $settings ) {
+		$base = ! empty( $settings['schema_organization_url'] )
+			? $settings['schema_organization_url']
+			: home_url( '/' );
+		return untrailingslashit( $base ) . '#organization';
+	}
+
+	/**
+	 * Organization entity.
+	 *
+	 * @param array  $settings Plugin settings.
+	 * @param string $node_id  @id value.
 	 * @return array
 	 */
-	private function get_singular_schema() {
-		$schema = array();
-		$post   = get_post( get_queried_object_id() );
+	private function build_organization( $settings, $node_id ) {
+		$org = array(
+			'@type' => 'Organization',
+			'@id'   => $node_id,
+			'name'  => $settings['schema_organization_name'],
+		);
+		if ( ! empty( $settings['schema_organization_url'] ) ) {
+			$org['url'] = $settings['schema_organization_url'];
+		}
+		if ( ! empty( $settings['schema_organization_logo'] ) ) {
+			$org['logo'] = $settings['schema_organization_logo'];
+		}
+		$same_as = array_values(
+			array_filter(
+				array(
+					$settings['schema_same_as_facebook'] ?? '',
+					$settings['schema_same_as_instagram'] ?? '',
+					$settings['schema_same_as_x'] ?? '',
+					$settings['schema_same_as_linkedin'] ?? '',
+				)
+			)
+		);
+		if ( ! empty( $same_as ) ) {
+			$org['sameAs'] = $same_as;
+		}
+		return $org;
+	}
 
-		if ( ! $post ) {
-			return $schema;
+	/**
+	 * WebSite entity with SearchAction (schema.org-recommended query-input shape).
+	 *
+	 * @param string      $website_id      @id for this site.
+	 * @param string      $home_url        Site front URL (trailing slash).
+	 * @param string      $in_language     BCP 47 tag.
+	 * @param string|null $organization_id Optional Organization @id for publisher.
+	 * @return array
+	 */
+	private function build_website( $website_id, $home_url, $in_language, $organization_id ) {
+		$website = array(
+			'@type'           => 'WebSite',
+			'@id'             => $website_id,
+			'url'             => $home_url,
+			'name'            => get_bloginfo( 'name' ),
+			'inLanguage'      => $in_language,
+			'potentialAction' => array(
+				array(
+					'@type'       => 'SearchAction',
+					'target'      => array(
+						'@type'       => 'EntryPoint',
+						'urlTemplate' => home_url( '/?s={search_term_string}' ),
+					),
+					'query-input' => array(
+						'@type'         => 'PropertyValueSpecification',
+						'valueRequired' => true,
+						'valueName'     => 'search_term_string',
+					),
+				),
+			),
+		);
+
+		$desc = get_bloginfo( 'description', 'display' );
+		if ( is_string( $desc ) && '' !== trim( wp_strip_all_tags( $desc ) ) ) {
+			$website['description'] = wp_strip_all_tags( $desc );
 		}
 
-		$url = get_permalink( $post->ID );
+		if ( $organization_id ) {
+			$website['publisher'] = array( '@id' => $organization_id );
+		}
+
+		return $website;
+	}
+
+	/**
+	 * WebPage (+ Article for posts) and BreadcrumbList with cross-references.
+	 *
+	 * @param WP_Post     $post            Queried post.
+	 * @param string      $website_id      WebSite @id.
+	 * @param string      $in_language   BCP 47 tag.
+	 * @param string|null $organization_id Optional Organization @id.
+	 * @return array List of graph nodes.
+	 */
+	private function build_singular_nodes( WP_Post $post, $website_id, $in_language, $organization_id ) {
+		$url           = get_permalink( $post->ID );
+		$breadcrumb_id = $url . '#breadcrumb';
+		$page_id       = $url;
+
+		$description = Mantis_SEO_Meta::resolve_post_meta_description( $post );
+		$page_name   = Mantis_SEO_Meta::resolve_document_title_for_post( $post );
+
+		$webpage = array(
+			'@type'            => 'WebPage',
+			'@id'              => $page_id,
+			'url'              => $url,
+			'name'             => $page_name,
+			'isPartOf'         => array( '@id' => $website_id ),
+			'datePublished'    => get_the_date( 'c', $post ),
+			'dateModified'     => get_the_modified_date( 'c', $post ),
+			'breadcrumb'       => array( '@id' => $breadcrumb_id ),
+			'inLanguage'       => $in_language,
+			'potentialAction'  => array(
+				array(
+					'@type'  => 'ReadAction',
+					'target' => array( $url ),
+				),
+			),
+		);
+
+		if ( '' !== $description ) {
+			$webpage['description'] = $description;
+		}
+
+		$nodes = array( $webpage );
 
 		if ( 'post' === $post->post_type ) {
-			$article = array(
+			$article_id = $url . '#article';
+			$article    = array(
 				'@type'            => 'Article',
+				'@id'              => $article_id,
 				'headline'         => get_the_title( $post ),
 				'url'              => $url,
 				'datePublished'    => get_the_date( 'c', $post ),
 				'dateModified'     => get_the_modified_date( 'c', $post ),
-				'mainEntityOfPage' => array(
-					'@type' => 'WebPage',
-					'@id'   => $url,
-				),
+				'mainEntityOfPage' => array( '@id' => $page_id ),
 			);
+
+			if ( '' !== $description ) {
+				$article['description'] = $description;
+			}
 
 			$author_id = (int) $post->post_author;
 			if ( $author_id ) {
@@ -144,36 +249,31 @@ class Mantis_SEO_Schema {
 				$article['image'] = $thumb;
 			}
 
-			$schema[] = $article;
-		} else {
-			$schema[] = array(
-				'@type' => 'WebPage',
-				'name'  => get_the_title( $post ),
-				'url'   => $url,
-			);
+			if ( $organization_id ) {
+				$article['publisher'] = array( '@id' => $organization_id );
+			}
+
+			$nodes[] = $article;
 		}
 
-		// Breadcrumb.
-		$breadcrumb = $this->get_breadcrumb_schema( $post );
-		if ( ! empty( $breadcrumb ) ) {
-			$schema[] = $breadcrumb;
-		}
+		$nodes[] = $this->build_breadcrumb_list( $post, $breadcrumb_id );
 
-		return $schema;
+		return $nodes;
 	}
 
 	/**
-	 * Get breadcrumb schema.
+	 * BreadcrumbList with @id for WebPage.breadcrumb references.
 	 *
-	 * @param WP_Post $post Post object.
-	 * @return array|null
+	 * @param WP_Post $post          Post object.
+	 * @param string  $breadcrumb_id Node @id.
+	 * @return array
 	 */
-	private function get_breadcrumb_schema( $post ) {
+	private function build_breadcrumb_list( WP_Post $post, $breadcrumb_id ) {
 		$items = array(
 			array(
 				'@type'    => 'ListItem',
 				'position' => 1,
-				'name'     => get_bloginfo( 'name' ),
+				'name'     => __( 'Home', 'mantis-seo' ),
 				'item'     => home_url( '/' ),
 			),
 		);
@@ -201,6 +301,7 @@ class Mantis_SEO_Schema {
 
 		return array(
 			'@type'           => 'BreadcrumbList',
+			'@id'             => $breadcrumb_id,
 			'itemListElement' => $items,
 		);
 	}

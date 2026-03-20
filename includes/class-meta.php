@@ -66,7 +66,9 @@ class Mantis_SEO_Meta {
 		echo "\n<!-- Mantis SEO Open Graph -->\n";
 		foreach ( $meta['og'] as $key => $value ) {
 			if ( ! empty( $value ) ) {
-				echo '<meta property="og:' . esc_attr( $key ) . '" content="' . esc_attr( $value ) . '">' . "\n";
+				// Keys with ":" are full OG namespaces (e.g. article:modified_time).
+				$property = ( false !== strpos( $key, ':' ) ) ? $key : 'og:' . $key;
+				echo '<meta property="' . esc_attr( $property ) . '" content="' . esc_attr( $value ) . '">' . "\n";
 			}
 		}
 	}
@@ -266,7 +268,8 @@ class Mantis_SEO_Meta {
 		$og_title = ! empty( $meta['og_title'] ) ? $meta['og_title'] : ( ! empty( $meta['document_title'] ) ? $meta['document_title'] : '' );
 		$og = array(
 			'locale'      => get_locale(),
-			'type'        => is_singular() ? 'article' : 'website',
+			// Match schema: Article only for post type "post"; pages/CPTs use WebPage → og:website.
+			'type'        => is_singular( 'post' ) ? 'article' : 'website',
 			'site_name'   => get_bloginfo( 'name' ),
 			'title'       => $og_title,
 			'description' => ! empty( $meta['og_description'] ) ? $meta['og_description'] : ( ! empty( $meta['description'] ) ? $meta['description'] : get_bloginfo( 'description' ) ),
@@ -275,6 +278,17 @@ class Mantis_SEO_Meta {
 		);
 
 		if ( is_singular() ) {
+			$post = get_post( get_queried_object_id() );
+			if ( $post ) {
+				$published = get_the_date( 'c', $post );
+				$modified  = get_the_modified_date( 'c', $post );
+				if ( $published ) {
+					$og['article:published_time'] = $published;
+				}
+				if ( $modified ) {
+					$og['article:modified_time'] = $modified;
+				}
+			}
 			if ( empty( $og['image'] ) ) {
 				$thumb = get_the_post_thumbnail_url( get_queried_object_id(), 'full' );
 				if ( $thumb ) {
@@ -378,6 +392,39 @@ class Mantis_SEO_Meta {
 	public static function get_post_meta( $post_id, $key ) {
 		$value = get_post_meta( $post_id, self::META_PREFIX . $key, true );
 		return is_string( $value ) ? $value : '';
+	}
+
+	/**
+	 * Resolved SEO document title for a post (matches front-end title output).
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return string
+	 */
+	public static function resolve_document_title_for_post( WP_Post $post ) {
+		$custom = self::get_post_meta( $post->ID, 'title' );
+		if ( ! empty( trim( (string) $custom ) ) ) {
+			return self::replace_vars_for_preview( $custom, $post );
+		}
+		$settings = Mantis_SEO_Main::get_settings();
+		$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
+		$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
+		return self::replace_vars_for_preview( $template, $post );
+	}
+
+	/**
+	 * Resolved meta description for a post (matches meta description output).
+	 *
+	 * @param WP_Post $post Post object.
+	 * @return string Plain text.
+	 */
+	public static function resolve_post_meta_description( WP_Post $post ) {
+		$custom = self::get_post_meta( $post->ID, 'description' );
+		if ( ! empty( trim( (string) $custom ) ) ) {
+			return wp_strip_all_tags( $custom );
+		}
+		$settings = Mantis_SEO_Main::get_settings();
+		$template = 'post' === $post->post_type ? $settings['metadesc_post'] : $settings['metadesc_page'];
+		return wp_strip_all_tags( self::replace_vars_for_preview( $template, $post ) );
 	}
 
 	/**
