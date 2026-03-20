@@ -90,8 +90,52 @@
 		const span = document.createElement('span');
 		span.className = CHUNK_CLASS;
 		span.setAttribute('contenteditable', 'true');
-		span.textContent = text;
+		span.textContent = text === '' ? '\u200b' : text;
 		return span;
+	}
+
+	function stripZwsp(str) {
+		return (str || '').replace(/\u200b/g, '').replace(/\ufeff/g, '');
+	}
+
+	function placeCaretInChunk(chunk, atEnd) {
+		if (!chunk) return;
+		const sel = window.getSelection();
+		const range = document.createRange();
+		const textNode = chunk.firstChild;
+		if (textNode && textNode.nodeType === 3) {
+			const len = textNode.textContent.length;
+			const pos = atEnd ? len : 0;
+			range.setStart(textNode, Math.min(pos, len));
+			range.collapse(true);
+		} else {
+			range.selectNodeContents(chunk);
+			range.collapse(atEnd !== false);
+		}
+		sel.removeAllRanges();
+		sel.addRange(range);
+	}
+
+	function ensureEditableGaps(surface) {
+		let el = surface.firstElementChild;
+		while (el) {
+			const next = el.nextElementSibling;
+			if (el.classList.contains(PILL_CLASS) && next && next.classList.contains(PILL_CLASS)) {
+				surface.insertBefore(createChunk(''), next);
+				continue;
+			}
+			el = next;
+		}
+		if (surface.firstElementChild && surface.firstElementChild.classList.contains(PILL_CLASS)) {
+			surface.insertBefore(createChunk(''), surface.firstElementChild);
+		}
+		const last = surface.lastElementChild;
+		if (last && last.classList.contains(PILL_CLASS)) {
+			surface.appendChild(createChunk(''));
+		}
+		if (!surface.firstElementChild) {
+			surface.appendChild(createChunk(''));
+		}
 	}
 
 	function createPill(token, mode) {
@@ -113,11 +157,121 @@
 		}
 		surface.dataset.mantisTeBound = '1';
 		surface.addEventListener('input', function () {
+			Array.prototype.forEach.call(surface.querySelectorAll('.' + CHUNK_CLASS), function (ch) {
+				if (ch.textContent === '') {
+					ch.textContent = '\u200b';
+				}
+			});
+			ensureEditableGaps(surface);
 			syncToHidden(surface);
 		});
 		surface.addEventListener('blur', function () {
 			syncToHidden(surface);
 		}, true);
+
+		surface.addEventListener('focusin', function (e) {
+			if (e.target === surface) {
+				const first = surface.querySelector('.' + CHUNK_CLASS);
+				if (first) {
+					first.focus();
+					placeCaretInChunk(first, true);
+				}
+			}
+		});
+
+		surface.addEventListener('click', function (e) {
+			const pill = e.target.closest && e.target.closest('.' + PILL_CLASS);
+			if (pill && surface.contains(pill)) {
+				e.preventDefault();
+				let next = pill.nextElementSibling;
+				if (next && next.classList.contains(CHUNK_CLASS)) {
+					next.focus();
+					placeCaretInChunk(next, false);
+				} else {
+					const c = createChunk('');
+					if (pill.nextSibling) {
+						surface.insertBefore(c, pill.nextSibling);
+					} else {
+						surface.appendChild(c);
+					}
+					c.focus();
+					placeCaretInChunk(c, false);
+				}
+				return;
+			}
+			if (e.target === surface) {
+				let last = surface.lastElementChild;
+				if (last && last.classList.contains(CHUNK_CLASS)) {
+					last.focus();
+					placeCaretInChunk(last, true);
+				} else {
+					const c = createChunk('');
+					surface.appendChild(c);
+					c.focus();
+					placeCaretInChunk(c, false);
+				}
+			}
+		});
+
+		surface.addEventListener('keydown', function (e) {
+			if (e.key !== 'Backspace' && e.key !== 'Delete') {
+				return;
+			}
+			const sel = window.getSelection();
+			if (!sel.rangeCount || !surface.contains(sel.anchorNode)) {
+				return;
+			}
+			if (!sel.isCollapsed) {
+				return;
+			}
+			let node = sel.anchorNode;
+			if (node.nodeType !== 3) {
+				return;
+			}
+			const chunk = node.parentElement;
+			if (!chunk || !chunk.classList.contains(CHUNK_CLASS) || !surface.contains(chunk)) {
+				return;
+			}
+			const text = node.textContent;
+			const offset = sel.anchorOffset;
+
+			if (e.key === 'Backspace' && offset === 0) {
+				const prev = chunk.previousElementSibling;
+				if (prev && prev.classList.contains(PILL_CLASS)) {
+					e.preventDefault();
+					prev.remove();
+					const before = chunk.previousElementSibling;
+					if (before && before.classList.contains(CHUNK_CLASS)) {
+						const merged = stripZwsp(before.textContent) + stripZwsp(chunk.textContent);
+						before.textContent = merged === '' ? '\u200b' : merged;
+						chunk.remove();
+						before.focus();
+						placeCaretInChunk(before, true);
+					} else {
+						chunk.focus();
+						placeCaretInChunk(chunk, false);
+					}
+					ensureEditableGaps(surface);
+					syncToHidden(surface);
+				}
+			} else if (e.key === 'Delete' && offset === text.length) {
+				const next = chunk.nextElementSibling;
+				if (next && next.classList.contains(PILL_CLASS)) {
+					e.preventDefault();
+					next.remove();
+					const after = chunk.nextElementSibling;
+					if (after && after.classList.contains(CHUNK_CLASS)) {
+						const merged = stripZwsp(chunk.textContent) + stripZwsp(after.textContent);
+						chunk.textContent = merged === '' ? '\u200b' : merged;
+						after.remove();
+					}
+					chunk.focus();
+					placeCaretInChunk(chunk, true);
+					ensureEditableGaps(surface);
+					syncToHidden(surface);
+				}
+			}
+		});
 	}
 
 	function render(surface, templateStr, mode) {
@@ -134,6 +288,7 @@
 				}
 			});
 		}
+		ensureEditableGaps(surface);
 		bindSurface(surface);
 	}
 
@@ -143,7 +298,7 @@
 			if (node.classList.contains(PILL_CLASS)) {
 				out += node.getAttribute('data-var') || '';
 			} else if (node.classList.contains(CHUNK_CLASS)) {
-				out += node.textContent;
+				out += stripZwsp(node.textContent);
 			}
 		});
 		return out;
@@ -302,14 +457,19 @@
 				range.collapse(true);
 				sel.removeAllRanges();
 				sel.addRange(range);
-			} catch (e) {
+			} catch (err) {
 				surface.appendChild(pill);
 			}
 		} else {
 			surface.appendChild(pill);
 		}
+		ensureEditableGaps(surface);
 		syncToHidden(surface);
-		chunk.focus();
+		const focusChunk = pill.nextElementSibling && pill.nextElementSibling.classList.contains(CHUNK_CLASS)
+			? pill.nextElementSibling
+			: (pill.previousElementSibling && pill.previousElementSibling.classList.contains(CHUNK_CLASS) ? pill.previousElementSibling : chunk);
+		focusChunk.focus();
+		placeCaretInChunk(focusChunk, pill.nextElementSibling === focusChunk);
 	}
 
 	window.MantisTemplateEditor = {

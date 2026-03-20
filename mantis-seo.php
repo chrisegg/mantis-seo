@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name: Mantis SEO
- * Plugin URI: https://github.com/mantis-seo/mantis-seo
+ * Plugin URI: https://mantiseo.com
  * Description: A lightweight, powerful SEO plugin for WordPress. Metadata, redirects, schema, and sitemaps—all in one, no freemium.
  * Version: 1.0.0
  * Requires at least: 6.0
  * Requires PHP: 7.4
- * Author: Mantis SEO
- * Author URI: https://github.com/mantis-seo
+ * Author: Chris Eggleston
+ * Author URI: https://mantiseo.com
  * License: GPL v3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: mantis-seo

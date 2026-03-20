@@ -331,14 +331,16 @@
 				const field = wrap.querySelector('.mantis-var-field');
 				const tplSurface = wrap.querySelector('[data-mantis-template-editor]');
 				if (!dropdown || (!field && !tplSurface)) return;
-				const isOpen = dropdown.getAttribute('aria-hidden') !== 'true';
+				const wasOpen = dropdown.getAttribute('aria-hidden') === 'false';
 				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
 					d.setAttribute('aria-hidden', 'true');
 				});
 				slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
 					b.setAttribute('aria-expanded', 'false');
 				});
-				if (!isOpen) return;
+				if (wasOpen) {
+					return;
+				}
 				dropdown.setAttribute('aria-hidden', 'false');
 				btn.setAttribute('aria-expanded', 'true');
 			});

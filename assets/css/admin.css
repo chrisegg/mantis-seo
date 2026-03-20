@@ -1404,9 +1404,15 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
 }
 .mantis-template-chunk {
-	min-width: 0.35rem;
+	display: inline-block;
+	min-width: 2px;
+	min-height: 1.25em;
+	vertical-align: baseline;
 	outline: none;
 	word-break: break-word;
+	cursor: text;
+	-webkit-user-select: text;
+	user-select: text;
 }
 .mantis-var-pill {
 	display: inline-flex;
