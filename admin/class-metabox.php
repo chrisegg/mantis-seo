@@ -187,7 +187,7 @@ class Mantis_SEO_Metabox {
 						echo '<div class="mantis-var-input-wrap">';
 						echo '<div class="mantis-template-editor-wrap">';
 						echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" class="mantis-template-hidden" value="' . esc_attr( $hidden_template ) . '" autocomplete="off" />';
-						echo '<div id="' . esc_attr( $meta_key ) . '" class="' . esc_attr( $editor_classes ) . '" data-mantis-template-editor data-pill-mode="resolve" tabindex="0" role="textbox" aria-label="' . esc_attr( $label ) . '"></div>';
+						echo '<div id="' . esc_attr( $meta_key ) . '" class="' . esc_attr( $editor_classes ) . '" data-mantis-template-editor data-pill-mode="label" tabindex="0" role="textbox" aria-label="' . esc_attr( $label ) . '"></div>';
 						echo '</div>';
 					} else {
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';

@@ -104,9 +104,6 @@
 		}, true);
 
 		bind(postTitleEl, function () {
-			if (window.MantisTemplateEditor) {
-				MantisTemplateEditor.refreshPills(slideout);
-			}
 			updatePreview(slideout);
 		});
 	}
@@ -196,7 +193,7 @@
 	}
 
 	/**
-	 * Block editor: no #title field — sync edited post title into replaceVars for pills + preview.
+	 * Block editor: no #title field — sync edited post title into replaceVars for snippet preview.
 	 *
 	 * @param {Element} slideout Slideout root.
 	 */
@@ -227,9 +224,6 @@
 					if (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.replaceVars) {
 						mantisSeoMetabox.replaceVars['%post_title%'] = disp;
 						mantisSeoMetabox.replaceVars['%title%'] = disp;
-					}
-					if (window.MantisTemplateEditor) {
-						MantisTemplateEditor.refreshPills(s);
 					}
 					updatePreview(s);
 				} catch (err) {
@@ -418,9 +412,6 @@
 			slideout.classList.add(CLASSES.open);
 			slideout.setAttribute('aria-hidden', 'false');
 			document.body.classList.add('mantis-seo-panel-open');
-			if (window.MantisTemplateEditor) {
-				MantisTemplateEditor.refreshPills(slideout);
-			}
 			updatePreview(slideout);
 			// Focus first focusable in active tab for accessibility.
 			const activePanel = slideout.querySelector(SELECTORS.tabPanel + '.mantis-seo-tab-panel-active');
