@@ -1575,6 +1575,34 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	color: var(--mantis-text);
 }
 
+/* Robots toggles (match settings page switches) */
+.mantis-seo-slideout .mantis-seo-metabox label.mantis-toggle-row {
+	display: flex;
+	margin-bottom: 0;
+	font-size: inherit;
+}
+
+.mantis-metabox-robots-group {
+	margin: 0 0 1.25rem;
+	border-top: 1px solid var(--mantis-border);
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-metabox-robot-row {
+	margin: 0;
+	padding: 0;
+	border-bottom: 1px solid var(--mantis-border);
+}
+
+.mantis-metabox-robot-row:last-child {
+	border-bottom: none;
+}
+
+.mantis-metabox-robot-row .mantis-toggle-row {
+	max-width: none;
+	padding: 0.75rem 0;
+}
+
 .mantis-seo-slideout .mantis-seo-metabox input[type="text"],
 .mantis-seo-slideout .mantis-seo-metabox input[type="url"],
 .mantis-seo-slideout .mantis-seo-metabox textarea {

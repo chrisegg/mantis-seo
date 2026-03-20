@@ -138,9 +138,20 @@ class Mantis_SEO_Metabox {
 				$placeholder = '';
 
 				if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
-					echo '<p>';
-					echo '<label><input type="checkbox" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $stored, '1', false ) . ' /> ' . esc_html( $label ) . '</label>';
-					echo '</p>';
+					if ( 'robots_noindex' === $key ) {
+						echo '<div class="mantis-metabox-robots-group">';
+					}
+					$toggle_id = 'mantis-slideout-' . str_replace( '_', '-', $key );
+					echo '<div class="mantis-metabox-robot-row">';
+					echo '<label class="mantis-toggle-row" for="' . esc_attr( $toggle_id ) . '">';
+					echo '<span class="mantis-toggle-row__text"><span class="mantis-toggle-row__label">' . esc_html( $label ) . '</span></span>';
+					echo '<span class="mantis-toggle">';
+					echo '<input type="checkbox" id="' . esc_attr( $toggle_id ) . '" class="mantis-toggle__input" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $stored, '1', false ) . ' />';
+					echo '<span class="mantis-toggle__track" aria-hidden="true"></span>';
+					echo '</span></label></div>';
+					if ( 'robots_nofollow' === $key ) {
+						echo '</div>';
+					}
 				} else {
 					$type       = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
 					$input_type = 'url' === $type ? 'url' : 'text';
