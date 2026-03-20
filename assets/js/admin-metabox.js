@@ -46,9 +46,15 @@
 		return hidden && hidden.value ? hidden.value.trim() : '';
 	}
 
+	function getMetaDescriptionTemplateRaw(root) {
+		const r = root || document;
+		const hidden = r.querySelector('input.mantis-template-hidden[name="_mantis_description"]')
+			|| r.querySelector('input[type="hidden"][name="_mantis_description"]');
+		return hidden && hidden.value ? hidden.value.trim() : '';
+	}
+
 	function updatePreview(slideout) {
 		const root = slideout || document;
-		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
 		const snippetTitle = root.querySelector('#mantis-snippet-title') || document.getElementById('mantis-snippet-title');
 		const snippetDesc = root.querySelector('#mantis-snippet-description') || document.getElementById('mantis-snippet-description');
@@ -68,23 +74,22 @@
 		const titleResolved = replaceVarsInString(titleRaw || '', replaceVars);
 		snippetTitle.textContent = titleResolved || '(No title)';
 
-		const descRaw = (descEl && descEl.value) ? descEl.value.trim() : '';
-		const descResolved = replaceVarsInString(descRaw, replaceVars);
+		let descRaw = getMetaDescriptionTemplateRaw(root);
+		if (!descRaw && typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.defaultMetaDescriptionTemplate) {
+			descRaw = String(mantisSeoMetabox.defaultMetaDescriptionTemplate).trim();
+		}
+		const descResolved = replaceVarsInString(descRaw || '', replaceVars);
 		snippetDesc.textContent = descResolved || '';
 
 		const titleLen = titleResolved ? titleResolved.length : 0;
-		const descLen = descEl ? descEl.value.length : 0;
+		const descLen = descResolved ? descResolved.length : 0;
 		if (titleCount) titleCount.textContent = titleLen;
 		if (descCount) descCount.textContent = descLen;
 	}
 
 	function bindPreviewEvents(slideout) {
 		const root = slideout || document;
-		const titleHidden = root.querySelector('input.mantis-template-hidden[name="_mantis_title"]')
-			|| root.querySelector('input[type="hidden"][name="_mantis_title"]');
-		const descEl = root.querySelector('[name="_mantis_description"]') || document.getElementById('_mantis_description');
 		const postTitleEl = document.getElementById('title');
-		const titleSurface = root.querySelector('[data-mantis-template-editor]');
 		const events = ['input', 'change', 'paste'];
 
 		function bind(el, fn) {
@@ -94,9 +99,10 @@
 			});
 		}
 
-		bind(titleHidden, function () { updatePreview(slideout); });
-		bind(titleSurface, function () { updatePreview(slideout); });
-		bind(descEl, function () { updatePreview(slideout); });
+		root.addEventListener('input', function () {
+			updatePreview(slideout);
+		}, true);
+
 		bind(postTitleEl, function () {
 			if (window.MantisTemplateEditor) {
 				MantisTemplateEditor.refreshPills(slideout);

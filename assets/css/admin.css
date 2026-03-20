@@ -1405,6 +1405,10 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 .mantis-seo-slideout .mantis-template-editor:focus-within {
 	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
 }
+.mantis-template-editor--multiline {
+	min-height: 5.5rem;
+	line-height: 1.55;
+}
 .mantis-var-pill {
 	display: inline-flex;
 	align-items: center;

@@ -108,10 +108,11 @@ class Mantis_SEO_Metabox {
 		echo '</nav>';
 		echo '<div class="mantis-seo-slideout-body">';
 		$first = true;
-		$seo_title         = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
-		$seo_desc          = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
+		$seo_title           = Mantis_SEO_Meta::get_post_meta( $post->ID, 'title' );
+		$seo_desc            = Mantis_SEO_Meta::get_post_meta( $post->ID, 'description' );
+		$metadesc_template  = $this->get_effective_default_metadesc_template( $post->post_type );
 		$preview_title_raw = ! empty( trim( (string) $seo_title ) ) ? $seo_title : $title_template;
-		$preview_desc_raw  = ! empty( trim( (string) $seo_desc ) ) ? $seo_desc : ( 'post' === $post->post_type ? ( Mantis_SEO_Main::get_settings()['metadesc_post'] ?? '' ) : ( Mantis_SEO_Main::get_settings()['metadesc_page'] ?? '' ) );
+		$preview_desc_raw  = ! empty( trim( (string) $seo_desc ) ) ? $seo_desc : $metadesc_template;
 		$preview_title = Mantis_SEO_Meta::replace_vars_for_preview( $preview_title_raw, $post );
 		$preview_desc  = Mantis_SEO_Meta::replace_vars_for_preview( $preview_desc_raw, $post );
 		$preview_url   = get_permalink( $post );
@@ -132,21 +133,13 @@ class Mantis_SEO_Metabox {
 				echo '</div>';
 			}
 			foreach ( $tab_fields as $key => $label ) {
-				$stored    = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
-				$value     = $stored;
-				$meta_key  = self::META_PREFIX . $key;
-				$title_template_value = $title_template;
-				if ( 'title' === $key && '' === trim( (string) $stored ) ) {
-					$value = $title_template;
-				}
-				if ( 'title' === $key ) {
-					$title_template_value = $value;
-				}
+				$stored   = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
+				$meta_key = self::META_PREFIX . $key;
 				$placeholder = '';
 
 				if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
 					echo '<p>';
-					echo '<label><input type="checkbox" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $value, '1', false ) . ' /> ' . esc_html( $label ) . '</label>';
+					echo '<label><input type="checkbox" name="' . esc_attr( $meta_key ) . '" value="1" ' . checked( $stored, '1', false ) . ' /> ' . esc_html( $label ) . '</label>';
 					echo '</p>';
 				} else {
 					$type       = ( 'canonical' === $key || 'og_image' === $key || 'twitter_image' === $key ) ? 'url' : 'text';
@@ -158,6 +151,16 @@ class Mantis_SEO_Metabox {
 					$has_vars   = in_array( $key, array( 'title', 'description', 'og_title', 'og_description', 'twitter_title', 'twitter_description' ), true );
 					echo '<p>';
 					if ( $has_vars ) {
+						$hidden_template = $stored;
+						if ( 'title' === $key && '' === trim( (string) $stored ) ) {
+							$hidden_template = $title_template;
+						} elseif ( 'description' === $key && '' === trim( (string) $stored ) ) {
+							$hidden_template = $metadesc_template;
+						}
+						$editor_classes = 'mantis-template-editor';
+						if ( in_array( $key, array( 'description', 'og_description', 'twitter_description' ), true ) ) {
+							$editor_classes .= ' mantis-template-editor--multiline';
+						}
 						echo '<div class="mantis-var-field-wrap" data-field="' . esc_attr( $meta_key ) . '">';
 						echo '<div class="mantis-var-label-row">';
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label>';
@@ -172,27 +175,26 @@ class Mantis_SEO_Metabox {
 						echo '</div></div>';
 						echo '</div>';
 						echo '<div class="mantis-var-input-wrap">';
+						echo '<div class="mantis-template-editor-wrap">';
+						echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" class="mantis-template-hidden" value="' . esc_attr( $hidden_template ) . '" autocomplete="off" />';
+						echo '<div id="' . esc_attr( $meta_key ) . '" class="' . esc_attr( $editor_classes ) . '" data-mantis-template-editor data-pill-mode="resolve" tabindex="0" role="textbox" aria-label="' . esc_attr( $label ) . '"></div>';
+						echo '</div>';
 					} else {
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label><br>';
 					}
-					if ( 'title' === $key ) {
-						echo '<div class="mantis-template-editor-wrap">';
-						echo '<input type="hidden" name="' . esc_attr( $meta_key ) . '" class="mantis-template-hidden" value="' . esc_attr( $title_template_value ) . '" autocomplete="off" />';
-						echo '<div id="' . esc_attr( $meta_key ) . '" class="mantis-template-editor" data-mantis-template-editor data-pill-mode="resolve" tabindex="0" role="textbox" aria-label="' . esc_attr( $label ) . '"></div>';
-						echo '</div>';
-					} elseif ( 'textarea' === $tag ) {
-						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text mantis-var-field" style="width:100%">' . esc_textarea( $value ) . '</textarea>';
-					} else {
+					if ( ! $has_vars && 'textarea' === $tag ) {
+						echo '<textarea id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" rows="' . esc_attr( $rows ) . '" class="large-text" style="width:100%">' . esc_textarea( $stored ) . '</textarea>';
+					} elseif ( ! $has_vars ) {
 						$place_attr = ( '' !== $placeholder ) ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 						if ( $is_image ) {
 							$input_id = 'mantis_meta_' . $key;
 							echo '<div class="mantis-image-field-wrap">';
-							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text mantis-image-input" style="width:100%"' . $place_attr . ' />';
+							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $input_id ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $stored ) . '" class="large-text mantis-image-input" style="width:100%"' . $place_attr . ' />';
 							echo ' <button type="button" class="button mantis-media-upload" data-target="#' . esc_attr( $input_id ) . '" aria-label="' . esc_attr__( 'Select image from media library', 'mantis-seo' ) . '">' . esc_html__( 'Upload / Select', 'mantis-seo' ) . '</button>';
 							echo '<span class="mantis-image-preview" data-for="#' . esc_attr( $input_id ) . '"></span>';
 							echo '</div>';
 						} else {
-							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $value ) . '" class="large-text mantis-var-field" style="width:100%"' . $place_attr . ' />';
+							echo '<input type="' . esc_attr( $input_type ) . '" id="' . esc_attr( $meta_key ) . '" name="' . esc_attr( $meta_key ) . '" value="' . esc_attr( $stored ) . '" class="large-text mantis-var-field" style="width:100%"' . $place_attr . ' />';
 						}
 					}
 					if ( $has_vars ) {
@@ -227,6 +229,18 @@ class Mantis_SEO_Metabox {
 	}
 
 	/**
+	 * Default meta description template from global settings for a post type.
+	 *
+	 * @param string $post_type Post type slug.
+	 * @return string
+	 */
+	private function get_effective_default_metadesc_template( $post_type ) {
+		$settings = Mantis_SEO_Main::get_settings();
+		$template = 'post' === $post_type ? ( $settings['metadesc_post'] ?? '' ) : ( $settings['metadesc_page'] ?? '' );
+		return is_string( $template ) ? $template : '';
+	}
+
+	/**
 	 * Get variable options for the attribute selector.
 	 *
 	 * @return array Map of %var% => human-readable label.
@@ -257,12 +271,21 @@ class Mantis_SEO_Metabox {
 		} else {
 			$default_title_template = $this->get_effective_default_title_template( 'post' );
 		}
+		$default_metadesc_template = '';
+		if ( $post ) {
+			$default_metadesc_template = $this->get_effective_default_metadesc_template( $post->post_type );
+		} elseif ( ! empty( $_GET['post_type'] ) && is_string( $_GET['post_type'] ) ) {
+			$default_metadesc_template = $this->get_effective_default_metadesc_template( sanitize_key( wp_unslash( $_GET['post_type'] ) ) );
+		} else {
+			$default_metadesc_template = $this->get_effective_default_metadesc_template( 'post' );
+		}
 		wp_localize_script( 'mantis-seo-metabox', 'mantisSeoMetabox', array(
-			'replaceVars'          => $replacements,
-			'defaultTitleTemplate' => $default_title_template,
-			'noTitlePlaceholder'   => __( 'No title', 'mantis-seo' ),
-			'ajaxUrl'              => admin_url( 'admin-ajax.php' ),
-			'ajaxNonce'            => wp_create_nonce( 'mantis_seo_save_meta' ),
+			'replaceVars'                    => $replacements,
+			'defaultTitleTemplate'           => $default_title_template,
+			'defaultMetaDescriptionTemplate' => $default_metadesc_template,
+			'noTitlePlaceholder'             => __( 'No title', 'mantis-seo' ),
+			'ajaxUrl'                        => admin_url( 'admin-ajax.php' ),
+			'ajaxNonce'                      => wp_create_nonce( 'mantis_seo_save_meta' ),
 		) );
 	}
 
@@ -318,15 +341,23 @@ class Mantis_SEO_Metabox {
 		foreach ( $fields as $field ) {
 			$meta_key = self::META_PREFIX . $field;
 			if ( isset( $_POST[ $meta_key ] ) ) {
-				$value = 'canonical' === $field || strpos( $field, 'image' ) !== false
-					? esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) )
-					: sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
-				if ( 'description' === $field ) {
+				if ( in_array( $field, array( 'description', 'og_description', 'twitter_description' ), true ) ) {
 					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
+				} elseif ( 'canonical' === $field || strpos( $field, 'image' ) !== false ) {
+					$value = esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) );
+				} else {
+					$value = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
 				}
 				if ( 'title' === $field ) {
 					$default_t = $this->get_effective_default_title_template( $post->post_type );
 					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
+						delete_post_meta( $post_id, $meta_key );
+						continue;
+					}
+				}
+				if ( 'description' === $field ) {
+					$default_d = $this->get_effective_default_metadesc_template( $post->post_type );
+					if ( '' === trim( $value ) || trim( $value ) === trim( $default_d ) ) {
 						delete_post_meta( $post_id, $meta_key );
 						continue;
 					}
@@ -365,15 +396,23 @@ class Mantis_SEO_Metabox {
 		foreach ( $fields as $field ) {
 			$meta_key = self::META_PREFIX . $field;
 			if ( isset( $_POST[ $meta_key ] ) ) {
-				$value = 'canonical' === $field || strpos( $field, 'image' ) !== false
-					? esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) )
-					: sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
-				if ( 'description' === $field ) {
+				if ( in_array( $field, array( 'description', 'og_description', 'twitter_description' ), true ) ) {
 					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
+				} elseif ( 'canonical' === $field || strpos( $field, 'image' ) !== false ) {
+					$value = esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) );
+				} else {
+					$value = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
 				}
 				if ( 'title' === $field ) {
 					$default_t = $this->get_effective_default_title_template( $post_obj->post_type );
 					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
+						delete_post_meta( $post_id, $meta_key );
+						continue;
+					}
+				}
+				if ( 'description' === $field ) {
+					$default_d = $this->get_effective_default_metadesc_template( $post_obj->post_type );
+					if ( '' === trim( $value ) || trim( $value ) === trim( $default_d ) ) {
 						delete_post_meta( $post_id, $meta_key );
 						continue;
 					}
