@@ -166,7 +166,7 @@ class Mantis_SEO_Metabox {
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label>';
 						echo '<div class="mantis-var-insert-wrap">';
 						echo '<button type="button" class="button button-small mantis-var-insert-btn" aria-haspopup="true" aria-expanded="false" aria-label="' . esc_attr__( 'Insert variable', 'mantis-seo' ) . '">';
-						echo '<span class="dashicons dashicons-plus-alt2" style="font-size:14px;width:14px;height:14px;"></span> ';
+						echo '<span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>';
 						echo esc_html__( 'Insert variable', 'mantis-seo' ) . '</button>';
 						echo '<div class="mantis-var-dropdown" role="menu" aria-hidden="true">';
 						foreach ( $this->get_variable_options() as $var => $var_label ) {
