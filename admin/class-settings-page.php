@@ -733,28 +733,22 @@ class Mantis_SEO_Settings_Page {
 					</div>
 
 					<div id="mantis-tools" class="mantis-tab-panel mantis-tools-panel" style="display:none;">
-						<h2><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
-						<p class="description mantis-tools-intro"><?php esc_html_e( 'Export your settings or import from a backup. You can also import directly from Yoast SEO (INI/text or Keywords CSV).', 'mantis-seo' ); ?></p>
-						<table class="form-table">
-							<tr>
-								<th><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></th>
-								<td>
-									<div class="mantis-tools-export">
-										<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button mantis-tools-button"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
-										<p class="description"><?php esc_html_e( 'Exports settings as JSON. Use Import below to restore on this or another site.', 'mantis-seo' ); ?></p>
-									</div>
-								</td>
-							</tr>
-							<tr>
-								<th><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></th>
-								<td>
-									<div class="mantis-tools-import">
-										<div id="mantis-import-cell"></div>
-										<p class="description"><?php esc_html_e( 'Supports: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or CSV (key,value).', 'mantis-seo' ); ?></p>
-									</div>
-								</td>
-							</tr>
-						</table>
+						<h2 class="mantis-tools-panel__page-title"><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
+						<p class="mantis-tools-panel__intro"><?php esc_html_e( 'Export your settings or import from a backup. You can also import directly from Yoast SEO (INI/text or Keywords CSV).', 'mantis-seo' ); ?></p>
+						<div class="mantis-tools-stack">
+							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-export-heading">
+								<h3 id="mantis-tools-export-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Download a JSON file with your current Mantis SEO settings. Use it as a backup or to copy configuration to another site.', 'mantis-seo' ); ?></p>
+								<div class="mantis-tools-card__actions">
+									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button button-primary mantis-tools-action-btn"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
+								</div>
+							</section>
+							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-import-heading">
+								<h3 id="mantis-tools-import-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Choose a file and run import. Supported formats: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or a simple CSV of key,value pairs.', 'mantis-seo' ); ?></p>
+								<div id="mantis-import-cell" class="mantis-tools-import-slot"></div>
+							</section>
+						</div>
 					</div>
 
 				<?php submit_button(); ?>
@@ -762,10 +756,15 @@ class Mantis_SEO_Settings_Page {
 				</div>
 			</form>
 
-			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" style="display:none;">
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" enctype="multipart/form-data" id="mantis-import-form" class="mantis-tools-import-form" style="display:none;">
 				<?php wp_nonce_field( 'mantis_import' ); ?>
-				<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" />
-				<button type="submit" name="mantis_import" value="1" class="button mantis-tools-button"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
+				<div class="mantis-tools-import-form__fields">
+					<label for="mantis_import_file" class="mantis-tools-file-field">
+						<span class="mantis-tools-file-field__label"><?php esc_html_e( 'Backup file', 'mantis-seo' ); ?></span>
+						<input type="file" id="mantis_import_file" name="mantis_import_file" accept=".json,.ini,.txt,.csv" class="mantis-tools-file-input" />
+					</label>
+					<button type="submit" name="mantis_import" value="1" class="button button-primary mantis-tools-action-btn"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
+				</div>
 			</form>
 				</div>
 			</main>
@@ -798,7 +797,7 @@ class Mantis_SEO_Settings_Page {
 					showPanel(targetId);
 				});
 			});
-			if (window.location.search.indexOf('mantis_import_error') !== -1 && navItems[5]) {
+			if (window.location.search.indexOf('mantis_import_error') !== -1) {
 				showPanel('mantis-tools');
 			}
 		})();
