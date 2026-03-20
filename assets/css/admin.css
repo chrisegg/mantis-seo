@@ -1186,6 +1186,34 @@
 	align-items: center;
 }
 
+/* Post editor: primary actions use plugin accent (not WP default blue) */
+.mantis-seo-metabox-trigger .mantis-seo-open-panel.button-primary,
+.mantis-seo-slideout-footer .mantis-seo-save-btn.button-primary {
+	background: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	border-radius: var(--mantis-radius-sm);
+	padding: 0.5rem 1.25rem;
+	font-weight: 500;
+	text-shadow: none;
+	box-shadow: none;
+	transition: background var(--mantis-transition), border-color var(--mantis-transition);
+}
+
+.mantis-seo-metabox-trigger .mantis-seo-open-panel.button-primary:hover,
+.mantis-seo-slideout-footer .mantis-seo-save-btn.button-primary:hover,
+.mantis-seo-metabox-trigger .mantis-seo-open-panel.button-primary:focus,
+.mantis-seo-slideout-footer .mantis-seo-save-btn.button-primary:focus {
+	background: var(--mantis-accent-hover);
+	border-color: var(--mantis-accent-hover);
+	box-shadow: none;
+	color: #fff;
+}
+
+.mantis-seo-metabox-trigger .mantis-seo-open-panel.button-primary:focus-visible,
+.mantis-seo-slideout-footer .mantis-seo-save-btn.button-primary:focus-visible {
+	box-shadow: 0 0 0 2px var(--mantis-card-bg, #fff), 0 0 0 4px var(--mantis-accent);
+}
+
 /* When Mantis SEO panel is open, block editor sidebar tabs stay below the panel */
 body.mantis-seo-panel-open .interface-complementary-area .components-panel__header {
 	z-index: 0 !important;
