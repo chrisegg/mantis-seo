@@ -1,26 +1,134 @@
 # Mantis SEO
 
-A lightweight, powerful SEO plugin for WordPress. Metadata, redirects, schema, and sitemaps—all in one, no freemium.
+**Lightweight SEO for WordPress** — titles & meta, redirects, JSON-LD schema, XML sitemaps, and social tags in one plugin. No upsells, no feature gating.
 
-## Requirements
+- **Plugin URI:** [mantiseo.com](https://mantiseo.com)
+- **Requires:** WordPress 6.0+ · PHP 7.4+
+- **License:** [GPL v3](LICENSE)
 
-- WordPress 6.0+
-- PHP 7.4+
+---
 
 ## Features
 
-- **Metadata**: Global and per-post/page/term SEO (titles, descriptions, canonical, robots, Open Graph, X Cards)
-- **Redirects**: Manual redirect manager (301, 302, 307, 308, 410), auto-redirect on slug change, prompts when trashing/deleting posts
-- **Schema**: JSON-LD for Organization, WebSite, Article, WebPage, BreadcrumbList
-- **Sitemap**: XML sitemap index at `/sitemap_index.xml`
-- **Yoast Migration**: One-click import of settings, post meta, and redirects from Yoast SEO
+### Titles & meta
+
+- **Global templates** for homepage, posts, and pages with variable pills (e.g. `%post_title%`, `%separator%`, `%site_name%`, `%excerpt%`).
+- **Per-content overrides** in the post/page editor: slide-out **SEO Settings** panel (Meta, Facebook / Open Graph, X / Twitter Cards).
+- **Canonical URLs** and **robots** (`index`/`noindex`, `follow`/`nofollow`).
+- **Open Graph** and **X Card** tags, including default OG image and per-post image URLs.
+- **Search engine visibility warning:** if **Settings → Reading → Discourage search engines** is enabled, administrators see a prominent admin notice with a link to Reading settings.
+
+### Structured data (JSON-LD)
+
+- **`@graph`** output with linked `@id`s: **WebSite** (with `SearchAction`), **WebPage**, **Article** (for the `post` post type), **BreadcrumbList**, and optional **Organization** (name, URL, logo, `sameAs` social profiles).
+- **OG** `article:published_time` / `article:modified_time` on singular URLs where appropriate.
+
+### XML sitemaps
+
+- **Index:** `https://yoursite.com/sitemap_index.xml`
+- **Per post-type** sitemaps (configurable public post types).
+- Can be **disabled** in settings if you use another sitemap solution.
+
+### Redirects
+
+- **301, 302, 307, 308,** and **410** redirects stored in a custom database table.
+- **Redirect manager** under **Mantis SEO → Redirects**.
+- **Automatic redirect** when a published post or page slug changes.
+- **Trash / delete** flows integrate with redirect prompts where applicable.
+
+### Tools & migration
+
+- **Yoast SEO:** detect and **migrate** global settings, post/term meta, and redirects (when Yoast data is present).
+- **Export / import** plugin settings as JSON from the **Tools** tab.
+
+### Verification
+
+- **Google** and **Bing** site verification meta tags from settings.
+
+---
 
 ## Installation
 
-1. Upload the `mantis-seo` folder to `/wp-content/plugins/`
-2. Activate the plugin through the WordPress admin
-3. Configure settings under Mantis SEO in the admin menu
+1. Copy the `mantis-seo` folder into `wp-content/plugins/`.
+2. In **Plugins**, activate **Mantis SEO**.
+3. Visit **Mantis SEO** in the admin menu and configure **Titles & Meta**, **Social**, **Schema**, **Sitemap**, and **Advanced**.
+4. After activation or sitemap changes, visit **Settings → Permalinks** and click **Save** once if pretty permalinks or rewrite rules need a refresh (standard WordPress behavior).
+
+---
+
+## Usage
+
+| Area | What to do |
+|------|------------|
+| **Mantis SEO → Titles & Meta** | Set title templates, meta description templates, separator, and archive **noindex** options (author, date, category, tag). |
+| **Social** | Default Open Graph image, X card type (`summary` / `summary_large_image`). |
+| **Schema** | Organization name, URL, logo, and `sameAs` URLs for major networks. |
+| **Sitemap** | Toggle sitemap on/off and choose included post types. |
+| **Post / Page editor** | Open **SEO Settings** in the sidebar; edit templates with pills, preview snippet, **Save SEO** (AJAX) without leaving the screen. |
+| **Redirects** | Add rules from origin path to target URL; choose status code. |
+
+**Homepage vs blog index:** If the front page is a **static page**, that page uses the **page** templates. The **Homepage description** setting applies to the **posts page** when it is not the front page (`is_home()` && ! `is_front_page()`).
+
+---
+
+## Sitemap URLs
+
+With permalinks enabled and the sitemap turned on:
+
+| URL | Role |
+|-----|------|
+| `/sitemap_index.xml` | Sitemap index |
+| `/sitemap_{post-type}.xml` | Entries for each enabled public post type |
+
+Submit the index URL in Google Search Console and Bing Webmaster Tools.
+
+---
+
+## Yoast SEO migration
+
+If Yoast SEO is installed and has data, the settings screen can offer **Migrate from Yoast**. That imports compatible options and meta keys into Mantis. **Deactivate Yoast** after migration to avoid duplicate meta tags and schema.
+
+---
+
+## Uninstall
+
+Deleting the plugin via **Plugins → Delete** runs `uninstall.php`, which:
+
+- Drops the `{prefix}mantis_redirects` table.
+- Removes options: `mantis_settings`, `mantis_migrated_from_yoast`, `mantis_redirect_notice`.
+
+**Post meta** (`_mantis_*`) is not bulk-deleted on uninstall (common pattern so content isn’t silently stripped if you reinstall). Remove manually if you need a clean database.
+
+---
+
+## Project structure
+
+```
+mantis-seo/
+├── mantis-seo.php          # Bootstrap, constants, hooks
+├── uninstall.php
+├── admin/                  # Settings UI, metabox, redirects admin
+├── includes/               # Meta, schema, sitemap, redirects, Yoast importer
+├── assets/                 # admin.css, template editor & metabox JS
+└── languages/              # POT for translations
+```
+
+---
+
+## Development
+
+- Follow WordPress coding standards and capability checks (`manage_options` for settings, `edit_post` for metabox saves).
+- Text domain: **`mantis-seo`**.
+- Version constant: **`MANTIS_SEO_VERSION`** in the main plugin file.
+
+---
+
+## Credits
+
+**Author:** Chris Eggleston — [mantiseo.com](https://mantiseo.com)
+
+---
 
 ## License
 
-GPL v3
+This program is free software: you can redistribute it and/or modify it under the terms of the **GNU General Public License** as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See [LICENSE](LICENSE).
