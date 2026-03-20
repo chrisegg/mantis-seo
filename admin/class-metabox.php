@@ -27,6 +27,7 @@ class Mantis_SEO_Metabox {
 	public function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_metabox' ) );
 		add_action( 'save_post', array( $this, 'save_metabox' ), 10, 2 );
+		add_action( 'wp_ajax_mantis_seo_save_meta', array( $this, 'ajax_save_meta' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'localize_metabox_script' ), 20 );
 		add_action( 'category_add_form_fields', array( $this, 'term_add_fields' ), 10, 2 );
 		add_action( 'category_edit_form_fields', array( $this, 'term_edit_fields' ), 10, 2 );
@@ -79,7 +80,7 @@ class Mantis_SEO_Metabox {
 		echo '</div>';
 
 		// Slide-out panel (stays in form for submission).
-		echo '<div id="mantis-seo-slideout" class="mantis-seo-slideout" aria-hidden="true">';
+		echo '<div id="mantis-seo-slideout" class="mantis-seo-slideout" aria-hidden="true" data-post-id="' . (int) $post->ID . '">';
 		echo '<div class="mantis-seo-slideout-backdrop"></div>';
 		echo '<div class="mantis-seo-slideout-panel-wrap">';
 		echo '<button type="button" class="mantis-seo-resize-tab" title="' . esc_attr__( 'Expand panel', 'mantis-seo' ) . '" aria-label="' . esc_attr__( 'Expand panel', 'mantis-seo' ) . '"><span class="mantis-seo-resize-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="m3.86 8.753 5.482 4.796c.646.566 1.658.106 1.658-.753V3.204a1 1 0 0 0-1.659-.753l-5.48 4.796a1 1 0 0 0 0 1.506z"/></svg></span></button>';
@@ -193,7 +194,12 @@ class Mantis_SEO_Metabox {
 			}
 			echo '</div></div>';
 		}
-		echo '</div></div></div></div>';
+		echo '</div>';
+		echo '<div class="mantis-seo-slideout-footer">';
+		echo '<button type="button" class="button button-primary mantis-seo-save-btn">' . esc_html__( 'Save SEO', 'mantis-seo' ) . '</button>';
+		echo ' <span class="mantis-seo-save-status" aria-live="polite"></span>';
+		echo '</div>';
+		echo '</div></div></div>';
 	}
 
 	/**
@@ -232,6 +238,8 @@ class Mantis_SEO_Metabox {
 		$replacements = Mantis_SEO_Meta::get_replacements_for_preview( $post );
 		wp_localize_script( 'mantis-seo-metabox', 'mantisSeoMetabox', array(
 			'replaceVars' => $replacements,
+			'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+			'ajaxNonce'   => wp_create_nonce( 'mantis_seo_save_meta' ),
 		) );
 	}
 
@@ -302,6 +310,48 @@ class Mantis_SEO_Metabox {
 			$meta_key = self::META_PREFIX . $field;
 			update_post_meta( $post_id, $meta_key, isset( $_POST[ $meta_key ] ) ? '1' : '0' );
 		}
+	}
+
+	/**
+	 * AJAX handler for Save SEO button.
+	 */
+	public function ajax_save_meta() {
+		if ( ! isset( $_POST['mantis_seo_ajax_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_ajax_nonce'] ) ), 'mantis_seo_save_meta' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'mantis-seo' ) ) );
+		}
+		$post_id = isset( $_POST['post_id'] ) ? (int) $_POST['post_id'] : 0;
+		if ( ! $post_id || ! get_post( $post_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid post.', 'mantis-seo' ) ) );
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'mantis-seo' ) ) );
+		}
+
+		$fields = array(
+			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
+			'twitter_title', 'twitter_description', 'twitter_image',
+		);
+		foreach ( $fields as $field ) {
+			$meta_key = self::META_PREFIX . $field;
+			if ( isset( $_POST[ $meta_key ] ) ) {
+				$value = 'canonical' === $field || strpos( $field, 'image' ) !== false
+					? esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) )
+					: sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
+				if ( 'description' === $field ) {
+					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
+				}
+				update_post_meta( $post_id, $meta_key, $value );
+			}
+		}
+
+		$checkboxes = array( 'robots_noindex', 'robots_nofollow' );
+		foreach ( $checkboxes as $field ) {
+			$meta_key = self::META_PREFIX . $field;
+			$value    = isset( $_POST[ $meta_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) ) : '';
+			update_post_meta( $post_id, $meta_key, ( '1' === $value ) ? '1' : '0' );
+		}
+
+		wp_send_json_success( array( 'message' => __( 'SEO settings saved.', 'mantis-seo' ) ) );
 	}
 
 	/**

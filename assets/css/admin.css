@@ -1125,6 +1125,31 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	border-bottom-color: var(--mantis-accent);
 }
 
+.mantis-seo-slideout-footer {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 1rem 1.25rem;
+	border-top: 1px solid var(--mantis-border, #ddd);
+	background: var(--mantis-bg-secondary, #f6f7f7);
+}
+
+.mantis-seo-save-status {
+	font-size: 0.8125rem;
+}
+
+.mantis-seo-save-status.mantis-seo-save-success {
+	color: var(--mantis-success, #00a32a);
+}
+
+.mantis-seo-save-status.mantis-seo-save-error {
+	color: var(--mantis-error, #d63638);
+}
+
+.mantis-seo-save-status.mantis-seo-save-saving {
+	color: var(--mantis-text-muted, #646970);
+}
+
 .mantis-seo-slideout-body {
 	display: flex;
 	flex-direction: column;

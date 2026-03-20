@@ -156,6 +156,94 @@
 
 		// Variable insert dropdown.
 		bindVariableInsert(slideout);
+
+		// Save SEO button (AJAX) – works in both Classic and Block editor.
+		bindSaveSeoButton(slideout);
+
+		// Sync slideout values into form on submit (slideout lives on body, outside form).
+		bindSubmitSync();
+	}
+
+	/**
+	 * Bind Save SEO button – saves meta via AJAX.
+	 */
+	function bindSaveSeoButton(slideout) {
+		const btn = slideout.querySelector('.mantis-seo-save-btn');
+		const status = slideout.querySelector('.mantis-seo-save-status');
+		if (!btn || !status) return;
+
+		btn.addEventListener('click', function () {
+			let postId = slideout.getAttribute('data-post-id');
+			if (!postId || postId === '0') {
+				const m = window.location.search.match(/[?&]post=(\d+)/);
+				if (m) postId = m[1];
+			}
+			if (!postId || postId === '0') {
+				showSaveStatus(status, 'error', 'Save or publish the post first.');
+				return;
+			}
+
+			const ajaxNonce = (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.ajaxNonce) ? mantisSeoMetabox.ajaxNonce : '';
+			if (!ajaxNonce) {
+				showSaveStatus(status, 'error', 'Security check failed.');
+				return;
+			}
+
+			const formData = new FormData();
+			formData.append('action', 'mantis_seo_save_meta');
+			formData.append('mantis_seo_ajax_nonce', ajaxNonce);
+			formData.append('post_id', postId);
+
+			// Text inputs and textareas.
+			slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"]').forEach(function (el) {
+				formData.append(el.name, el.value);
+			});
+
+			// Checkboxes: only send when checked (PHP isset = checked).
+			['_mantis_robots_noindex', '_mantis_robots_nofollow'].forEach(function (name) {
+				const cb = slideout.querySelector('input[name="' + name + '"]');
+				if (cb && cb.checked) {
+					formData.append(name, '1');
+				}
+			});
+
+			btn.disabled = true;
+			showSaveStatus(status, 'saving', 'Saving…');
+
+			const ajaxUrl = (typeof mantisSeoMetabox !== 'undefined' && mantisSeoMetabox.ajaxUrl) ? mantisSeoMetabox.ajaxUrl : '';
+			if (!ajaxUrl) {
+				showSaveStatus(status, 'error', 'Configuration error.');
+				btn.disabled = false;
+				return;
+			}
+
+			fetch(ajaxUrl, {
+				method: 'POST',
+				body: formData,
+				credentials: 'same-origin'
+			})
+				.then(function (res) { return res.json(); })
+				.then(function (data) {
+					if (data && data.success) {
+						showSaveStatus(status, 'success', 'Saved.');
+						setTimeout(function () { showSaveStatus(status, '', ''); }, 2000);
+					} else {
+						showSaveStatus(status, 'error', (data && data.data && data.data.message) ? data.data.message : 'Save failed.');
+					}
+				})
+				.catch(function () {
+					showSaveStatus(status, 'error', 'Save failed.');
+				})
+				.finally(function () {
+					btn.disabled = false;
+				});
+		});
+	}
+
+	function showSaveStatus(el, type, msg) {
+		if (!el) return;
+		el.textContent = msg;
+		el.className = 'mantis-seo-save-status mantis-seo-save-' + type;
 	}
 
 	function bindVariableInsert(slideout) {
@@ -302,6 +390,78 @@
 		resizeTab.innerHTML = isWide ? caretRight : caretLeft;
 		resizeTab.setAttribute('title', isWide ? 'Shrink panel' : 'Expand panel');
 		resizeTab.setAttribute('aria-label', isWide ? 'Shrink panel' : 'Expand panel');
+	}
+
+	/**
+	 * Sync slideout field values into the post form before submit.
+	 * The slideout is moved to body (outside the form), so its inputs are not submitted.
+	 * We copy values into hidden inputs inside the form so they are included in POST.
+	 */
+	function syncSlideoutToForm() {
+		const slideout = document.querySelector(SELECTORS.slideout);
+		if (!slideout) return;
+
+		const trigger = document.querySelector(SELECTORS.trigger);
+		const form = trigger && trigger.closest('form') ||
+			document.getElementById('post') ||
+			document.querySelector('form.metabox-location-side') ||
+			document.querySelector('form[action*="post.php"]');
+		if (!form) return;
+
+		// Remove previous synced inputs.
+		const container = form.querySelector('#mantis-seo-sync-container');
+		if (container) {
+			container.remove();
+		}
+
+		const wrap = document.createElement('div');
+		wrap.id = 'mantis-seo-sync-container';
+		wrap.style.display = 'none';
+
+		function addHidden(name, value) {
+			const input = document.createElement('input');
+			input.type = 'hidden';
+			input.name = name;
+			input.value = value || '';
+			wrap.appendChild(input);
+		}
+
+		// Nonce (required for PHP verification).
+		const nonceEl = slideout.querySelector('[name="mantis_seo_metabox_nonce"]');
+		if (nonceEl) {
+			addHidden('mantis_seo_metabox_nonce', nonceEl.value);
+		}
+
+		// Text inputs and textareas.
+		slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"]').forEach(function (el) {
+			addHidden(el.name, el.value);
+		});
+
+		// Checkboxes: only add when checked (PHP uses isset() - absent = unchecked = '0').
+		['_mantis_robots_noindex', '_mantis_robots_nofollow'].forEach(function (name) {
+			const cb = slideout.querySelector('input[name="' + name + '"]');
+			if (cb && cb.checked) {
+				addHidden(name, '1');
+			}
+		});
+
+		form.appendChild(wrap);
+	}
+
+	/**
+	 * Bind submit handler to sync slideout values into form before submission.
+	 */
+	function bindSubmitSync() {
+		const trigger = document.querySelector(SELECTORS.trigger);
+		const form = trigger && trigger.closest('form') ||
+			document.getElementById('post') ||
+			document.querySelector('form.metabox-location-side') ||
+			document.querySelector('form[action*="post.php"]');
+		if (!form) return;
+
+		form.addEventListener('submit', function syncHandler() {
+			syncSlideoutToForm();
+		}, true);
 	}
 
 	function tryInit() {
