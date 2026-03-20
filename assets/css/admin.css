@@ -1623,23 +1623,6 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 .mantis-var-insert-wrap {
 	position: relative;
 }
-.mantis-var-insert-btn {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35em;
-	line-height: 1.2;
-	white-space: nowrap;
-}
-.mantis-var-insert-btn .dashicons {
-	display: inline-flex;
-	flex-shrink: 0;
-	align-items: center;
-	justify-content: center;
-	width: 14px;
-	height: 14px;
-	font-size: 14px;
-	line-height: 1;
-}
 .mantis-var-dropdown {
 	position: absolute;
 	top: 100%;

@@ -327,7 +327,7 @@
 	}
 
 	function bindVariableInsert(slideout) {
-		slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (btn) {
+		slideout.querySelectorAll('.mantis-var-field-wrap .mantis-settings-var-btn').forEach(function (btn) {
 			btn.addEventListener('click', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -341,7 +341,7 @@
 				slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
 					d.setAttribute('aria-hidden', 'true');
 				});
-				slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
+				slideout.querySelectorAll('.mantis-var-field-wrap .mantis-settings-var-btn').forEach(function (b) {
 					b.setAttribute('aria-expanded', 'false');
 				});
 				if (wasOpen) {
@@ -351,7 +351,7 @@
 				btn.setAttribute('aria-expanded', 'true');
 			});
 		});
-		slideout.querySelectorAll('.mantis-var-option').forEach(function (opt) {
+		slideout.querySelectorAll('.mantis-var-field-wrap .mantis-var-option').forEach(function (opt) {
 			opt.addEventListener('click', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -359,7 +359,7 @@
 				if (!wrap) return;
 				const field = wrap.querySelector('.mantis-var-field');
 				const dropdown = wrap.querySelector('.mantis-var-dropdown');
-				const btn = wrap.querySelector('.mantis-var-insert-btn');
+				const btn = wrap.querySelector('.mantis-settings-var-btn');
 				const v = opt.getAttribute('data-var');
 				if (!v) return;
 				if (wrap.querySelector('[data-mantis-template-editor]') && window.MantisTemplateEditor) {
@@ -394,7 +394,7 @@
 			slideout.querySelectorAll('.mantis-var-dropdown').forEach(function (d) {
 				d.setAttribute('aria-hidden', 'true');
 			});
-			slideout.querySelectorAll('.mantis-var-insert-btn').forEach(function (b) {
+			slideout.querySelectorAll('.mantis-var-field-wrap .mantis-settings-var-btn').forEach(function (b) {
 				b.setAttribute('aria-expanded', 'false');
 			});
 		});

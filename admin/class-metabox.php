@@ -165,12 +165,11 @@ class Mantis_SEO_Metabox {
 						echo '<div class="mantis-var-label-row">';
 						echo '<label for="' . esc_attr( $meta_key ) . '"><strong>' . esc_html( $label ) . '</strong></label>';
 						echo '<div class="mantis-var-insert-wrap">';
-						echo '<button type="button" class="button button-small mantis-var-insert-btn" aria-haspopup="true" aria-expanded="false" aria-label="' . esc_attr__( 'Insert variable', 'mantis-seo' ) . '">';
-						echo '<span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>';
+						echo '<button type="button" class="button button-small mantis-settings-var-btn" aria-haspopup="true" aria-expanded="false" aria-label="' . esc_attr__( 'Insert variable', 'mantis-seo' ) . '">';
 						echo esc_html__( 'Insert variable', 'mantis-seo' ) . '</button>';
-						echo '<div class="mantis-var-dropdown" role="menu" aria-hidden="true">';
+						echo '<div class="mantis-var-dropdown mantis-settings-var-dropdown" role="menu" aria-hidden="true">';
 						foreach ( $this->get_variable_options() as $var => $var_label ) {
-							echo '<button type="button" role="menuitem" class="mantis-var-option" data-var="' . esc_attr( $var ) . '">' . esc_html( $var_label ) . '</button>';
+							echo '<button type="button" role="menuitem" class="mantis-var-option mantis-settings-var-option" data-var="' . esc_attr( $var ) . '">' . esc_html( $var_label ) . '</button>';
 						}
 						echo '</div></div>';
 						echo '</div>';
