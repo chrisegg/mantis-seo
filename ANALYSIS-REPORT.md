@@ -97,7 +97,7 @@ However, the security audit uncovered **2 critical**, **3 high**, **4 medium**, 
 #### SEC-7: Unvalidated Redirect Type
 - **File:** `includes/class-redirects.php`, line 262
 - **Description:** `wp_redirect()` accepts any integer as the HTTP status code. Validate against allowed types.
-- **Fix:** Whitelist allowed status codes: `array(301, 302, 307, 308)`.
+- **Fix:** Whitelist allowed status codes: `array(301, 302, 307, 308, 410, 451)`.
 
 #### SEC-8: Predictable Temp Directory Name
 - **File:** `deploy.php`, line 165

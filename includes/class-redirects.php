@@ -22,6 +22,13 @@ class Mantis_SEO_Redirects {
 	const TABLE_NAME = 'mantis_redirects';
 
 	/**
+	 * Allowed redirect HTTP status codes.
+	 *
+	 * @var int[]
+	 */
+	const ALLOWED_TYPES = array( 301, 302, 307, 308, 410, 451 );
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -104,8 +111,7 @@ class Mantis_SEO_Redirects {
 		$type   = (int) $type;
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
-		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
-		if ( ! in_array( $type, $allowed_types, true ) ) {
+		if ( ! in_array( $type, self::ALLOWED_TYPES, true ) ) {
 			$type = 301;
 		}
 
@@ -152,8 +158,7 @@ class Mantis_SEO_Redirects {
 		$type   = (int) $type;
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
-		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
-		if ( ! in_array( $type, $allowed_types, true ) ) {
+		if ( ! in_array( $type, self::ALLOWED_TYPES, true ) ) {
 			$type = 301;
 		}
 
@@ -269,8 +274,7 @@ class Mantis_SEO_Redirects {
 		$target = $redirect['target'];
 		$type   = (int) $redirect['type'];
 
-		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
-		if ( ! in_array( $type, $allowed_types, true ) ) {
+		if ( ! in_array( $type, self::ALLOWED_TYPES, true ) ) {
 			$type = 301;
 		}
 

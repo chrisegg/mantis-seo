@@ -22,7 +22,7 @@ delete_option( 'mantis_redirect_notice' );
 // Clean up post and term meta.
 // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- LIKE pattern is safe (hardcoded prefix).
 $wpdb->query( "DELETE FROM $wpdb->postmeta WHERE meta_key LIKE '_mantis\_%'" );
-// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- LIKE pattern is safe (hardcoded prefix).
 $wpdb->query( "DELETE FROM $wpdb->termmeta WHERE meta_key LIKE '_mantis\_%'" );
 
 // Clean up transients.
