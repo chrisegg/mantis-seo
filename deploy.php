@@ -22,20 +22,13 @@ $config_file = __DIR__ . '/deploy-config.php';
 if ( file_exists( $config_file ) ) {
 	$config = include $config_file;
 } else {
-	// Fallback to wp-config.php if it exists
-	// wp-config.php is in WordPress root (one level above wp-content)
-	$wp_config = dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) . '/wp-config.php';
-	if ( file_exists( $wp_config ) ) {
-		require_once $wp_config;
-		$config = [
-			'webhook_secret' => defined( 'GITHUB_DEPLOY_SECRET' ) ? GITHUB_DEPLOY_SECRET : '',
-			'github_token'   => defined( 'GITHUB_DEPLOY_TOKEN' ) ? GITHUB_DEPLOY_TOKEN : '',
-			'repo'           => defined( 'GITHUB_DEPLOY_REPO' ) ? GITHUB_DEPLOY_REPO : '',
-			'branch_filter'  => defined( 'GITHUB_DEPLOY_BRANCH' ) ? GITHUB_DEPLOY_BRANCH : null,
-		];
-	} else {
-		$config = [];
-	}
+	http_response_code(500);
+	header( 'Content-Type: application/json' );
+	echo json_encode( [
+		'error'   => 'Configuration missing',
+		'message' => 'deploy-config.php is required. Copy deploy-config.example.php and configure it.',
+	] );
+	exit;
 }
 
 if ( empty( $config['webhook_secret'] ) || empty( $config['repo'] ) ) {
@@ -49,7 +42,7 @@ if ( empty( $config['webhook_secret'] ) || empty( $config['repo'] ) ) {
 }
 
 $target_dir = __DIR__;
-$log_file   = __DIR__ . '/deploy.log';
+$log_file   = sys_get_temp_dir() . '/mantis-seo-deploy.log';
 
 function deploy_log( $message, $log_file ) {
 	$entry = date( 'Y-m-d H:i:s' ) . ' ' . $message . "\n";
@@ -162,7 +155,7 @@ if ( strpos( $zip_data, '{' ) === 0 ) {
 }
 
 // Extract to temp directory
-$temp_dir = sys_get_temp_dir() . '/github-deploy-' . uniqid();
+$temp_dir = sys_get_temp_dir() . '/github-deploy-' . bin2hex( random_bytes( 16 ) );
 if ( ! mkdir( $temp_dir, 0755, true ) ) {
 	deploy_log( 'ERROR: Could not create temp directory', $log_file );
 	respond( [ 'error' => 'Server error' ], 500 );
@@ -179,6 +172,17 @@ if ( $zip->open( $zip_path ) !== true ) {
 
 $extract_dir = $temp_dir . '/extract';
 mkdir( $extract_dir, 0755, true );
+
+// Validate zip entries for path traversal (Zip Slip).
+for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+	$entry_name = $zip->getNameIndex( $i );
+	if ( strpos( $entry_name, '..' ) !== false ) {
+		$zip->close();
+		deploy_log( 'ERROR: Zip contains path traversal entry: ' . $entry_name, $log_file );
+		respond( [ 'error' => 'Invalid archive contents' ], 400 );
+	}
+}
+
 $zip->extractTo( $extract_dir );
 $zip->close();
 
@@ -245,7 +249,6 @@ $cleanup = function ( $path ) use ( &$cleanup ) {
 };
 $cleanup( $temp_dir );
 
-$commit_msg = $payload['head_commit']['message'] ?? '';
 $commit_id  = substr( $payload['head_commit']['id'] ?? '', 0, 7 );
 
 deploy_log( "SUCCESS: Deployed {$copied} files (commit {$commit_id})", $log_file );

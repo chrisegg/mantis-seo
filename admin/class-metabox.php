@@ -344,43 +344,7 @@ class Mantis_SEO_Metabox {
 			return;
 		}
 
-		$fields = array(
-			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
-			'twitter_title', 'twitter_description', 'twitter_image',
-		);
-		foreach ( $fields as $field ) {
-			$meta_key = self::META_PREFIX . $field;
-			if ( isset( $_POST[ $meta_key ] ) ) {
-				if ( in_array( $field, array( 'description', 'og_description', 'twitter_description' ), true ) ) {
-					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
-				} elseif ( 'canonical' === $field || strpos( $field, 'image' ) !== false ) {
-					$value = esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) );
-				} else {
-					$value = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
-				}
-				if ( 'title' === $field ) {
-					$default_t = $this->get_effective_default_title_template( $post->post_type );
-					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
-						delete_post_meta( $post_id, $meta_key );
-						continue;
-					}
-				}
-				if ( 'description' === $field ) {
-					$default_d = $this->get_effective_default_metadesc_template( $post->post_type );
-					if ( '' === trim( $value ) || trim( $value ) === trim( $default_d ) ) {
-						delete_post_meta( $post_id, $meta_key );
-						continue;
-					}
-				}
-				update_post_meta( $post_id, $meta_key, $value );
-			}
-		}
-
-		$checkboxes = array( 'robots_noindex', 'robots_nofollow' );
-		foreach ( $checkboxes as $field ) {
-			$meta_key = self::META_PREFIX . $field;
-			update_post_meta( $post_id, $meta_key, isset( $_POST[ $meta_key ] ) ? '1' : '0' );
-		}
+		$this->save_post_seo_fields( $post_id, $post->post_type );
 	}
 
 	/**
@@ -399,6 +363,20 @@ class Mantis_SEO_Metabox {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'mantis-seo' ) ) );
 		}
 
+		$this->save_post_seo_fields( $post_id, $post_obj->post_type );
+
+		wp_send_json_success( array( 'message' => __( 'SEO settings saved.', 'mantis-seo' ) ) );
+	}
+
+	/**
+	 * Save SEO meta fields for a post from POST data.
+	 *
+	 * Shared by save_metabox() and ajax_save_meta() to avoid duplication.
+	 *
+	 * @param int    $post_id   Post ID.
+	 * @param string $post_type Post type slug.
+	 */
+	private function save_post_seo_fields( $post_id, $post_type ) {
 		$fields = array(
 			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
 			'twitter_title', 'twitter_description', 'twitter_image',
@@ -414,14 +392,14 @@ class Mantis_SEO_Metabox {
 					$value = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
 				}
 				if ( 'title' === $field ) {
-					$default_t = $this->get_effective_default_title_template( $post_obj->post_type );
+					$default_t = $this->get_effective_default_title_template( $post_type );
 					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
 						delete_post_meta( $post_id, $meta_key );
 						continue;
 					}
 				}
 				if ( 'description' === $field ) {
-					$default_d = $this->get_effective_default_metadesc_template( $post_obj->post_type );
+					$default_d = $this->get_effective_default_metadesc_template( $post_type );
 					if ( '' === trim( $value ) || trim( $value ) === trim( $default_d ) ) {
 						delete_post_meta( $post_id, $meta_key );
 						continue;
@@ -437,8 +415,6 @@ class Mantis_SEO_Metabox {
 			$value    = isset( $_POST[ $meta_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) ) : '';
 			update_post_meta( $post_id, $meta_key, ( '1' === $value ) ? '1' : '0' );
 		}
-
-		wp_send_json_success( array( 'message' => __( 'SEO settings saved.', 'mantis-seo' ) ) );
 	}
 
 	/**
@@ -512,6 +488,9 @@ class Mantis_SEO_Metabox {
 	 */
 	public function save_term_meta( $term_id ) {
 		if ( ! isset( $_POST['mantis_seo_term_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_term_nonce'] ) ), 'mantis_seo_term' ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_term', $term_id ) ) {
 			return;
 		}
 		if ( isset( $_POST['mantis_term_focus_keyword'] ) ) {

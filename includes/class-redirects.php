@@ -104,7 +104,17 @@ class Mantis_SEO_Redirects {
 		$type   = (int) $type;
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
+		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
+		if ( ! in_array( $type, $allowed_types, true ) ) {
+			$type = 301;
+		}
+
 		if ( empty( $origin ) || empty( $target ) ) {
+			return false;
+		}
+
+		// Validate regex pattern before saving.
+		if ( 'regex' === $format && false === @preg_match( '#' . str_replace( '#', '\#', $origin ) . '#', '' ) ) {
 			return false;
 		}
 
@@ -142,7 +152,17 @@ class Mantis_SEO_Redirects {
 		$type   = (int) $type;
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
+		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
+		if ( ! in_array( $type, $allowed_types, true ) ) {
+			$type = 301;
+		}
+
 		if ( empty( $origin ) || empty( $target ) ) {
+			return false;
+		}
+
+		// Validate regex pattern before saving.
+		if ( 'regex' === $format && false === @preg_match( '#' . str_replace( '#', '\#', $origin ) . '#', '' ) ) {
 			return false;
 		}
 
@@ -201,8 +221,9 @@ class Mantis_SEO_Redirects {
 		$regex_redirects = $wpdb->get_results( "SELECT * FROM $table WHERE format = 'regex' ORDER BY id ASC", ARRAY_A );
 		if ( ! empty( $regex_redirects ) ) {
 			foreach ( $regex_redirects as $redirect ) {
-				if ( @preg_match( '#' . $redirect['origin'] . '#', $path ) ) {
-					$target = preg_replace( '#' . $redirect['origin'] . '#', $redirect['target'], $path );
+				$escaped_origin = str_replace( '#', '\#', $redirect['origin'] );
+				if ( @preg_match( '#' . $escaped_origin . '#', $path ) ) {
+					$target = preg_replace( '#' . $escaped_origin . '#', $redirect['target'], $path );
 					if ( $target !== $path ) {
 						$redirect['target'] = $target;
 					}
@@ -247,6 +268,11 @@ class Mantis_SEO_Redirects {
 
 		$target = $redirect['target'];
 		$type   = (int) $redirect['type'];
+
+		$allowed_types = array( 301, 302, 307, 308, 410, 451 );
+		if ( ! in_array( $type, $allowed_types, true ) ) {
+			$type = 301;
+		}
 
 		// Ensure target is absolute.
 		if ( 0 !== strpos( $target, 'http' ) ) {

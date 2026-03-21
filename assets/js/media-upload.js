@@ -35,10 +35,12 @@
 
 	function updatePreview(previewEl, url) {
 		if (!previewEl) return;
+		previewEl.textContent = '';
 		if (url) {
-			previewEl.innerHTML = '<img src="' + url + '" alt="" />';
-		} else {
-			previewEl.innerHTML = '';
+			var img = document.createElement('img');
+			img.src = url;
+			img.alt = '';
+			previewEl.appendChild(img);
 		}
 	}
 

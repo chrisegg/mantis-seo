@@ -88,6 +88,18 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 			'orderby'        => 'modified',
 			'order'          => 'DESC',
 			'no_found_rows'  => true,
+			'meta_query'     => array(
+				'relation' => 'OR',
+				array(
+					'key'     => '_mantis_robots_noindex',
+					'compare' => 'NOT EXISTS',
+				),
+				array(
+					'key'     => '_mantis_robots_noindex',
+					'value'   => '1',
+					'compare' => '!=',
+				),
+			),
 		);
 
 		$query = new WP_Query( $args );
