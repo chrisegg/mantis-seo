@@ -43,33 +43,31 @@ class Mantis_SEO_Settings_Page {
 
 	/**
 	 * After options.php saves, append mantis_tab to the redirect so the correct panel is shown.
+	 *
+	 * Runs at admin_init priority 1 before options.php verifies the nonce; only reads whitelisted tab keys.
 	 */
 	public function maybe_append_tab_to_settings_redirect() {
-		if ( ! isset( $_POST['option_page'], $_POST['action'] ) || 'update' !== $_POST['action'] ) {
-			return;
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by options.php when processing the settings save.
+		if ( isset( $_POST['option_page'], $_POST['action'] ) && 'update' === $_POST['action']
+			&& 'mantis_seo_settings' === $_POST['option_page']
+			&& ! empty( $_POST['mantis_active_tab'] ) ) {
+			$tab     = sanitize_key( wp_unslash( $_POST['mantis_active_tab'] ) );
+			$allowed = $this->get_settings_panel_ids();
+			if ( in_array( $tab, $allowed, true ) && 'mantis-titles' !== $tab ) {
+				add_filter(
+					'wp_redirect',
+					static function ( $location ) use ( $tab ) {
+						if ( false === strpos( $location, 'page=mantis-seo' ) ) {
+							return $location;
+						}
+						return add_query_arg( 'mantis_tab', $tab, $location );
+					},
+					10,
+					1
+				);
+			}
 		}
-		if ( 'mantis_seo_settings' !== $_POST['option_page'] ) {
-			return;
-		}
-		if ( empty( $_POST['mantis_active_tab'] ) ) {
-			return;
-		}
-		$tab     = sanitize_key( wp_unslash( $_POST['mantis_active_tab'] ) );
-		$allowed = $this->get_settings_panel_ids();
-		if ( ! in_array( $tab, $allowed, true ) || 'mantis-titles' === $tab ) {
-			return;
-		}
-		add_filter(
-			'wp_redirect',
-			static function ( $location ) use ( $tab ) {
-				if ( false === strpos( $location, 'page=mantis-seo' ) ) {
-					return $location;
-				}
-				return add_query_arg( 'mantis_tab', $tab, $location );
-			},
-			10,
-			1
-		);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -120,6 +118,7 @@ class Mantis_SEO_Settings_Page {
 				throw new Exception( __( 'No valid file was uploaded.', 'mantis-seo' ) );
 			}
 
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Validated PHP upload temp path; WP_Filesystem not required.
 			$content = file_get_contents( $file_path );
 			if ( false === $content || '' === trim( $content ) ) {
 				throw new Exception( __( 'Could not read the uploaded file. It may be empty or inaccessible.', 'mantis-seo' ) );

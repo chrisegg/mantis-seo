@@ -22,6 +22,13 @@ class Mantis_SEO_Redirect_Manager {
 	const NOTICE_OPTION = 'mantis_redirect_notice';
 
 	/**
+	 * Max redirect notices stored (bulk trash/delete would otherwise grow wp_options unbounded).
+	 *
+	 * @var int
+	 */
+	const MAX_STORED_NOTICES = 20;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -130,6 +137,9 @@ class Mantis_SEO_Redirect_Manager {
 			'origin' => $path,
 			'action'  => $action,
 		);
+		if ( count( $notices ) > self::MAX_STORED_NOTICES ) {
+			$notices = array_slice( $notices, -self::MAX_STORED_NOTICES );
+		}
 		update_option( self::NOTICE_OPTION, $notices );
 	}
 

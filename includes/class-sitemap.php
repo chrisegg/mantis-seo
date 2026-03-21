@@ -25,15 +25,21 @@ class Mantis_SEO_Sitemap {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'add_rewrite_rules' ) );
+		add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ), 0 );
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_action( 'template_redirect', array( $this, 'handle_request' ), 1 );
 	}
 
 	/**
-	 * Add rewrite rules.
+	 * Register sitemap rewrite rules (must run before flush_rewrite_rules()).
+	 *
+	 * Called on init and from activation so rules exist when the rewrite option is rebuilt.
 	 */
-	public function add_rewrite_rules() {
+	public static function register_rewrite_rules() {
+		global $wp_rewrite;
+		if ( ! $wp_rewrite instanceof WP_Rewrite ) {
+			return;
+		}
 		add_rewrite_rule( 'sitemap_index\.xml$', 'index.php?' . self::QUERY_VAR . '=index', 'top' );
 		add_rewrite_rule( 'sitemap_([^/]+)\.xml$', 'index.php?' . self::QUERY_VAR . '=$matches[1]', 'top' );
 		add_rewrite_rule( 'sitemap_([^/]+)_([0-9]+)\.xml$', 'index.php?' . self::QUERY_VAR . '=$matches[1]&mantis_sitemap_page=$matches[2]', 'top' );
@@ -49,6 +55,26 @@ class Mantis_SEO_Sitemap {
 		$vars[] = self::QUERY_VAR;
 		$vars[] = 'mantis_sitemap_page';
 		return $vars;
+	}
+
+	/**
+	 * Sitemap URL/query slug for a post type (avoids double "s" for CPTs like "news").
+	 *
+	 * @param string $post_type Post type name.
+	 * @return string
+	 */
+	public static function post_type_sitemap_slug( $post_type ) {
+		if ( 'post' === $post_type ) {
+			return 'posts';
+		}
+		if ( 'page' === $post_type ) {
+			return 'pages';
+		}
+		$post_type = (string) $post_type;
+		if ( '' !== $post_type && 's' === substr( $post_type, -1 ) ) {
+			return $post_type;
+		}
+		return $post_type . 's';
 	}
 
 	/**
@@ -110,7 +136,7 @@ class Mantis_SEO_Sitemap {
 
 		$providers = array();
 		foreach ( $post_types as $post_type ) {
-			$key = $post_type . 's';
+			$key                 = self::post_type_sitemap_slug( $post_type );
 			$providers[ $key ] = new Mantis_SEO_Sitemap_Posts( $post_type );
 		}
 
@@ -145,7 +171,7 @@ class Mantis_SEO_Sitemap {
 			echo "\t<sitemap>\n";
 			echo "\t\t<loc>" . esc_url( $link['loc'] ) . "</loc>\n";
 			if ( ! empty( $link['lastmod'] ) ) {
-				echo "\t\t<lastmod>" . esc_html( $link['lastmod'] ) . "</lastmod>\n";
+				echo "\t\t<lastmod>" . esc_xml( $link['lastmod'] ) . "</lastmod>\n";
 			}
 			echo "\t</sitemap>\n";
 		}
@@ -195,13 +221,13 @@ class Mantis_SEO_Sitemap {
 			echo "\t<url>\n";
 			echo "\t\t<loc>" . esc_url( $link['loc'] ) . "</loc>\n";
 			if ( ! empty( $link['lastmod'] ) ) {
-				echo "\t\t<lastmod>" . esc_html( $link['lastmod'] ) . "</lastmod>\n";
+				echo "\t\t<lastmod>" . esc_xml( $link['lastmod'] ) . "</lastmod>\n";
 			}
 			if ( ! empty( $link['changefreq'] ) ) {
-				echo "\t\t<changefreq>" . esc_html( $link['changefreq'] ) . "</changefreq>\n";
+				echo "\t\t<changefreq>" . esc_xml( $link['changefreq'] ) . "</changefreq>\n";
 			}
 			if ( ! empty( $link['priority'] ) ) {
-				echo "\t\t<priority>" . esc_html( $link['priority'] ) . "</priority>\n";
+				echo "\t\t<priority>" . esc_xml( $link['priority'] ) . "</priority>\n";
 			}
 			echo "\t</url>\n";
 		}

@@ -52,8 +52,11 @@ class Mantis_SEO_Main {
 	 */
 	private function __construct() {
 		add_action( 'update_option_mantis_settings', array( __CLASS__, 'clear_settings_cache' ) );
+		add_action( 'delete_option_mantis_settings', array( __CLASS__, 'clear_settings_cache' ) );
 		$this->load_includes();
 		$this->init_components();
+		// After plugins_loaded, $wp_rewrite does not exist yet (see wp-settings.php). Defer flush to init.
+		add_action( 'init', array( __CLASS__, 'maybe_flush_sitemap_rewrites' ), 0 );
 	}
 
 	/**
@@ -61,6 +64,22 @@ class Mantis_SEO_Main {
 	 */
 	public static function clear_settings_cache() {
 		self::$settings_cache = null;
+	}
+
+	/**
+	 * One-time rewrite flush for installs activated before sitemap rules were registered on activation.
+	 *
+	 * Must run on init (not plugins_loaded): $wp_rewrite is null until after plugins_loaded in wp-settings.php.
+	 */
+	public static function maybe_flush_sitemap_rewrites() {
+		$key    = 'mantis_seo_rewrite_rules_gen';
+		$target = 2;
+		if ( (int) get_option( $key, 0 ) >= $target ) {
+			return;
+		}
+		Mantis_SEO_Sitemap::register_rewrite_rules();
+		flush_rewrite_rules();
+		update_option( $key, $target );
 	}
 
 	/**
@@ -225,6 +244,12 @@ class Mantis_SEO_Main {
 			self::clear_settings_cache();
 		}
 
-		flush_rewrite_rules();
+		require_once MANTIS_SEO_PATH . 'includes/class-sitemap.php';
+		Mantis_SEO_Sitemap::register_rewrite_rules();
+		global $wp_rewrite;
+		if ( $wp_rewrite instanceof WP_Rewrite ) {
+			flush_rewrite_rules();
+			update_option( 'mantis_seo_rewrite_rules_gen', 2 );
+		}
 	}
 }

@@ -42,7 +42,8 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 	 * @return bool
 	 */
 	public function handles_type( $type ) {
-		return $type === $this->post_type . 's' || $type === $this->post_type;
+		$slug = Mantis_SEO_Sitemap::post_type_sitemap_slug( $this->post_type );
+		return $type === $slug;
 	}
 
 	/**
@@ -131,10 +132,11 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 			$lastmod = current_time( 'c' );
 		}
 
+		$slug = Mantis_SEO_Sitemap::post_type_sitemap_slug( $this->post_type );
 		for ( $i = 1; $i <= $pages; $i++ ) {
 			$url = $pages > 1
-				? home_url( '/sitemap_' . $this->post_type . 's_' . $i . '.xml' )
-				: home_url( '/sitemap_' . $this->post_type . 's.xml' );
+				? home_url( '/sitemap_' . $slug . '_' . $i . '.xml' )
+				: home_url( '/sitemap_' . $slug . '.xml' );
 			$links[] = array(
 				'loc'     => $url,
 				'lastmod' => $lastmod,

@@ -103,6 +103,7 @@ class Mantis_SEO_Redirects {
 		}
 		global $wpdb;
 		$table = self::get_table_name();
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only.
 		$rows  = $wpdb->get_results( "SELECT * FROM $table WHERE format = 'regex' ORDER BY id ASC", ARRAY_A );
 		$rows  = is_array( $rows ) ? $rows : array();
 		set_transient( self::TRANSIENT_REGEX_ROWS, $rows, HOUR_IN_SECONDS );
@@ -117,6 +118,7 @@ class Mantis_SEO_Redirects {
 		$table_name     = $wpdb->prefix . self::TABLE_NAME;
 		$charset_collate = $wpdb->get_charset_collate();
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- dbDelta: table name from $wpdb->prefix + constant only.
 		$sql = "CREATE TABLE $table_name (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			origin varchar(500) NOT NULL,
@@ -156,6 +158,7 @@ class Mantis_SEO_Redirects {
 		if ( null !== $limit ) {
 			$sql .= $wpdb->prepare( ' LIMIT %d OFFSET %d', max( 1, (int) $limit ), max( 0, (int) $offset ) );
 		}
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
@@ -168,6 +171,7 @@ class Mantis_SEO_Redirects {
 	public static function count_all() {
 		global $wpdb;
 		$table = self::get_table_name();
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only.
 		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" );
 	}
 
@@ -180,8 +184,10 @@ class Mantis_SEO_Redirects {
 	public static function get_by_id( $id ) {
 		global $wpdb;
 		$table = self::get_table_name();
-		$id    = (int) $id;
-		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $id ), ARRAY_A );
+		$id = (int) $id;
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix + constant only.
+		$sql = $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $id );
+		return $wpdb->get_row( $sql, ARRAY_A );
 	}
 
 	/**
@@ -303,13 +309,9 @@ class Mantis_SEO_Redirects {
 		$path  = self::normalize_origin( $path );
 
 		// Plain redirects first (exact match).
-		$plain = $wpdb->get_row(
-			$wpdb->prepare(
-				"SELECT * FROM $table WHERE format = 'plain' AND origin = %s LIMIT 1",
-				$path
-			),
-			ARRAY_A
-		);
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix + constant only.
+		$sql   = $wpdb->prepare( "SELECT * FROM $table WHERE format = 'plain' AND origin = %s LIMIT 1", $path );
+		$plain = $wpdb->get_row( $sql, ARRAY_A );
 
 		if ( $plain ) {
 			return $plain;
