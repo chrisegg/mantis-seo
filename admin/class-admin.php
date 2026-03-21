@@ -150,6 +150,26 @@ class Mantis_SEO_Admin {
 				MANTIS_SEO_VERSION,
 				true
 			);
+
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( $screen && method_exists( $screen, 'is_block_editor' ) && $screen->is_block_editor() ) {
+				wp_enqueue_script(
+					'mantis-seo-editor-redirect-notice',
+					MANTIS_SEO_URL . 'assets/js/editor-redirect-notice.js',
+					array( 'wp-data', 'wp-dom-ready', 'wp-edit-post' ),
+					MANTIS_SEO_VERSION,
+					true
+				);
+				wp_localize_script(
+					'mantis-seo-editor-redirect-notice',
+					'mantisSeoEditorRedirect',
+					array(
+						'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
+						'nonce'            => wp_create_nonce( 'mantis_seo_editor_redirect_notice' ),
+						'viewRedirectLabel' => __( 'View redirect', 'mantis-seo' ),
+					)
+				);
+			}
 		}
 
 		if ( strpos( $hook, 'mantis-seo' ) !== false ) {
