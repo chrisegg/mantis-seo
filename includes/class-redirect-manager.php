@@ -36,6 +36,34 @@ class Mantis_SEO_Redirect_Manager {
 	const EDITOR_REDIRECT_TRANSIENT_PREFIX = 'mantis_seo_edr_';
 
 	/**
+	 * Whether queued redirect notices should show on this screen (post/Page/CPT editor or list only).
+	 *
+	 * @return bool
+	 */
+	public static function is_redirect_notice_screen() {
+		if ( ! is_admin() || ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+		$screen = get_current_screen();
+		if ( ! $screen || empty( $screen->post_type ) ) {
+			return false;
+		}
+		$pto = get_post_type_object( $screen->post_type );
+		if ( ! $pto || ! $pto->public ) {
+			return false;
+		}
+		// List table: Posts, Pages, or public CPT (edit.php).
+		if ( 'edit' === $screen->base ) {
+			return true;
+		}
+		// Single editor: post.php / post-new.php (base matches post type slug).
+		if ( $screen->base === $screen->post_type ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -276,6 +304,9 @@ class Mantis_SEO_Redirect_Manager {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		if ( ! self::is_redirect_notice_screen() ) {
+			return;
+		}
 
 		$notices = get_option( self::NOTICE_OPTION, array() );
 		if ( empty( $notices ) || ! is_array( $notices ) ) {
@@ -291,8 +322,7 @@ class Mantis_SEO_Redirect_Manager {
 					array(
 						'mantis_dismiss_redirect' => 1,
 						'mantis_notice_idx'       => $i,
-					),
-					admin_url( 'admin.php?page=mantis-redirects' )
+					)
 				),
 				'mantis_dismiss_redirect'
 			);

@@ -2,7 +2,7 @@
  * After a block-editor save, show a notice when Mantis auto-created a permalink redirect.
  */
 ( function () {
-	var config = window.mantisSeoEditorRedirect;
+	var config = window.mantisSeoRedirectNotice;
 	if ( ! config || ! config.ajaxUrl ) {
 		return;
 	}

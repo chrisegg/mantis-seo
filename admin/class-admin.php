@@ -100,7 +100,11 @@ class Mantis_SEO_Admin {
 	 * @param string $hook Current admin page.
 	 */
 	public function enqueue_assets( $hook ) {
-		if ( strpos( $hook, 'mantis-seo' ) === false && 'post.php' !== $hook && 'post-new.php' !== $hook ) {
+		$is_mantis = strpos( $hook, 'mantis-seo' ) !== false;
+		$is_post_edit = in_array( $hook, array( 'post.php', 'post-new.php' ), true );
+		$is_post_list = ( 'edit.php' === $hook );
+
+		if ( ! $is_mantis && ! $is_post_edit && ! $is_post_list ) {
 			return;
 		}
 
@@ -112,7 +116,7 @@ class Mantis_SEO_Admin {
 		);
 
 		// Enqueue media library for image upload fields.
-		if ( strpos( $hook, 'mantis-seo' ) !== false || 'post.php' === $hook || 'post-new.php' === $hook ) {
+		if ( $is_mantis || $is_post_edit ) {
 			wp_enqueue_media();
 			wp_enqueue_script(
 				'mantis-seo-media-upload',
@@ -138,11 +142,11 @@ class Mantis_SEO_Admin {
 			)
 		);
 
-		if ( strpos( $hook, 'mantis-seo' ) !== false || 'post.php' === $hook || 'post-new.php' === $hook ) {
+		if ( $is_mantis || $is_post_edit ) {
 			wp_enqueue_script( 'mantis-template-editor' );
 		}
 
-		if ( 'post.php' === $hook || 'post-new.php' === $hook ) {
+		if ( $is_post_edit ) {
 			wp_enqueue_script(
 				'mantis-seo-metabox',
 				MANTIS_SEO_URL . 'assets/js/admin-metabox.js',
@@ -152,7 +156,12 @@ class Mantis_SEO_Admin {
 			);
 
 			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-			if ( $screen && method_exists( $screen, 'is_block_editor' ) && $screen->is_block_editor() ) {
+			if (
+				$screen
+				&& Mantis_SEO_Redirect_Manager::is_redirect_notice_screen()
+				&& method_exists( $screen, 'is_block_editor' )
+				&& $screen->is_block_editor()
+			) {
 				wp_enqueue_script(
 					'mantis-seo-editor-redirect-notice',
 					MANTIS_SEO_URL . 'assets/js/editor-redirect-notice.js',
@@ -162,17 +171,28 @@ class Mantis_SEO_Admin {
 				);
 				wp_localize_script(
 					'mantis-seo-editor-redirect-notice',
-					'mantisSeoEditorRedirect',
-					array(
-						'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
-						'nonce'            => wp_create_nonce( 'mantis_seo_editor_redirect_notice' ),
-						'viewRedirectLabel' => __( 'View redirect', 'mantis-seo' ),
-					)
+					'mantisSeoRedirectNotice',
+					$this->redirect_notice_script_l10n()
 				);
 			}
 		}
 
-		if ( strpos( $hook, 'mantis-seo' ) !== false ) {
+		if ( $is_post_list && Mantis_SEO_Redirect_Manager::is_redirect_notice_screen() ) {
+			wp_enqueue_script(
+				'mantis-seo-list-redirect-notice',
+				MANTIS_SEO_URL . 'assets/js/post-list-redirect-notice.js',
+				array( 'jquery', 'wp-a11y' ),
+				MANTIS_SEO_VERSION,
+				true
+			);
+			wp_localize_script(
+				'mantis-seo-list-redirect-notice',
+				'mantisSeoRedirectNotice',
+				$this->redirect_notice_script_l10n()
+			);
+		}
+
+		if ( $is_mantis ) {
 			wp_enqueue_script(
 				'mantis-seo-admin-app',
 				MANTIS_SEO_URL . 'assets/js/admin-app.js',
@@ -181,5 +201,19 @@ class Mantis_SEO_Admin {
 				true
 			);
 		}
+	}
+
+	/**
+	 * Shared strings / AJAX config for block-editor and post-list redirect notices.
+	 *
+	 * @return array
+	 */
+	private function redirect_notice_script_l10n() {
+		return array(
+			'ajaxUrl'           => admin_url( 'admin-ajax.php' ),
+			'nonce'             => wp_create_nonce( 'mantis_seo_editor_redirect_notice' ),
+			'viewRedirectLabel' => __( 'View redirect', 'mantis-seo' ),
+			'dismissNoticeSr'  => __( 'Dismiss this notice.', 'mantis-seo' ),
+		);
 	}
 }
