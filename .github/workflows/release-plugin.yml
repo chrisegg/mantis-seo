@@ -1,0 +1,39 @@
+# Build a WordPress-installable zip (mantis-seo/ root) and attach it to the published release.
+# Updater package URL: https://github.com/{owner}/{repo}/releases/download/{tag}/mantis-seo.zip
+
+name: Release plugin zip
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  attach-zip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+
+      - name: Build installable zip
+        run: |
+          mkdir -p build
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='build' \
+            --exclude='deploy.php' \
+            --exclude='deploy-config.php' \
+            --exclude='deploy.log' \
+            ./ build/mantis-seo/
+          (cd build && zip -rq ../mantis-seo.zip mantis-seo)
+          unzip -l mantis-seo.zip | head -20
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mantis-seo.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

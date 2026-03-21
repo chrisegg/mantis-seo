@@ -115,6 +115,16 @@ mantis-seo/
 
 ---
 
+## Releases & updates
+
+Publishing a **GitHub release** triggers [`.github/workflows/release-plugin.yml`](.github/workflows/release-plugin.yml), which builds an installable zip with a `mantis-seo/` root and uploads **`mantis-seo.zip`** to that release. Installed sites check `GET /repos/chrisegg/mantis-seo/releases/latest` and download:
+
+`https://github.com/chrisegg/mantis-seo/releases/download/{tag}/mantis-seo.zip`
+
+Use a release **tag** whose version (with or without a leading `v`) matches **`Version:`** in `mantis-seo.php` for that release. Release notes on GitHub populate the WordPress “View version details” changelog when present.
+
+---
+
 ## Development
 
 - Follow WordPress coding standards and capability checks (`manage_options` for settings, `edit_post` for metabox saves).

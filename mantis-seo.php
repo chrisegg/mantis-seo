@@ -12,6 +12,7 @@
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain: mantis-seo
  * Domain Path: /languages
+ * Update URI: https://github.com/chrisegg/mantis-seo
  *
  * @package Mantis_SEO
  */
@@ -25,6 +26,8 @@ define( 'MANTIS_SEO_FILE', __FILE__ );
 define( 'MANTIS_SEO_PATH', plugin_dir_path( __FILE__ ) );
 define( 'MANTIS_SEO_URL', plugin_dir_url( __FILE__ ) );
 define( 'MANTIS_SEO_BASENAME', plugin_basename( __FILE__ ) );
+define( 'MANTIS_SEO_GITHUB_REPO', 'chrisegg/mantis-seo' );
+define( 'MANTIS_SEO_RELEASE_ZIP', 'mantis-seo.zip' );
 
 /**
  * Load text domain.
@@ -33,6 +36,9 @@ function mantis_seo_load_textdomain() {
 	load_plugin_textdomain( 'mantis-seo', false, dirname( MANTIS_SEO_BASENAME ) . '/languages' );
 }
 add_action( 'init', 'mantis_seo_load_textdomain' );
+
+require_once MANTIS_SEO_PATH . 'includes/class-mantis-seo-updater.php';
+add_action( 'plugins_loaded', array( 'Mantis_SEO_Updater', 'init' ), 5 );
 
 /**
  * Main plugin bootstrap.
