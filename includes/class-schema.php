@@ -30,12 +30,13 @@ class Mantis_SEO_Schema {
 			return;
 		}
 
+		// Avoid JSON_UNESCAPED_SLASHES: unescaped </script> in a string breaks out of the script tag.
 		$json = wp_json_encode(
 			array(
 				'@context' => 'https://schema.org',
 				'@graph'   => $graph,
 			),
-			JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+			JSON_UNESCAPED_UNICODE
 		);
 
 		if ( $json ) {

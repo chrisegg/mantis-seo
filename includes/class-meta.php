@@ -169,15 +169,7 @@ class Mantis_SEO_Meta {
 			return $meta;
 		}
 
-		$custom = $this->get_post_meta( $object_id, 'title' );
-		if ( ! empty( trim( (string) $custom ) ) ) {
-			$title = $this->replace_vars( $custom, $post );
-		} else {
-			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
-			$title   = $this->replace_vars( $template, $post );
-		}
-		$meta['document_title'] = $title;
+		$meta['document_title'] = $this->replace_vars( self::get_raw_title_template_for_post( $post ), $post );
 
 		$description = $this->get_post_meta( $object_id, 'description' );
 		if ( empty( $description ) ) {
@@ -257,6 +249,25 @@ class Mantis_SEO_Meta {
 	}
 
 	/**
+	 * Featured image URL for the main queried singular post (memoized per request).
+	 *
+	 * @return string URL or empty.
+	 */
+	private function get_queried_post_thumbnail_url() {
+		if ( ! is_singular() ) {
+			return '';
+		}
+		static $memo = null;
+		if ( null !== $memo ) {
+			return $memo;
+		}
+		$id = get_queried_object_id();
+		$url = $id ? get_the_post_thumbnail_url( $id, 'full' ) : '';
+		$memo = $url ? (string) $url : '';
+		return $memo;
+	}
+
+	/**
 	 * Build OG array.
 	 *
 	 * @param array $meta Meta data.
@@ -290,7 +301,7 @@ class Mantis_SEO_Meta {
 				}
 			}
 			if ( empty( $og['image'] ) ) {
-				$thumb = get_the_post_thumbnail_url( get_queried_object_id(), 'full' );
+				$thumb = $this->get_queried_post_thumbnail_url();
 				if ( $thumb ) {
 					$og['image'] = $thumb;
 				}
@@ -317,7 +328,7 @@ class Mantis_SEO_Meta {
 		);
 
 		if ( is_singular() && empty( $twitter['image'] ) ) {
-			$thumb = get_the_post_thumbnail_url( get_queried_object_id(), 'full' );
+			$thumb = $this->get_queried_post_thumbnail_url();
 			if ( $thumb ) {
 				$twitter['image'] = $thumb;
 			}
@@ -334,18 +345,11 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title( $title ) {
 		if ( is_singular() ) {
-			$post     = get_post( get_queried_object_id() );
+			$post = get_post( get_queried_object_id() );
 			if ( ! $post ) {
 				return $title;
 			}
-			$custom   = $this->get_post_meta( get_queried_object_id(), 'title' );
-			if ( ! empty( trim( (string) $custom ) ) ) {
-				return $this->replace_vars( $custom, $post );
-			}
-			$settings = Mantis_SEO_Main::get_settings();
-			$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-			$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
-			return $this->replace_vars( $template, $post );
+			return $this->replace_vars( self::get_raw_title_template_for_post( $post ), $post );
 		}
 		if ( is_home() && ! is_front_page() ) {
 			$settings = Mantis_SEO_Main::get_settings();
@@ -363,20 +367,11 @@ class Mantis_SEO_Meta {
 	 */
 	public function filter_title_parts( $parts ) {
 		if ( is_singular() ) {
-			$post   = get_post( get_queried_object_id() );
+			$post = get_post( get_queried_object_id() );
 			if ( ! $post ) {
 				return $parts;
 			}
-			$custom = $this->get_post_meta( get_queried_object_id(), 'title' );
-			if ( ! empty( trim( (string) $custom ) ) ) {
-				$resolved = $this->replace_vars( $custom, $post );
-			} else {
-				$settings = Mantis_SEO_Main::get_settings();
-				$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-				$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
-				$resolved = $this->replace_vars( $template, $post );
-			}
-			$parts['title'] = $resolved;
+			$parts['title'] = $this->replace_vars( self::get_raw_title_template_for_post( $post ), $post );
 			unset( $parts['tagline'], $parts['site'] );
 		}
 		return $parts;
@@ -401,14 +396,23 @@ class Mantis_SEO_Meta {
 	 * @return string
 	 */
 	public static function resolve_document_title_for_post( WP_Post $post ) {
+		return self::replace_vars_for_preview( self::get_raw_title_template_for_post( $post ), $post );
+	}
+
+	/**
+	 * Raw SEO title template for a post (custom meta or global template).
+	 *
+	 * @param WP_Post $post Post.
+	 * @return string
+	 */
+	public static function get_raw_title_template_for_post( WP_Post $post ) {
 		$custom = self::get_post_meta( $post->ID, 'title' );
 		if ( ! empty( trim( (string) $custom ) ) ) {
-			return self::replace_vars_for_preview( $custom, $post );
+			return $custom;
 		}
 		$settings = Mantis_SEO_Main::get_settings();
 		$template = 'post' === $post->post_type ? $settings['title_post'] : $settings['title_page'];
-		$template = ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
-		return self::replace_vars_for_preview( $template, $post );
+		return ! empty( trim( (string) $template ) ) ? $template : '%post_title% %page% %separator% %site_name%';
 	}
 
 	/**
@@ -450,7 +454,18 @@ class Mantis_SEO_Meta {
 		if ( empty( $str ) ) {
 			return '';
 		}
+		$r = self::build_replacements_map( $post, true );
+		return str_replace( array_keys( $r ), array_values( $r ), $str );
+	}
 
+	/**
+	 * Build %var% replacement map.
+	 *
+	 * @param WP_Post|null $post                 Optional post.
+	 * @param bool         $include_pagination  Whether to resolve %page% from the main query (front-end only).
+	 * @return array
+	 */
+	private static function build_replacements_map( $post = null, $include_pagination = false ) {
 		$replacements = array(
 			'%site_name%'        => get_bloginfo( 'name' ),
 			'%site_description%' => get_bloginfo( 'description' ),
@@ -460,16 +475,19 @@ class Mantis_SEO_Meta {
 			'%date%'             => date_i18n( get_option( 'date_format' ) ),
 		);
 
-		// Pagination: "Page 2 of 8" on paged views, empty on first page.
-		$paged = get_query_var( 'paged' ) ? (int) get_query_var( 'paged' ) : ( get_query_var( 'page' ) ? (int) get_query_var( 'page' ) : 0 );
-		$replacements['%page%'] = '';
-		if ( $paged > 0 ) {
-			global $wp_query;
-			$max = isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 1;
-			$replacements['%page%'] = sprintf( /* translators: 1: current page, 2: total pages */ __( 'Page %1$d of %2$d', 'mantis-seo' ), $paged, $max );
+		if ( $include_pagination ) {
+			$paged = get_query_var( 'paged' ) ? (int) get_query_var( 'paged' ) : ( get_query_var( 'page' ) ? (int) get_query_var( 'page' ) : 0 );
+			$replacements['%page%'] = '';
+			if ( $paged > 0 ) {
+				global $wp_query;
+				$max = isset( $wp_query->max_num_pages ) ? (int) $wp_query->max_num_pages : 1;
+				$replacements['%page%'] = sprintf( /* translators: 1: current page, 2: total pages */ __( 'Page %1$d of %2$d', 'mantis-seo' ), $paged, $max );
+			}
+		} else {
+			$replacements['%page%'] = '';
 		}
 
-		if ( $post ) {
+		if ( $post instanceof WP_Post ) {
 			$post_title = $post->post_title;
 			if ( '' === trim( (string) $post_title ) ) {
 				$post_title = __( 'No title', 'mantis-seo' );
@@ -484,7 +502,7 @@ class Mantis_SEO_Meta {
 			$replacements['%separator%'] = $settings['separator'];
 		}
 
-		return str_replace( array_keys( $replacements ), array_values( $replacements ), $str );
+		return $replacements;
 	}
 
 	/**
@@ -509,33 +527,7 @@ class Mantis_SEO_Meta {
 	 * @return array Map of %var% => replacement value.
 	 */
 	public static function get_replacements_for_preview( $post = null ) {
-		$replacements = array(
-			'%site_name%'        => get_bloginfo( 'name' ),
-			'%site_description%' => get_bloginfo( 'description' ),
-			'%sitename%'         => get_bloginfo( 'name' ),
-			'%sitedesc%'         => get_bloginfo( 'description' ),
-			'%separator%'        => '|',
-			'%date%'             => date_i18n( get_option( 'date_format' ) ),
-		);
-
-		$replacements['%page%'] = '';
-
-		if ( $post ) {
-			$post_title = $post->post_title;
-			if ( '' === trim( (string) $post_title ) ) {
-				$post_title = __( 'No title', 'mantis-seo' );
-			}
-			$replacements['%post_title%'] = $post_title;
-			$replacements['%title%']      = $post_title;
-			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
-		}
-
-		$settings = Mantis_SEO_Main::get_settings();
-		if ( isset( $settings['separator'] ) ) {
-			$replacements['%separator%'] = $settings['separator'];
-		}
-
-		return $replacements;
+		return self::build_replacements_map( $post, false );
 	}
 
 	/**
@@ -581,7 +573,31 @@ class Mantis_SEO_Meta {
 	 * @return string
 	 */
 	private function get_canonical_url() {
+		if ( function_exists( 'wp_get_canonical_url' ) && is_singular() ) {
+			$id = get_queried_object_id();
+			if ( $id ) {
+				$url = wp_get_canonical_url( $id );
+				if ( ! empty( $url ) ) {
+					return $url;
+				}
+			}
+		}
+
+		$paged = get_query_var( 'paged' ) ? (int) get_query_var( 'paged' ) : 0;
+		$page  = get_query_var( 'page' ) ? (int) get_query_var( 'page' ) : 0;
+		$p     = max( $paged, $page );
+		if ( $p > 1 ) {
+			$paginated = get_pagenum_link( $p, false );
+			if ( ! empty( $paginated ) ) {
+				return $paginated;
+			}
+		}
+
 		global $wp;
-		return home_url( $wp->request );
+		$request = isset( $wp->request ) && is_string( $wp->request ) ? $wp->request : '';
+		if ( '' === $request ) {
+			return home_url( '/' );
+		}
+		return home_url( user_trailingslashit( $request ) );
 	}
 }

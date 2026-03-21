@@ -15,6 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 
 	/**
+	 * Post meta: when set to "1", exclude from sitemap (matches front-end noindex).
+	 */
+	const NOINDEX_META_KEY = '_mantis_robots_noindex';
+
+	/**
 	 * Post type.
 	 *
 	 * @var string
@@ -41,20 +46,90 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 	}
 
 	/**
+	 * Meta query: include posts that are not explicitly noindex.
+	 *
+	 * @return array
+	 */
+	private function noindex_meta_query() {
+		return array(
+			'relation' => 'OR',
+			array(
+				'key'     => self::NOINDEX_META_KEY,
+				'compare' => 'NOT EXISTS',
+			),
+			array(
+				'key'     => self::NOINDEX_META_KEY,
+				'value'   => '1',
+				'compare' => '!=',
+			),
+		);
+	}
+
+	/**
+	 * Count published posts eligible for the sitemap.
+	 *
+	 * @return int
+	 */
+	private function count_indexable_posts() {
+		$q = new WP_Query(
+			array(
+				'post_type'              => $this->post_type,
+				'post_status'            => 'publish',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'meta_query'             => $this->noindex_meta_query(),
+			)
+		);
+		return (int) $q->found_posts;
+	}
+
+	/**
+	 * Latest GMT modified date among indexable posts (for sitemap index lastmod).
+	 *
+	 * @return string ISO 8601 or empty.
+	 */
+	private function get_latest_modified_iso_for_indexable() {
+		global $wpdb;
+		$key = self::NOINDEX_META_KEY;
+		$max = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT MAX(p.post_modified_gmt) FROM {$wpdb->posts} p
+				WHERE p.post_type = %s AND p.post_status = 'publish'
+				AND NOT EXISTS (
+					SELECT 1 FROM {$wpdb->postmeta} pm
+					WHERE pm.post_id = p.ID AND pm.meta_key = %s AND pm.meta_value = '1'
+				)",
+				$this->post_type,
+				$key
+			)
+		);
+		if ( ! $max || '0000-00-00 00:00:00' === $max ) {
+			return '';
+		}
+		return get_date_from_gmt( $max, 'c' );
+	}
+
+	/**
 	 * Get index links.
 	 *
 	 * @param int $max_entries Max entries per sitemap.
 	 * @return array
 	 */
 	public function get_index_links( $max_entries ) {
-		$count = wp_count_posts( $this->post_type );
-		$total = isset( $count->publish ) ? (int) $count->publish : 0;
+		$total = $this->count_indexable_posts();
 		if ( $total <= 0 ) {
 			return array();
 		}
 
 		$links   = array();
 		$pages   = (int) ceil( $total / $max_entries );
+		$lastmod = $this->get_latest_modified_iso_for_indexable();
+		if ( '' === $lastmod ) {
+			$lastmod = current_time( 'c' );
+		}
 
 		for ( $i = 1; $i <= $pages; $i++ ) {
 			$url = $pages > 1
@@ -62,7 +137,7 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 				: home_url( '/sitemap_' . $this->post_type . 's.xml' );
 			$links[] = array(
 				'loc'     => $url,
-				'lastmod' => current_time( 'c' ),
+				'lastmod' => $lastmod,
 			);
 		}
 
@@ -88,6 +163,7 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 			'orderby'        => 'modified',
 			'order'          => 'DESC',
 			'no_found_rows'  => true,
+			'meta_query'     => $this->noindex_meta_query(),
 		);
 
 		$query = new WP_Query( $args );

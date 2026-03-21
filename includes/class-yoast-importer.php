@@ -35,7 +35,7 @@ class Mantis_SEO_Yoast_Importer {
 	);
 
 	/**
-	 * Meta keys to skip.
+	 * Yoast-only meta (scores, internal flags) — not mapped to Mantis.
 	 *
 	 * @var array
 	 */
@@ -103,58 +103,67 @@ class Mantis_SEO_Yoast_Importer {
 	 */
 	private static function migrate_posts() {
 		global $wpdb;
-		$count = 0;
+		$count     = 0;
+		$batch     = 1000;
+		$offset    = 0;
+		$like      = $wpdb->esc_like( '_yoast_wpseo_' ) . '%';
 
-		$rows = $wpdb->get_results(
-			"SELECT post_id, meta_key, meta_value FROM $wpdb->postmeta WHERE meta_key LIKE '_yoast_wpseo_%'",
-			ARRAY_A
-		);
+		while ( true ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT post_id, meta_key, meta_value FROM $wpdb->postmeta WHERE meta_key LIKE %s LIMIT %d OFFSET %d",
+					$like,
+					$batch,
+					$offset
+				),
+				ARRAY_A
+			);
 
-		if ( empty( $rows ) ) {
-			return 0;
-		}
-
-		$post_meta = array();
-		foreach ( $rows as $row ) {
-			if ( in_array( $row['meta_key'], self::$skip_keys, true ) ) {
-				continue;
-			}
-			if ( ! isset( self::$meta_map[ $row['meta_key'] ] ) ) {
-				continue;
-			}
-			$new_key = self::$meta_map[ $row['meta_key'] ];
-			$value   = $row['meta_value'];
-
-			// Convert Yoast robots: 1 = noindex/nofollow.
-			if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
-				$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
+			if ( empty( $rows ) ) {
+				break;
 			}
 
-			// Convert Yoast template variables in titles and descriptions.
-			if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
-				$value = self::convert_yoast_vars( $value );
-			}
-
-			// Only migrate title when Yoast had a custom value - defaults are pushed separately.
-			if ( '_mantis_title' === $new_key ) {
-				$trimmed = trim( (string) $value );
-				$converted_default = self::convert_yoast_vars( '%%title%% %%page%% %%sep%% %%sitename%%' );
-				if ( '' === $trimmed || $trimmed === $converted_default ) {
+			$post_meta = array();
+			foreach ( $rows as $row ) {
+				if ( in_array( $row['meta_key'], self::$skip_keys, true ) ) {
 					continue;
+				}
+				if ( ! isset( self::$meta_map[ $row['meta_key'] ] ) ) {
+					continue;
+				}
+				$new_key = self::$meta_map[ $row['meta_key'] ];
+				$value   = $row['meta_value'];
+
+				if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
+					$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
+				}
+
+				if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
+					$value = self::convert_yoast_vars( $value );
+				}
+
+				if ( '_mantis_title' === $new_key ) {
+					$trimmed           = trim( (string) $value );
+					$converted_default = self::convert_yoast_vars( '%%title%% %%page%% %%sep%% %%sitename%%' );
+					if ( '' === $trimmed || $trimmed === $converted_default ) {
+						continue;
+					}
+				}
+
+				if ( ! isset( $post_meta[ $row['post_id'] ] ) ) {
+					$post_meta[ $row['post_id'] ] = array();
+				}
+				$post_meta[ $row['post_id'] ][ $new_key ] = $value;
+			}
+
+			foreach ( $post_meta as $post_id => $meta ) {
+				foreach ( $meta as $key => $value ) {
+					update_post_meta( (int) $post_id, $key, $value );
+					$count++;
 				}
 			}
 
-			if ( ! isset( $post_meta[ $row['post_id'] ] ) ) {
-				$post_meta[ $row['post_id'] ] = array();
-			}
-			$post_meta[ $row['post_id'] ][ $new_key ] = $value;
-		}
-
-		foreach ( $post_meta as $post_id => $meta ) {
-			foreach ( $meta as $key => $value ) {
-				update_post_meta( (int) $post_id, $key, $value );
-				$count++;
-			}
+			$offset += $batch;
 		}
 
 		return $count;
@@ -173,42 +182,55 @@ class Mantis_SEO_Yoast_Importer {
 			return 0;
 		}
 
-		$rows = $wpdb->get_results(
-			"SELECT term_id, meta_key, meta_value FROM $wpdb->termmeta WHERE meta_key LIKE '_yoast_wpseo_%'",
-			ARRAY_A
-		);
+		$batch  = 1000;
+		$offset = 0;
+		$like   = $wpdb->esc_like( '_yoast_wpseo_' ) . '%';
 
-		if ( empty( $rows ) ) {
-			return 0;
-		}
+		while ( true ) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT term_id, meta_key, meta_value FROM $wpdb->termmeta WHERE meta_key LIKE %s LIMIT %d OFFSET %d",
+					$like,
+					$batch,
+					$offset
+				),
+				ARRAY_A
+			);
 
-		$term_meta = array();
-		foreach ( $rows as $row ) {
-			if ( in_array( $row['meta_key'], self::$skip_keys, true ) ) {
-				continue;
+			if ( empty( $rows ) ) {
+				break;
 			}
-			if ( ! isset( self::$meta_map[ $row['meta_key'] ] ) ) {
-				continue;
-			}
-			$new_key = self::$meta_map[ $row['meta_key'] ];
-			$value   = $row['meta_value'];
-			if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
-				$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
-			}
-			if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
-				$value = self::convert_yoast_vars( $value );
-			}
-			if ( ! isset( $term_meta[ $row['term_id'] ] ) ) {
-				$term_meta[ $row['term_id'] ] = array();
-			}
-			$term_meta[ $row['term_id'] ][ $new_key ] = $value;
-		}
 
-		foreach ( $term_meta as $term_id => $meta ) {
-			foreach ( $meta as $key => $value ) {
-				update_term_meta( (int) $term_id, $key, $value );
-				$count++;
+			$term_meta = array();
+			foreach ( $rows as $row ) {
+				if ( in_array( $row['meta_key'], self::$skip_keys, true ) ) {
+					continue;
+				}
+				if ( ! isset( self::$meta_map[ $row['meta_key'] ] ) ) {
+					continue;
+				}
+				$new_key = self::$meta_map[ $row['meta_key'] ];
+				$value   = $row['meta_value'];
+				if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
+					$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
+				}
+				if ( in_array( $new_key, array( '_mantis_title', '_mantis_description', '_mantis_og_title', '_mantis_og_description', '_mantis_twitter_title', '_mantis_twitter_description' ), true ) ) {
+					$value = self::convert_yoast_vars( $value );
+				}
+				if ( ! isset( $term_meta[ $row['term_id'] ] ) ) {
+					$term_meta[ $row['term_id'] ] = array();
+				}
+				$term_meta[ $row['term_id'] ][ $new_key ] = $value;
 			}
+
+			foreach ( $term_meta as $term_id => $meta ) {
+				foreach ( $meta as $key => $value ) {
+					update_term_meta( (int) $term_id, $key, $value );
+					$count++;
+				}
+			}
+
+			$offset += $batch;
 		}
 
 		return $count;

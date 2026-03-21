@@ -297,11 +297,11 @@ class Mantis_SEO_Settings_Page {
 			$idx_meta = -1;
 		}
 
-		$updates = array();
+		$pending = array();
 		for ( $i = 1; $i < count( $lines ); $i++ ) {
-			$row = str_getcsv( $lines[ $i ] );
+			$row     = str_getcsv( $lines[ $i ] );
 			$post_id = isset( $row[ $idx_id ] ) ? absint( $row[ $idx_id ] ) : 0;
-			if ( ! $post_id || ! get_post( $post_id ) ) {
+			if ( ! $post_id ) {
 				continue;
 			}
 			$keyphrase = ( $idx_keyphrase >= 0 && isset( $row[ $idx_keyphrase ] ) ) ? trim( (string) $row[ $idx_keyphrase ] ) : '';
@@ -310,14 +310,45 @@ class Mantis_SEO_Settings_Page {
 			if ( '' === $keyphrase && '' === $title && '' === $desc ) {
 				continue;
 			}
-			$title = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $title );
-			$desc  = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $desc );
-			$updates[ $post_id ] = array(
+			$pending[ $post_id ] = array(
 				'focus_keyword' => $keyphrase,
 				'title'         => $title,
 				'description'   => $desc,
 			);
 		}
+
+		if ( empty( $pending ) ) {
+			return array();
+		}
+
+		$existing = get_posts(
+			array(
+				'post__in'               => array_keys( $pending ),
+				'post_status'            => 'any',
+				'posts_per_page'         => -1,
+				'fields'                 => 'ids',
+				'orderby'                => 'none',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			)
+		);
+		$valid = array_flip( array_map( 'intval', $existing ) );
+
+		$updates = array();
+		foreach ( $pending as $post_id => $row ) {
+			if ( ! isset( $valid[ $post_id ] ) ) {
+				continue;
+			}
+			$title = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $row['title'] );
+			$desc  = Mantis_SEO_Yoast_Importer::convert_yoast_vars( $row['description'] );
+			$updates[ $post_id ] = array(
+				'focus_keyword' => $row['focus_keyword'],
+				'title'         => $title,
+				'description'   => $desc,
+			);
+		}
+
 		return $updates;
 	}
 
@@ -491,6 +522,32 @@ class Mantis_SEO_Settings_Page {
 	}
 
 	/**
+	 * Export / import tools tab panel markup.
+	 */
+	private function render_settings_tools_panel() {
+		?>
+					<div id="mantis-tools" class="mantis-tab-panel mantis-tools-panel" style="display:none;">
+						<h2 class="mantis-tools-panel__page-title"><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
+						<p class="mantis-tools-panel__intro"><?php esc_html_e( 'Export your settings or import from a backup. You can also import directly from Yoast SEO (INI/text or Keywords CSV).', 'mantis-seo' ); ?></p>
+						<div class="mantis-tools-stack">
+							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-export-heading">
+								<h3 id="mantis-tools-export-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Download a JSON file with your current Mantis SEO settings. Use it as a backup or to copy configuration to another site.', 'mantis-seo' ); ?></p>
+								<div class="mantis-tools-card__actions">
+									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button button-primary mantis-tools-action-btn"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
+								</div>
+							</section>
+							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-import-heading">
+								<h3 id="mantis-tools-import-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></h3>
+								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Choose a file and run import. Supported formats: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or a simple CSV of key,value pairs.', 'mantis-seo' ); ?></p>
+								<div id="mantis-import-cell" class="mantis-tools-import-slot"></div>
+							</section>
+						</div>
+					</div>
+		<?php
+	}
+
+	/**
 	 * Render settings page.
 	 */
 	public function render() {
@@ -538,9 +595,23 @@ class Mantis_SEO_Settings_Page {
 				);
 			}
 		}
+		wp_enqueue_script(
+			'mantis-seo-admin-settings',
+			MANTIS_SEO_URL . 'assets/js/admin-settings.js',
+			array(),
+			MANTIS_SEO_VERSION,
+			true
+		);
+		wp_localize_script(
+			'mantis-seo-admin-settings',
+			'mantisSeoSettings',
+			array(
+				'allowedTabs' => $this->get_settings_panel_ids(),
+			)
+		);
 		?>
 		<div class="mantis-seo-app" id="mantis-seo-app">
-			<script>!function(){var e=document.getElementById("mantis-seo-app");e&&"dark"===localStorage.getItem("mantis_seo_theme")&&e.classList.add("mantis-seo-dark")}();</script>
+			<?php require_once MANTIS_SEO_PATH . 'admin/partials/theme-boot-script.php'; ?>
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-seo-settings">
@@ -806,24 +877,7 @@ class Mantis_SEO_Settings_Page {
 						</table>
 					</div>
 
-					<div id="mantis-tools" class="mantis-tab-panel mantis-tools-panel" style="display:none;">
-						<h2 class="mantis-tools-panel__page-title"><?php esc_html_e( 'Export / Import', 'mantis-seo' ); ?></h2>
-						<p class="mantis-tools-panel__intro"><?php esc_html_e( 'Export your settings or import from a backup. You can also import directly from Yoast SEO (INI/text or Keywords CSV).', 'mantis-seo' ); ?></p>
-						<div class="mantis-tools-stack">
-							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-export-heading">
-								<h3 id="mantis-tools-export-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Export Settings', 'mantis-seo' ); ?></h3>
-								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Download a JSON file with your current Mantis SEO settings. Use it as a backup or to copy configuration to another site.', 'mantis-seo' ); ?></p>
-								<div class="mantis-tools-card__actions">
-									<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'mantis_export', 1 ), 'mantis_export', '_wpnonce' ) ); ?>" class="button button-primary mantis-tools-action-btn"><?php esc_html_e( 'Download export file', 'mantis-seo' ); ?></a>
-								</div>
-							</section>
-							<section class="mantis-settings-card mantis-tools-card" aria-labelledby="mantis-tools-import-heading">
-								<h3 id="mantis-tools-import-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Import Settings', 'mantis-seo' ); ?></h3>
-								<p class="mantis-settings-card__lead"><?php esc_html_e( 'Choose a file and run import. Supported formats: Mantis JSON, Yoast INI/text, Yoast Keywords CSV, or a simple CSV of key,value pairs.', 'mantis-seo' ); ?></p>
-								<div id="mantis-import-cell" class="mantis-tools-import-slot"></div>
-							</section>
-						</div>
-					</div>
+					<?php $this->render_settings_tools_panel(); ?>
 
 				<?php submit_button(); ?>
 					</div>
@@ -843,50 +897,6 @@ class Mantis_SEO_Settings_Page {
 				</div>
 			</main>
 		</div>
-
-		<script>
-		(function() {
-			var navItems = document.querySelectorAll('.mantis-settings-nav-item');
-			var panels = document.querySelectorAll('.mantis-settings-body .mantis-tab-panel');
-			var importForm = document.getElementById('mantis-import-form');
-			var importCell = document.getElementById('mantis-import-cell');
-			var activeTabInput = document.getElementById('mantis-settings-active-tab');
-			var allowedTabs = <?php echo wp_json_encode( $panel_ids ); ?>;
-			function showPanel(targetId) {
-				navItems.forEach(function(n) { n.classList.remove('mantis-settings-nav-active'); });
-				panels.forEach(function(p) {
-					p.style.display = p.id === targetId ? 'block' : 'none';
-				});
-				var active = document.querySelector('.mantis-settings-nav-item[data-panel="' + targetId + '"]');
-				if (active) active.classList.add('mantis-settings-nav-active');
-				if (activeTabInput) activeTabInput.value = targetId;
-				if (targetId === 'mantis-tools' && importForm && importCell) {
-					importCell.appendChild(importForm);
-					importForm.style.display = 'block';
-				} else if (importForm) {
-					importForm.style.display = 'none';
-				}
-			}
-			navItems.forEach(function(item) {
-				item.addEventListener('click', function(e) {
-					e.preventDefault();
-					var targetId = this.getAttribute('data-panel') || this.getAttribute('href').slice(1);
-					showPanel(targetId);
-				});
-			});
-			if (window.location.search.indexOf('mantis_import_error') !== -1) {
-				showPanel('mantis-tools');
-			} else {
-				var params = new URLSearchParams(window.location.search);
-				var tabParam = params.get('mantis_tab');
-				if (tabParam && allowedTabs.indexOf(tabParam) !== -1 && document.getElementById(tabParam)) {
-					showPanel(tabParam);
-				} else if (activeTabInput && activeTabInput.value && activeTabInput.value !== 'mantis-titles') {
-					showPanel(activeTabInput.value);
-				}
-			}
-		})();
-		</script>
 		<?php
 	}
 }

@@ -15,11 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Mantis_SEO_Metabox {
 
 	/**
-	 * Meta prefix.
+	 * Meta prefix (single source: Mantis_SEO_Meta).
 	 *
 	 * @var string
 	 */
-	const META_PREFIX = '_mantis_';
+	const META_PREFIX = Mantis_SEO_Meta::META_PREFIX;
 
 	/**
 	 * Constructor.
@@ -57,6 +57,25 @@ class Mantis_SEO_Metabox {
 	}
 
 	/**
+	 * Google-style snippet preview block (search result mockup).
+	 *
+	 * @param string $preview_title Resolved title text.
+	 * @param string $preview_desc  Resolved description text.
+	 * @param string $preview_url   Permalink.
+	 */
+	private function render_metabox_snippet_preview( $preview_title, $preview_desc, $preview_url ) {
+		echo '<div class="mantis-seo-preview">';
+		echo '<h3 class="mantis-seo-preview-heading">' . esc_html__( 'Preview', 'mantis-seo' ) . '</h3>';
+		echo '<div class="mantis-seo-snippet">';
+		echo '<a><span id="mantis-snippet-title">' . esc_html( $preview_title ) . '</span></a>';
+		echo '<cite id="mantis-snippet-url">' . esc_url( $preview_url ) . '</cite>';
+		echo '<span id="mantis-snippet-description">' . esc_html( $preview_desc ) . '</span>';
+		echo '</div>';
+		echo '<p class="mantis-seo-preview-counts"><span id="mantis-title-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . ' · <span id="mantis-desc-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . '</p>';
+		echo '</div>';
+	}
+
+	/**
 	 * Render metabox.
 	 *
 	 * @param WP_Post $post Post object.
@@ -67,7 +86,6 @@ class Mantis_SEO_Metabox {
 		$fields         = $this->get_field_definitions();
 		$title_template = $this->get_effective_default_title_template( $post->post_type );
 
-		// Compact trigger button in sidebar.
 		echo '<div class="mantis-seo-metabox-trigger">';
 		echo '<button type="button" class="button button-primary button-large mantis-seo-open-panel">';
 		echo '<span class="dashicons dashicons-admin-generic" style="margin-right:4px;margin-top:3px;"></span>';
@@ -122,15 +140,7 @@ class Mantis_SEO_Metabox {
 			$first  = false;
 			echo '<div class="mantis-seo-metabox">';
 			if ( 'meta' === $tab_id ) {
-				echo '<div class="mantis-seo-preview">';
-				echo '<h3 class="mantis-seo-preview-heading">' . esc_html__( 'Preview', 'mantis-seo' ) . '</h3>';
-				echo '<div class="mantis-seo-snippet">';
-				echo '<a><span id="mantis-snippet-title">' . esc_html( $preview_title ) . '</span></a>';
-				echo '<cite id="mantis-snippet-url">' . esc_url( $preview_url ) . '</cite>';
-				echo '<span id="mantis-snippet-description">' . esc_html( $preview_desc ) . '</span>';
-				echo '</div>';
-				echo '<p class="mantis-seo-preview-counts"><span id="mantis-title-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . ' · <span id="mantis-desc-count">0</span> ' . esc_html__( 'characters', 'mantis-seo' ) . '</p>';
-				echo '</div>';
+				$this->render_metabox_snippet_preview( $preview_title, $preview_desc, $preview_url );
 			}
 			foreach ( $tab_fields as $key => $label ) {
 				$stored   = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
@@ -328,22 +338,13 @@ class Mantis_SEO_Metabox {
 	}
 
 	/**
-	 * Save metabox.
+	 * Persist SEO fields from POST (classic save or AJAX).
 	 *
-	 * @param int     $post_id Post ID.
-	 * @param WP_Post $post    Post object.
+	 * @param int     $post_id       Post ID.
+	 * @param WP_Post $post          Post object.
+	 * @param string  $checkbox_mode 'isset' for form submit (unchecked = absent), 'ajax' for explicit values.
 	 */
-	public function save_metabox( $post_id, $post ) {
-		if ( ! isset( $_POST['mantis_seo_metabox_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_metabox_nonce'] ) ), 'mantis_seo_metabox' ) ) {
-			return;
-		}
-		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-			return;
-		}
-		if ( ! current_user_can( 'edit_post', $post_id ) ) {
-			return;
-		}
-
+	private function save_post_seo_fields( $post_id, $post, $checkbox_mode = 'isset' ) {
 		$fields = array(
 			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
 			'twitter_title', 'twitter_description', 'twitter_image',
@@ -379,8 +380,33 @@ class Mantis_SEO_Metabox {
 		$checkboxes = array( 'robots_noindex', 'robots_nofollow' );
 		foreach ( $checkboxes as $field ) {
 			$meta_key = self::META_PREFIX . $field;
-			update_post_meta( $post_id, $meta_key, isset( $_POST[ $meta_key ] ) ? '1' : '0' );
+			if ( 'ajax' === $checkbox_mode ) {
+				$value = isset( $_POST[ $meta_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) ) : '';
+				update_post_meta( $post_id, $meta_key, ( '1' === $value ) ? '1' : '0' );
+			} else {
+				update_post_meta( $post_id, $meta_key, isset( $_POST[ $meta_key ] ) ? '1' : '0' );
+			}
 		}
+	}
+
+	/**
+	 * Save metabox.
+	 *
+	 * @param int     $post_id Post ID.
+	 * @param WP_Post $post    Post object.
+	 */
+	public function save_metabox( $post_id, $post ) {
+		if ( ! isset( $_POST['mantis_seo_metabox_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_metabox_nonce'] ) ), 'mantis_seo_metabox' ) ) {
+			return;
+		}
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$this->save_post_seo_fields( $post_id, $post, 'isset' );
 	}
 
 	/**
@@ -399,44 +425,7 @@ class Mantis_SEO_Metabox {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'mantis-seo' ) ) );
 		}
 
-		$fields = array(
-			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
-			'twitter_title', 'twitter_description', 'twitter_image',
-		);
-		foreach ( $fields as $field ) {
-			$meta_key = self::META_PREFIX . $field;
-			if ( isset( $_POST[ $meta_key ] ) ) {
-				if ( in_array( $field, array( 'description', 'og_description', 'twitter_description' ), true ) ) {
-					$value = sanitize_textarea_field( wp_unslash( $_POST[ $meta_key ] ) );
-				} elseif ( 'canonical' === $field || strpos( $field, 'image' ) !== false ) {
-					$value = esc_url_raw( wp_unslash( $_POST[ $meta_key ] ) );
-				} else {
-					$value = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
-				}
-				if ( 'title' === $field ) {
-					$default_t = $this->get_effective_default_title_template( $post_obj->post_type );
-					if ( '' === trim( $value ) || trim( $value ) === trim( $default_t ) ) {
-						delete_post_meta( $post_id, $meta_key );
-						continue;
-					}
-				}
-				if ( 'description' === $field ) {
-					$default_d = $this->get_effective_default_metadesc_template( $post_obj->post_type );
-					if ( '' === trim( $value ) || trim( $value ) === trim( $default_d ) ) {
-						delete_post_meta( $post_id, $meta_key );
-						continue;
-					}
-				}
-				update_post_meta( $post_id, $meta_key, $value );
-			}
-		}
-
-		$checkboxes = array( 'robots_noindex', 'robots_nofollow' );
-		foreach ( $checkboxes as $field ) {
-			$meta_key = self::META_PREFIX . $field;
-			$value    = isset( $_POST[ $meta_key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) ) : '';
-			update_post_meta( $post_id, $meta_key, ( '1' === $value ) ? '1' : '0' );
-		}
+		$this->save_post_seo_fields( $post_id, $post_obj, 'ajax' );
 
 		wp_send_json_success( array( 'message' => __( 'SEO settings saved.', 'mantis-seo' ) ) );
 	}
@@ -512,6 +501,9 @@ class Mantis_SEO_Metabox {
 	 */
 	public function save_term_meta( $term_id ) {
 		if ( ! isset( $_POST['mantis_seo_term_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['mantis_seo_term_nonce'] ) ), 'mantis_seo_term' ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_term', (int) $term_id ) ) {
 			return;
 		}
 		if ( isset( $_POST['mantis_term_focus_keyword'] ) ) {

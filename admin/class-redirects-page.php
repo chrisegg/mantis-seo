@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Mantis_SEO_Redirects_Page {
 
 	/**
+	 * Redirects per admin list page.
+	 *
+	 * @var int
+	 */
+	const REDIRECTS_PER_PAGE = 50;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -65,12 +72,25 @@ class Mantis_SEO_Redirects_Page {
 			$format = isset( $_POST['mantis_redirect_format'] ) && 'regex' === $_POST['mantis_redirect_format'] ? 'regex' : 'plain';
 
 			if ( ! empty( $origin ) && ! empty( $target ) ) {
+				$normalized = Mantis_SEO_Redirects::normalize_origin( $origin );
+				if ( 'regex' === $format && ! Mantis_SEO_Redirects::is_valid_regex_pattern( $normalized ) ) {
+					wp_safe_redirect( add_query_arg( 'redirect_error', 'invalid_regex', admin_url( 'admin.php?page=mantis-redirects' ) ) );
+					exit;
+				}
 				$edit_id = isset( $_POST['mantis_redirect_edit_id'] ) ? (int) $_POST['mantis_redirect_edit_id'] : 0;
 				if ( $edit_id ) {
-					Mantis_SEO_Redirects::update( $edit_id, $origin, $target, $type, $format );
+					$ok = Mantis_SEO_Redirects::update( $edit_id, $origin, $target, $type, $format );
+					if ( ! $ok ) {
+						wp_safe_redirect( add_query_arg( 'redirect_error', 'save_failed', admin_url( 'admin.php?page=mantis-redirects' ) ) );
+						exit;
+					}
 					wp_safe_redirect( add_query_arg( 'updated', 1, admin_url( 'admin.php?page=mantis-redirects' ) ) );
 				} else {
-					Mantis_SEO_Redirects::add( $origin, $target, $type, $format );
+					$new_id = Mantis_SEO_Redirects::add( $origin, $target, $type, $format );
+					if ( ! $new_id ) {
+						wp_safe_redirect( add_query_arg( 'redirect_error', 'save_failed', admin_url( 'admin.php?page=mantis-redirects' ) ) );
+						exit;
+					}
 					wp_safe_redirect( add_query_arg( 'added', 1, admin_url( 'admin.php?page=mantis-redirects' ) ) );
 				}
 				exit;
@@ -86,8 +106,13 @@ class Mantis_SEO_Redirects_Page {
 			return;
 		}
 
-		$redirects = Mantis_SEO_Redirects::get_all();
-		$edit_id   = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
+		$total_redirects = Mantis_SEO_Redirects::count_all();
+		$list_page       = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+		$total_pages     = $total_redirects > 0 ? max( 1, (int) ceil( $total_redirects / self::REDIRECTS_PER_PAGE ) ) : 1;
+		$list_page       = min( $list_page, $total_pages );
+		$offset          = ( $list_page - 1 ) * self::REDIRECTS_PER_PAGE;
+		$redirects       = Mantis_SEO_Redirects::get_all( self::REDIRECTS_PER_PAGE, $offset );
+		$edit_id         = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
 		$editing   = $edit_id ? Mantis_SEO_Redirects::get_by_id( $edit_id ) : null;
 		$prefill   = isset( $_GET['origin'] ) ? sanitize_text_field( wp_unslash( $_GET['origin'] ) ) : '';
 
@@ -111,13 +136,22 @@ class Mantis_SEO_Redirects_Page {
 		$types = array(
 			301 => __( '301 Permanent', 'mantis-seo' ),
 			302 => __( '302 Temporary', 'mantis-seo' ),
+			303 => __( '303 See Other', 'mantis-seo' ),
 			307 => __( '307 Temporary', 'mantis-seo' ),
 			308 => __( '308 Permanent', 'mantis-seo' ),
 			410 => __( '410 Gone', 'mantis-seo' ),
+			451 => __( '451 Unavailable For Legal Reasons', 'mantis-seo' ),
 		);
+
+		if ( isset( $_GET['redirect_error'] ) && 'invalid_regex' === $_GET['redirect_error'] ) {
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Invalid regular expression. Check your pattern and escape any ~ as \\~.', 'mantis-seo' ) . '</p></div>';
+		}
+		if ( isset( $_GET['redirect_error'] ) && 'save_failed' === $_GET['redirect_error'] ) {
+			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Could not save redirect.', 'mantis-seo' ) . '</p></div>';
+		}
 		?>
 		<div class="mantis-seo-app" id="mantis-seo-app">
-			<script>!function(){var e=document.getElementById("mantis-seo-app");e&&"dark"===localStorage.getItem("mantis_seo_theme")&&e.classList.add("mantis-seo-dark")}();</script>
+			<?php require_once MANTIS_SEO_PATH . 'admin/partials/theme-boot-script.php'; ?>
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-redirects">
@@ -186,9 +220,27 @@ class Mantis_SEO_Redirects_Page {
 			</div>
 
 			<div class="mantis-redirects-list">
-			<?php if ( empty( $redirects ) ) : ?>
+			<?php if ( $total_redirects <= 0 ) : ?>
 				<p><?php esc_html_e( 'No redirects yet.', 'mantis-seo' ); ?></p>
 			<?php else : ?>
+				<?php
+				if ( $total_pages > 1 ) {
+					echo '<div class="tablenav top"><div class="tablenav-pages">';
+					echo wp_kses_post(
+						paginate_links(
+							array(
+								'base'      => add_query_arg( 'paged', '%#%', admin_url( 'admin.php?page=mantis-redirects' ) ),
+								'format'    => '',
+								'prev_text' => __( '&laquo;', 'mantis-seo' ),
+								'next_text' => __( '&raquo;', 'mantis-seo' ),
+								'total'     => $total_pages,
+								'current'   => $list_page,
+							)
+						)
+					);
+					echo '</div></div>';
+				}
+				?>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>

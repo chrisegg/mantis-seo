@@ -22,6 +22,13 @@ class Mantis_SEO_Main {
 	private static $instance = null;
 
 	/**
+	 * Request-scoped merged settings cache.
+	 *
+	 * @var array|null
+	 */
+	private static $settings_cache = null;
+
+	/**
 	 * Components.
 	 *
 	 * @var array
@@ -44,8 +51,16 @@ class Mantis_SEO_Main {
 	 * Constructor.
 	 */
 	private function __construct() {
+		add_action( 'update_option_mantis_settings', array( __CLASS__, 'clear_settings_cache' ) );
 		$this->load_includes();
 		$this->init_components();
+	}
+
+	/**
+	 * Clear merged settings cache (after option updates).
+	 */
+	public static function clear_settings_cache() {
+		self::$settings_cache = null;
 	}
 
 	/**
@@ -101,6 +116,10 @@ class Mantis_SEO_Main {
 	 * @return array
 	 */
 	public static function get_settings() {
+		if ( null !== self::$settings_cache ) {
+			return self::$settings_cache;
+		}
+
 		$defaults = self::get_default_settings();
 		$saved    = get_option( 'mantis_settings', array() );
 		$merged   = wp_parse_args( $saved, $defaults );
@@ -115,7 +134,8 @@ class Mantis_SEO_Main {
 				$merged[ $key ] = $defaults[ $key ];
 			}
 		}
-		return $merged;
+		self::$settings_cache = $merged;
+		return self::$settings_cache;
 	}
 
 	/**
@@ -186,7 +206,9 @@ class Mantis_SEO_Main {
 	 * @return bool
 	 */
 	public static function save_settings( $settings ) {
-		return update_option( 'mantis_settings', $settings );
+		$ok = update_option( 'mantis_settings', $settings );
+		self::clear_settings_cache();
+		return $ok;
 	}
 
 	/**
@@ -200,6 +222,7 @@ class Mantis_SEO_Main {
 		// Set default settings if not exists.
 		if ( false === get_option( 'mantis_settings', false ) ) {
 			update_option( 'mantis_settings', self::get_default_settings() );
+			self::clear_settings_cache();
 		}
 
 		flush_rewrite_rules();

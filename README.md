@@ -13,7 +13,7 @@
 ### Titles & meta
 
 - **Global templates** for homepage, posts, and pages with variable pills (e.g. `%post_title%`, `%separator%`, `%site_name%`, `%excerpt%`).
-- **Per-content overrides** in the post/page editor: slide-out **SEO Settings** panel (Meta, Facebook / Open Graph, X / Twitter Cards).
+- **Per-content overrides** in the post/page editor: slide-out **SEO Settings** panel (Meta, Facebook / Open Graph, X / Twitter Cards). The **focus keyword** field is saved for your own reference (it is not output as a meta tag).
 - **Canonical URLs** and **robots** (`index`/`noindex`, `follow`/`nofollow`).
 - **Open Graph** and **X Card** tags, including default OG image and per-post image URLs.
 - **Search engine visibility warning:** if **Settings → Reading → Discourage search engines** is enabled, administrators see a prominent admin notice with a link to Reading settings.
@@ -31,7 +31,7 @@
 
 ### Redirects
 
-- **301, 302, 307, 308,** and **410** redirects stored in a custom database table.
+- **301, 302, 303, 307, 308, 410,** and **451** redirects stored in a custom database table. **Regex** origins use a `~` delimiter internally—literal `~` in a pattern must be written as `\~`.
 - **Redirect manager** under **Mantis SEO → Redirects**.
 - **Automatic redirect** when a published post or page slug changes.
 - **Trash / delete** flows integrate with redirect prompts where applicable.

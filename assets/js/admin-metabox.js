@@ -364,19 +364,11 @@
 					return;
 				}
 				if (!field) return;
-				if (field.tagName === 'TEXTAREA') {
-					const start = field.selectionStart;
-					const end = field.selectionEnd;
-					const val = field.value;
-					field.value = val.slice(0, start) + v + val.slice(end);
-					field.selectionStart = field.selectionEnd = start + v.length;
-				} else {
-					const start = field.selectionStart;
-					const end = field.selectionEnd;
-					const val = field.value;
-					field.value = val.slice(0, start) + v + val.slice(end);
-					field.selectionStart = field.selectionEnd = start + v.length;
-				}
+				const start = field.selectionStart;
+				const end = field.selectionEnd;
+				const val = field.value;
+				field.value = val.slice(0, start) + v + val.slice(end);
+				field.selectionStart = field.selectionEnd = start + v.length;
 				field.dispatchEvent(new Event('input', { bubbles: true }));
 				if (dropdown) dropdown.setAttribute('aria-hidden', 'true');
 				if (btn) btn.setAttribute('aria-expanded', 'false');
