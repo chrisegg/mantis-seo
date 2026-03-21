@@ -75,8 +75,17 @@ class Mantis_SEO_Redirect_Manager {
 		}
 
 		// Create 301 redirect from old to new.
-		$target = get_permalink( $post_id );
-		Mantis_SEO_Redirects::add( $old_url, $target, 301, 'plain' );
+		$target  = get_permalink( $post_id );
+		$new_id = Mantis_SEO_Redirects::add( $old_url, $target, 301, 'plain' );
+		if ( $new_id ) {
+			$this->append_redirect_notice(
+				array(
+					'action'      => 'slug_change',
+					'origin'      => $old_url,
+					'redirect_id' => (int) $new_id,
+				)
+			);
+		}
 	}
 
 	/**
@@ -129,14 +138,25 @@ class Mantis_SEO_Redirect_Manager {
 			return;
 		}
 
+		$this->append_redirect_notice(
+			array(
+				'origin' => $path,
+				'action' => $action,
+			)
+		);
+	}
+
+	/**
+	 * Append one notice to the stored queue (bounded).
+	 *
+	 * @param array $entry Notice payload (origin, action, optional redirect_id).
+	 */
+	private function append_redirect_notice( array $entry ) {
 		$notices = get_option( self::NOTICE_OPTION, array() );
 		if ( ! is_array( $notices ) ) {
 			$notices = array();
 		}
-		$notices[] = array(
-			'origin' => $path,
-			'action'  => $action,
-		);
+		$notices[] = $entry;
 		if ( count( $notices ) > self::MAX_STORED_NOTICES ) {
 			$notices = array_slice( $notices, -self::MAX_STORED_NOTICES );
 		}
@@ -159,21 +179,51 @@ class Mantis_SEO_Redirect_Manager {
 		foreach ( $notices as $i => $notice ) {
 			$origin = isset( $notice['origin'] ) ? $notice['origin'] : '';
 			$action = isset( $notice['action'] ) ? $notice['action'] : 'delete';
-			if ( empty( $origin ) ) {
-				continue;
-			}
 
-			$redirect_url = add_query_arg( 'origin', rawurlencode( $origin ), admin_url( 'admin.php?page=mantis-redirects' ) );
 			$dismiss_url = wp_nonce_url(
 				add_query_arg(
 					array(
 						'mantis_dismiss_redirect' => 1,
-						'mantis_notice_idx'      => $i,
+						'mantis_notice_idx'       => $i,
 					),
 					admin_url( 'admin.php?page=mantis-redirects' )
 				),
 				'mantis_dismiss_redirect'
 			);
+
+			if ( 'slug_change' === $action ) {
+				$redirect_id = isset( $notice['redirect_id'] ) ? (int) $notice['redirect_id'] : 0;
+				if ( ! $redirect_id ) {
+					continue;
+				}
+				$view_url = add_query_arg(
+					'edit',
+					$redirect_id,
+					admin_url( 'admin.php?page=mantis-redirects' )
+				);
+				?>
+				<div class="notice notice-success is-dismissible">
+					<p>
+						<?php
+						printf(
+							/* translators: 1: old URL path, 2: link to open redirect in admin */
+							esc_html__( 'A redirect was created from %1$s to the new URL. %2$s', 'mantis-seo' ),
+							'<code>' . esc_html( $origin ) . '</code>',
+							'<a href="' . esc_url( $view_url ) . '">' . esc_html__( 'View redirect', 'mantis-seo' ) . '</a>'
+						);
+						?>
+						| <a href="<?php echo esc_url( $dismiss_url ); ?>"><?php esc_html_e( 'Dismiss', 'mantis-seo' ); ?></a>
+					</p>
+				</div>
+				<?php
+				continue;
+			}
+
+			if ( empty( $origin ) ) {
+				continue;
+			}
+
+			$redirect_url = add_query_arg( 'origin', rawurlencode( $origin ), admin_url( 'admin.php?page=mantis-redirects' ) );
 
 			$action_text = 'trash' === $action
 				? __( 'moved to trash', 'mantis-seo' )
