@@ -61,12 +61,19 @@
 		}
 		var select = wp.data.select;
 		var wasSaving = false;
+		var slugAtSaveStart = null;
 		wp.data.subscribe( function () {
 			var editor = select( 'core/editor' );
 			if ( ! editor || typeof editor.isSavingPost !== 'function' ) {
 				return;
 			}
 			var saving = editor.isSavingPost();
+			if ( ! wasSaving && saving ) {
+				slugAtSaveStart =
+					typeof editor.getEditedPostAttribute === 'function'
+						? editor.getEditedPostAttribute( 'slug' )
+						: null;
+			}
 			if ( wasSaving && ! saving ) {
 				if ( typeof editor.didPostSaveFail === 'function' && editor.didPostSaveFail() ) {
 					wasSaving = saving;
@@ -75,7 +82,15 @@
 				var postId =
 					typeof editor.getCurrentPostId === 'function' ? editor.getCurrentPostId() : 0;
 				if ( postId ) {
-					fetchNotice( postId );
+					var nowSlug =
+						typeof editor.getEditedPostAttribute === 'function'
+							? editor.getEditedPostAttribute( 'slug' )
+							: null;
+					var a = slugAtSaveStart == null ? '' : String( slugAtSaveStart );
+					var b = nowSlug == null ? '' : String( nowSlug );
+					if ( a !== b ) {
+						fetchNotice( postId );
+					}
 				}
 			}
 			wasSaving = saving;

@@ -56,8 +56,8 @@ class Mantis_SEO_Redirect_Manager {
 		if ( 'edit' === $screen->base ) {
 			return true;
 		}
-		// Single editor: post.php / post-new.php (base matches post type slug).
-		if ( $screen->base === $screen->post_type ) {
+		// Single editor: post.php / post-new.php — WP uses base 'post' for every post type (post, page, CPT).
+		if ( 'post' === $screen->base ) {
 			return true;
 		}
 		return false;

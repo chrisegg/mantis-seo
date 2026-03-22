@@ -108,12 +108,15 @@ class Mantis_SEO_Admin {
 			return;
 		}
 
-		wp_enqueue_style(
-			'mantis-seo-admin',
-			MANTIS_SEO_URL . 'assets/css/admin.css',
-			array(),
-			MANTIS_SEO_VERSION
-		);
+		// List screens only use core .notice styles for redirect notices; skip heavy app CSS there.
+		if ( $is_mantis || $is_post_edit ) {
+			wp_enqueue_style(
+				'mantis-seo-admin',
+				MANTIS_SEO_URL . 'assets/css/admin.css',
+				array(),
+				MANTIS_SEO_VERSION
+			);
+		}
 
 		// Enqueue media library for image upload fields.
 		if ( $is_mantis || $is_post_edit ) {
