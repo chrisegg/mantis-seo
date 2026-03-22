@@ -82,7 +82,7 @@ class Mantis_SEO_Admin {
 			'manage_options',
 			'mantis-seo',
 			array( $this, 'render_settings_page' ),
-			'dashicons-search',
+			MANTIS_SEO_URL . 'assets/images/mantis-menu-icon.svg',
 			30
 		);
 	}

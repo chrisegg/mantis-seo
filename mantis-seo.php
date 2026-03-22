@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Mantis SEO
  * Plugin URI: https://mantiseo.com
- * Description: A lightweight, powerful SEO plugin for WordPress. Metadata, redirects, schema, and sitemaps—all in one, no freemium.
+ * Description: Lightweight SEO for WordPress — titles & meta, redirects, JSON-LD schema, XML sitemaps, and social tags in one plugin. No upsells, no feature gating.
  * Version: 1.0.0-beta-1
  * Requires at least: 6.0
  * Requires PHP: 7.4
