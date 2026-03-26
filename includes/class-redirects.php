@@ -92,6 +92,55 @@ class Mantis_SEO_Redirects {
 	}
 
 	/**
+	 * Sanitize stored redirect target (absolute URL, protocol-relative, or site path).
+	 *
+	 * @param string $raw Raw target from user or import.
+	 * @return string Empty if invalid.
+	 */
+	public static function sanitize_target( $raw ) {
+		$raw = is_string( $raw ) ? trim( $raw ) : '';
+		if ( '' === $raw ) {
+			return '';
+		}
+
+		if ( preg_match( '#^https?://#i', $raw ) ) {
+			return esc_url_raw( $raw );
+		}
+
+		if ( 0 === strpos( $raw, '//' ) ) {
+			$check = esc_url_raw( 'https:' . $raw );
+			return $check ? $check : '';
+		}
+
+		$path = self::normalize_origin( $raw );
+		return sanitize_text_field( $path );
+	}
+
+	/**
+	 * Resolve stored target to an absolute URL for redirects and admin links.
+	 *
+	 * @param string $stored Value from DB.
+	 * @return string Empty if invalid.
+	 */
+	public static function resolve_target_url( $stored ) {
+		$stored = (string) $stored;
+		if ( '' === $stored ) {
+			return '';
+		}
+
+		if ( preg_match( '#^https?://#i', $stored ) ) {
+			return esc_url_raw( $stored );
+		}
+
+		if ( 0 === strpos( $stored, '//' ) ) {
+			$abs = esc_url_raw( 'https:' . $stored );
+			return $abs ? $abs : '';
+		}
+
+		return esc_url_raw( home_url( $stored ) );
+	}
+
+	/**
 	 * Regex redirect rows (transient-cached).
 	 *
 	 * @return array
@@ -204,7 +253,7 @@ class Mantis_SEO_Redirects {
 		$table = self::get_table_name();
 
 		$origin = self::normalize_origin( $origin );
-		$target = ( 0 === strpos( $target, 'http' ) || 0 === strpos( $target, '//' ) ) ? esc_url_raw( $target ) : sanitize_text_field( $target );
+		$target = self::sanitize_target( $target );
 		$type   = self::sanitize_redirect_type( $type );
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
@@ -250,7 +299,7 @@ class Mantis_SEO_Redirects {
 		$id    = (int) $id;
 
 		$origin = self::normalize_origin( $origin );
-		$target = ( 0 === strpos( $target, 'http' ) || 0 === strpos( $target, '//' ) ) ? esc_url_raw( $target ) : sanitize_text_field( $target );
+		$target = self::sanitize_target( $target );
 		$type   = self::sanitize_redirect_type( $type );
 		$format = 'regex' === $format ? 'regex' : 'plain';
 
@@ -381,18 +430,17 @@ class Mantis_SEO_Redirects {
 			return;
 		}
 
-		$target = $redirect['target'];
-		$type   = self::sanitize_redirect_type( (int) $redirect['type'] );
-
-		// Ensure target is absolute.
-		if ( 0 !== strpos( $target, 'http' ) ) {
-			$target = home_url( $target );
-		}
+		$type = self::sanitize_redirect_type( (int) $redirect['type'] );
 
 		if ( in_array( $type, array( 410, 451 ), true ) ) {
 			status_header( $type );
 			nocache_headers();
 			exit;
+		}
+
+		$target = self::resolve_target_url( $redirect['target'] );
+		if ( '' === $target ) {
+			return;
 		}
 
 		wp_redirect( $target, $type, 'Mantis SEO' );

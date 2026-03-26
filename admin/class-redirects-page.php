@@ -67,7 +67,7 @@ class Mantis_SEO_Redirects_Page {
 		if ( isset( $_POST['mantis_redirect_save'] ) ) {
 			check_admin_referer( 'mantis_redirect_save' );
 			$origin = isset( $_POST['mantis_redirect_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['mantis_redirect_origin'] ) ) : '';
-			$target = isset( $_POST['mantis_redirect_target'] ) ? esc_url_raw( wp_unslash( $_POST['mantis_redirect_target'] ) ) : '';
+			$target = isset( $_POST['mantis_redirect_target'] ) ? Mantis_SEO_Redirects::sanitize_target( wp_unslash( $_POST['mantis_redirect_target'] ) ) : '';
 			$type   = isset( $_POST['mantis_redirect_type'] ) ? (int) $_POST['mantis_redirect_type'] : 301;
 			$format = isset( $_POST['mantis_redirect_format'] ) && 'regex' === $_POST['mantis_redirect_format'] ? 'regex' : 'plain';
 
@@ -192,8 +192,8 @@ class Mantis_SEO_Redirects_Page {
 							</td>
 						</tr>
 						<tr>
-							<th><label for="mantis_redirect_target"><?php esc_html_e( 'Target (to URL)', 'mantis-seo' ); ?></label></th>
-							<td><input type="url" id="mantis_redirect_target" name="mantis_redirect_target" value="<?php echo esc_url( $form_target ); ?>" class="large-text" required /></td>
+							<th><label for="mantis_redirect_target"><?php esc_html_e( 'Target (full URL or path)', 'mantis-seo' ); ?></label></th>
+							<td><input type="text" id="mantis_redirect_target" name="mantis_redirect_target" value="<?php echo esc_attr( $form_target ); ?>" class="large-text" inputmode="url" required /></td>
 						</tr>
 						<tr>
 							<th><label for="mantis_redirect_type"><?php esc_html_e( 'Type', 'mantis-seo' ); ?></label></th>
@@ -255,7 +255,7 @@ class Mantis_SEO_Redirects_Page {
 						<?php foreach ( $redirects as $r ) : ?>
 							<tr>
 								<td><code><?php echo esc_html( $r['origin'] ); ?></code></td>
-								<td><a href="<?php echo esc_url( $r['target'] ); ?>" target="_blank"><?php echo esc_html( $r['target'] ); ?></a></td>
+								<td><a href="<?php echo esc_url( Mantis_SEO_Redirects::resolve_target_url( $r['target'] ) ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $r['target'] ); ?></a></td>
 								<td><?php echo esc_html( $r['type'] ); ?></td>
 								<td><?php echo esc_html( $r['format'] ); ?></td>
 								<td>
