@@ -1186,6 +1186,18 @@
 	justify-content: center;
 	display: inline-flex;
 	align-items: center;
+	gap: 0.4em;
+}
+
+.mantis-seo-metabox-trigger-icon {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	line-height: 0;
+}
+
+.mantis-seo-metabox-trigger-icon svg {
+	display: block;
 }
 
 /* Post editor: primary actions use plugin accent (not WP default blue) */
