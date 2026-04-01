@@ -78,11 +78,6 @@
 	display: block;
 }
 
-/* Inline logo SVG may carry large width/height attributes from export */
-svg.mantis-seo-logo-img {
-	overflow: visible;
-}
-
 .mantis-seo-logo:hover .mantis-seo-logo-img {
 	opacity: 0.9;
 }

@@ -9,46 +9,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Inline markup avoids a second HTTP request to wp-content/plugins/…, which many hosts block (403).
-$mantis_seo_logo_svg = '';
-$logo_svg_path       = MANTIS_SEO_PATH . 'assets/images/mseo-logo.svg';
-$logo_png_path       = MANTIS_SEO_PATH . 'assets/images/mantiseo-logo.png';
-
-if ( is_readable( $logo_svg_path ) ) {
-	$mantis_seo_logo_svg = (string) file_get_contents( $logo_svg_path );
-	$stripped            = preg_replace( '/^\xEF\xBB\xBF/', '', $mantis_seo_logo_svg );
-	$mantis_seo_logo_svg = is_string( $stripped ) ? $stripped : $mantis_seo_logo_svg;
-	$with_class          = preg_replace( '/<svg\b/', '<svg class="mantis-seo-logo-img" role="img" aria-labelledby="mantis-seo-logo-title" ', $mantis_seo_logo_svg, 1 );
-	$mantis_seo_logo_svg = is_string( $with_class ) ? $with_class : $mantis_seo_logo_svg;
-	$logo_title          = '<title id="mantis-seo-logo-title">' . esc_html__( 'Mantis SEO', 'mantis-seo' ) . '</title>';
-	$with_title          = preg_replace( '/^(<svg\b[^>]*>)/u', '$1' . $logo_title, $mantis_seo_logo_svg, 1 );
-	$mantis_seo_logo_svg = is_string( $with_title ) ? $with_title : $mantis_seo_logo_svg;
-}
-
-if ( '' === $mantis_seo_logo_svg && is_readable( $logo_png_path ) ) {
-	$mantis_seo_logo_svg = '<img class="mantis-seo-logo-img" src="' . esc_attr( 'data:image/png;base64,' . base64_encode( (string) file_get_contents( $logo_png_path ) ) ) . '" alt="' . esc_attr__( 'Mantis SEO', 'mantis-seo' ) . '" width="96" height="32" decoding="async" />';
+// Data URI avoids a second HTTP request to wp-content/plugins/…, which many hosts block (403).
+$logo_path = MANTIS_SEO_PATH . 'assets/images/mantiseo-logo.png';
+$logo_src  = '';
+if ( is_readable( $logo_path ) ) {
+	$logo_src = 'data:image/png;base64,' . base64_encode( (string) file_get_contents( $logo_path ) );
+} else {
+	$logo_src = plugins_url( 'assets/images/mantiseo-logo.png', MANTIS_SEO_FILE );
 }
 ?>
 <header class="mantis-seo-app-header">
 	<div class="mantis-seo-app-header-left">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" class="mantis-seo-logo">
-			<?php
-			if ( '' !== $mantis_seo_logo_svg ) {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Trusted asset from plugin directory.
-				echo $mantis_seo_logo_svg;
-			} else {
-				?>
-				<img
-					class="mantis-seo-logo-img"
-					src="<?php echo esc_url( plugins_url( 'assets/images/mantiseo-logo.png', MANTIS_SEO_FILE ) ); ?>"
-					alt="<?php echo esc_attr__( 'Mantis SEO', 'mantis-seo' ); ?>"
-					width="96"
-					height="32"
-					decoding="async"
-				/>
-				<?php
-			}
-			?>
+			<img
+				class="mantis-seo-logo-img"
+				src="<?php echo esc_attr( $logo_src ); ?>"
+				alt="<?php echo esc_attr__( 'Mantis SEO', 'mantis-seo' ); ?>"
+				width="96"
+				height="32"
+				decoding="async"
+			/>
 		</a>
 	</div>
 	<div class="mantis-seo-app-header-right">
