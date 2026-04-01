@@ -194,11 +194,17 @@ class Mantis_SEO_Schema {
 		$breadcrumb_id = $url . '#breadcrumb';
 		$page_id       = $url;
 
+		$settings      = Mantis_SEO_Main::get_settings();
+		$resolved      = Mantis_SEO_Schema_Types::resolve_for_post( $post, $settings );
+		$page_atype    = $resolved['page_type'];
+		$article_atype = $resolved['article_type'];
+		$emit_article  = $resolved['emit_article'];
+
 		$description = Mantis_SEO_Meta::resolve_post_meta_description( $post );
 		$page_name   = Mantis_SEO_Meta::resolve_document_title_for_post( $post );
 
 		$webpage = array(
-			'@type'            => 'WebPage',
+			'@type'            => $page_atype,
 			'@id'              => $page_id,
 			'url'              => $url,
 			'name'             => $page_name,
@@ -221,10 +227,10 @@ class Mantis_SEO_Schema {
 
 		$nodes = array( $webpage );
 
-		if ( 'post' === $post->post_type ) {
+		if ( $emit_article ) {
 			$article_id = $url . '#article';
 			$article    = array(
-				'@type'            => 'Article',
+				'@type'            => $article_atype,
 				'@id'              => $article_id,
 				'headline'         => get_the_title( $post ),
 				'url'              => $url,

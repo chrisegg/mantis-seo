@@ -268,8 +268,8 @@
 			formData.append('mantis_seo_ajax_nonce', ajaxNonce);
 			formData.append('post_id', postId);
 
-			// Text inputs and textareas.
-			slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"]').forEach(function (el) {
+			// Text inputs, textareas, and schema selects.
+			slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"], select[name^="_mantis_"]').forEach(function (el) {
 				formData.append(el.name, el.value);
 			});
 
@@ -509,8 +509,8 @@
 			addHidden('mantis_seo_metabox_nonce', nonceEl.value);
 		}
 
-		// Text inputs and textareas.
-		slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"]').forEach(function (el) {
+		// Text inputs, textareas, and schema selects.
+		slideout.querySelectorAll('input[name^="_mantis_"]:not([type="checkbox"]), textarea[name^="_mantis_"], select[name^="_mantis_"]').forEach(function (el) {
 			addHidden(el.name, el.value);
 		});
 

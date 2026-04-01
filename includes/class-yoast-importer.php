@@ -32,6 +32,8 @@ class Mantis_SEO_Yoast_Importer {
 		'_yoast_wpseo_twitter-title'        => '_mantis_twitter_title',
 		'_yoast_wpseo_twitter-description'  => '_mantis_twitter_description',
 		'_yoast_wpseo_twitter-image'        => '_mantis_twitter_image',
+		'_yoast_wpseo_schema_page_type'     => '_mantis_schema_page_type',
+		'_yoast_wpseo_schema_article_type'  => '_mantis_schema_article_type',
 	);
 
 	/**
@@ -133,6 +135,18 @@ class Mantis_SEO_Yoast_Importer {
 				}
 				$new_key = self::$meta_map[ $row['meta_key'] ];
 				$value   = $row['meta_value'];
+
+				if ( '_mantis_schema_page_type' === $new_key ) {
+					$value = Mantis_SEO_Schema_Types::map_yoast_type( (string) $value, 'page' );
+					if ( '' === $value ) {
+						continue;
+					}
+				} elseif ( '_mantis_schema_article_type' === $new_key ) {
+					$value = Mantis_SEO_Schema_Types::map_yoast_type( (string) $value, 'article' );
+					if ( '' === $value ) {
+						continue;
+					}
+				}
 
 				if ( '_mantis_robots_noindex' === $new_key || '_mantis_robots_nofollow' === $new_key ) {
 					$value = ( '1' === $value || 1 === (int) $value ) ? '1' : '0';
