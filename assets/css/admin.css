@@ -56,6 +56,7 @@
 	background: #10151f;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	flex-shrink: 0;
+	height: 34px;
 }
 
 .mantis-seo-app-header-left {
@@ -71,10 +72,15 @@
 }
 
 .mantis-seo-logo-img {
-	height: 32px;
+	height: auto;
 	width: auto;
+	max-width: 180px;
 	display: block;
-	max-width: 220px;
+}
+
+/* Inline logo SVG may carry large width/height attributes from export */
+svg.mantis-seo-logo-img {
+	overflow: visible;
 }
 
 .mantis-seo-logo:hover .mantis-seo-logo-img {
