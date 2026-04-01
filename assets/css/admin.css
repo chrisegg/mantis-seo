@@ -5,16 +5,16 @@
 
 /* Design tokens – light mode (default) */
 :root {
-	--mantis-accent: #0d9488;
-	--mantis-accent-hover: #0f766e;
-	--mantis-accent-muted: rgba(13, 148, 136, 0.12);
+	--mantis-accent: #8fd33c;
+	--mantis-accent-hover: #78b534;
+	--mantis-accent-muted: rgba(143, 211, 60, 0.14);
 	--mantis-bg: #f8fafc;
 	--mantis-card-bg: #ffffff;
 	--mantis-border: #e2e8f0;
 	--mantis-text: #1e293b;
 	--mantis-text-muted: #64748b;
-	--mantis-header-bg: #ffffff;
-	--mantis-header-border: #e2e8f0;
+	--mantis-header-bg: #10151f;
+	--mantis-header-border: rgba(255, 255, 255, 0.1);
 	--mantis-radius: 8px;
 	--mantis-radius-sm: 6px;
 	--mantis-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -24,14 +24,14 @@
 
 /* Dark mode */
 .mantis-seo-app.mantis-seo-dark {
-	--mantis-bg: #0f172a;
-	--mantis-card-bg: #1e293b;
-	--mantis-border: #334155;
+	--mantis-bg: #10151f;
+	--mantis-card-bg: #181f2e;
+	--mantis-border: #2a3344;
 	--mantis-text: #f1f5f9;
 	--mantis-text-muted: #94a3b8;
-	--mantis-header-bg: #1e293b;
-	--mantis-header-border: #334155;
-	--mantis-accent-muted: rgba(13, 148, 136, 0.2);
+	--mantis-header-bg: #10151f;
+	--mantis-header-border: rgba(255, 255, 255, 0.1);
+	--mantis-accent-muted: rgba(143, 211, 60, 0.22);
 }
 
 /* ========== APP LAYOUT ========== */
@@ -53,8 +53,8 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 1rem 1.5rem;
-	background: var(--mantis-header-bg);
-	border-bottom: 1px solid var(--mantis-header-border);
+	background: #10151f;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	flex-shrink: 0;
 }
 
@@ -67,18 +67,49 @@
 	display: flex;
 	align-items: center;
 	text-decoration: none;
-	color: var(--mantis-accent);
+	color: inherit;
 }
 
 .mantis-seo-logo-img {
 	height: 32px;
 	width: auto;
 	display: block;
-	max-width: 200px;
+	max-width: 220px;
 }
 
 .mantis-seo-logo:hover .mantis-seo-logo-img {
-	opacity: 0.85;
+	opacity: 0.9;
+}
+
+/* Header sits on #10151f in both themes — controls need contrast */
+.mantis-seo-app-header .mantis-seo-theme-toggle {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: rgba(255, 255, 255, 0.14);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mantis-seo-app-header .mantis-seo-theme-toggle:hover {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
+}
+
+.mantis-seo-app-header .mantis-seo-theme-toggle[aria-pressed="true"] {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
+}
+
+.mantis-seo-app-header .mantis-seo-help-button {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: rgba(255, 255, 255, 0.14);
+	color: rgba(255, 255, 255, 0.88);
+}
+
+.mantis-seo-app-header .mantis-seo-help-button:hover {
+	color: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
 }
 
 .mantis-seo-app-header-right {
@@ -1724,11 +1755,11 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	transition: background 0.15s;
 }
 .mantis-var-option:hover {
-	background: var(--mantis-accent-muted, rgba(0, 123, 255, 0.08));
+	background: var(--mantis-accent-muted, rgba(143, 211, 60, 0.14));
 }
 .mantis-var-option:focus {
 	outline: none;
-	background: var(--mantis-accent-muted, rgba(0, 123, 255, 0.08));
+	background: var(--mantis-accent-muted, rgba(143, 211, 60, 0.14));
 }
 
 /* Metabox (post editor) – keep existing, slight polish */
@@ -1781,8 +1812,8 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 }
 .mantis-template-editor:focus-within {
 	outline: none;
-	border-color: var(--mantis-accent, #2271b1);
-	box-shadow: 0 0 0 1px var(--mantis-accent, #2271b1);
+	border-color: var(--mantis-accent, #8fd33c);
+	box-shadow: 0 0 0 1px var(--mantis-accent, #8fd33c);
 }
 .mantis-seo-slideout .mantis-template-editor:focus-within {
 	box-shadow: 0 0 0 3px var(--mantis-accent-muted);
@@ -1801,9 +1832,9 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	font-weight: 600;
 	line-height: 1.35;
 	vertical-align: baseline;
-	background: var(--mantis-accent-muted, rgba(34, 113, 177, 0.14));
-	color: var(--mantis-accent, #2271b1);
-	border: 1px solid rgba(34, 113, 177, 0.35);
+	background: var(--mantis-accent-muted, rgba(143, 211, 60, 0.14));
+	color: var(--mantis-accent, #8fd33c);
+	border: 1px solid rgba(143, 211, 60, 0.35);
 	user-select: none;
 	cursor: default;
 }
@@ -1829,9 +1860,9 @@ body.admin-bar .mantis-seo-slideout-panel-wrap {
 	color: var(--mantis-text, #f0f0f1);
 }
 .mantis-seo-dark .mantis-seo-settings .mantis-var-pill {
-	background: rgba(100, 180, 255, 0.12);
-	color: #9ecfff;
-	border-color: rgba(158, 207, 255, 0.35);
+	background: rgba(143, 211, 60, 0.14);
+	color: #c5e87a;
+	border-color: rgba(143, 211, 60, 0.4);
 }
 
 /* Settings errors (WP settings_errors) */

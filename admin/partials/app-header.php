@@ -12,11 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 <header class="mantis-seo-app-header">
 	<div class="mantis-seo-app-header-left">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" class="mantis-seo-logo">
-			<?php // Inline SVG avoids 403s when hosts block direct requests to files under wp-content/plugins/. ?>
-			<svg class="mantis-seo-logo-img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 32" role="img" aria-labelledby="mantis-seo-logo-title" focusable="false">
-				<title id="mantis-seo-logo-title"><?php esc_html_e( 'Mantis SEO', 'mantis-seo' ); ?></title>
-				<text fill="currentColor" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" x="0" y="24"><?php echo esc_html( __( 'Mantis SEO', 'mantis-seo' ) ); ?></text>
-			</svg>
+			<img
+				class="mantis-seo-logo-img"
+				src="<?php echo esc_url( plugins_url( 'assets/images/mantiseo-logo.png', MANTIS_SEO_FILE ) ); ?>"
+				alt="<?php echo esc_attr__( 'Mantis SEO', 'mantis-seo' ); ?>"
+				width="96"
+				height="32"
+				decoding="async"
+			/>
 		</a>
 	</div>
 	<div class="mantis-seo-app-header-right">
