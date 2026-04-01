@@ -8,13 +8,22 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+// Data URI avoids a second HTTP request to wp-content/plugins/…, which many hosts block (403).
+$logo_path = MANTIS_SEO_PATH . 'assets/images/mantiseo-logo.png';
+$logo_src  = '';
+if ( is_readable( $logo_path ) ) {
+	$logo_src = 'data:image/png;base64,' . base64_encode( (string) file_get_contents( $logo_path ) );
+} else {
+	$logo_src = plugins_url( 'assets/images/mantiseo-logo.png', MANTIS_SEO_FILE );
+}
 ?>
 <header class="mantis-seo-app-header">
 	<div class="mantis-seo-app-header-left">
 		<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" class="mantis-seo-logo">
 			<img
 				class="mantis-seo-logo-img"
-				src="<?php echo esc_url( plugins_url( 'assets/images/mantiseo-logo.png', MANTIS_SEO_FILE ) ); ?>"
+				src="<?php echo esc_attr( $logo_src ); ?>"
 				alt="<?php echo esc_attr__( 'Mantis SEO', 'mantis-seo' ); ?>"
 				width="96"
 				height="32"
