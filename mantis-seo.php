@@ -6,7 +6,7 @@
  * Version: 1.0.0-beta-1.1
  * Requires at least: 6.0
  * Requires PHP: 7.4
- * Author: Chris Eggleston
+ * Author: WP Mantis
  * Author URI: https://mantiseo.com
  * License: GPL v3
  * License URI: https://www.gnu.org/licenses/gpl-3.0.html

@@ -24,9 +24,6 @@ jobs:
             --exclude='.git' \
             --exclude='.github' \
             --exclude='build' \
-            --exclude='deploy.php' \
-            --exclude='deploy-config.php' \
-            --exclude='deploy.log' \
             ./ build/mantis-seo/
           (cd build && zip -rq ../mantis-seo.zip mantis-seo)
           unzip -l mantis-seo.zip | head -20

@@ -1,0 +1,267 @@
+<h1>Mantis SEO — documentation</h1>
+
+<p><strong>Mantis SEO</strong> is a lightweight SEO plugin for WordPress: titles and meta descriptions, canonical URLs and robots directives, Open Graph and X (Twitter) cards, JSON-LD structured data, XML sitemaps, and redirects in one package—without upsells or feature gating.</p>
+
+<ul>
+	<li><strong>Website:</strong> <a href="https://mantiseo.com">mantiseo.com</a></li>
+	<li><strong>Requirements:</strong> WordPress 6.0 or newer, PHP 7.4 or newer (see the <code>Version:</code> and <code>Requires at least</code> headers in the main plugin file for the authoritative current values).</li>
+	<li><strong>License:</strong> <a href="LICENSE">GNU General Public License v3</a></li>
+</ul>
+
+<p>For a short project overview, installation checklist, and repository layout, see <a href="README.md">README.md</a>.</p>
+
+<hr>
+
+<h2>What the plugin does</h2>
+
+<table>
+	<thead>
+		<tr><th>Area</th><th>Summary</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><strong>Titles &amp; meta</strong></td><td>Global templates with variables; per-post and per-term overrides; canonical and robots (<code>index</code> / <code>noindex</code>, <code>follow</code> / <code>nofollow</code>).</td></tr>
+		<tr><td><strong>Social</strong></td><td>Default Open Graph image, X card type, and per-content OG/X title, description, and image URLs.</td></tr>
+		<tr><td><strong>JSON-LD</strong></td><td>Linked <code>@graph</code> (WebSite with optional SearchAction, WebPage, Article on posts, BreadcrumbList, optional Organization).</td></tr>
+		<tr><td><strong>Sitemaps</strong></td><td>Index and per–post-type XML sitemaps; can be disabled if you use another sitemap solution.</td></tr>
+		<tr><td><strong>Redirects</strong></td><td>Custom rules (plain or regex), multiple HTTP statuses, optional auto-redirect on slug changes.</td></tr>
+		<tr><td><strong>Tools</strong></td><td>Yoast SEO migration, settings export/import.</td></tr>
+	</tbody>
+</table>
+
+<p>If <strong>Settings → Reading → “Discourage search engines from indexing this site”</strong> is enabled, administrators see a prominent notice with a link to Reading settings.</p>
+
+<hr>
+
+<h2>Installation and first steps</h2>
+
+<ol>
+	<li>Install the plugin (upload the <code>mantis-seo</code> folder to <code>wp-content/plugins/</code> or install from a release zip), then activate <strong>Mantis SEO</strong> under <strong>Plugins</strong>.</li>
+	<li>Open <strong>Mantis SEO</strong> in the WordPress admin and work through <strong>Titles &amp; Meta</strong>, <strong>Social</strong>, <strong>Schema</strong>, <strong>Sitemap</strong>, and <strong>Advanced</strong> as needed.</li>
+	<li>After activation or if sitemap URLs return 404s, open <strong>Settings → Permalinks</strong> and click <strong>Save Changes</strong> once so rewrite rules refresh (normal WordPress behavior).</li>
+</ol>
+
+<hr>
+
+<h2>Settings screen (admin tabs)</h2>
+
+<p>The main settings UI uses these panels (see <code>get_settings_panel_ids()</code> in the plugin code):</p>
+
+<table>
+	<thead>
+		<tr><th>Tab</th><th>Purpose</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><strong>Titles &amp; Meta</strong></td><td>Homepage, post, and page <strong>title</strong> and <strong>meta description</strong> templates; <strong>separator</strong> character; <strong>noindex</strong> toggles for author archives, date archives, category archives, and tag archives.</td></tr>
+		<tr><td><strong>Social</strong></td><td><strong>Default Open Graph image</strong> (URL, with media picker); <strong>X card type</strong> (<code>summary</code> or <code>summary_large_image</code>).</td></tr>
+		<tr><td><strong>Schema</strong></td><td><strong>Organization</strong> name, URL, logo URL, and profile URLs used for <code>sameAs</code> (Facebook, Instagram, X, LinkedIn).</td></tr>
+		<tr><td><strong>Sitemap</strong></td><td>Turn the XML sitemap <strong>on or off</strong>; choose which <strong>public post types</strong> appear in sitemaps.</td></tr>
+		<tr><td><strong>Advanced</strong></td><td>Site verification values for <strong>Google</strong> and <strong>Bing</strong> (stored and output as verification meta tags).</td></tr>
+		<tr><td><strong>Tools</strong></td><td><strong>Migrate from Yoast SEO</strong> when Yoast data is detected; <strong>export</strong> settings as JSON; <strong>import</strong> from several file formats (see <a href="#migration-and-import">Migration and import</a>).</td></tr>
+	</tbody>
+</table>
+
+<h3>Default templates (reference)</h3>
+
+<p>Out of the box, title templates resemble:</p>
+
+<ul>
+	<li>Homepage: <code>%site_name% - %site_description%</code></li>
+	<li>Post: <code>%post_title% %page% %separator% %site_name%</code></li>
+	<li>Page: <code>%post_title% %page% %separator% %site_name%</code></li>
+</ul>
+
+<p>Default meta description templates use <code>%excerpt%</code> for posts and pages; the homepage description starts empty until you set it.</p>
+
+<p>Default <strong>archive noindex</strong> flags: author and date archives <strong>on</strong>; category and tag archives <strong>off</strong>. Default sitemap: <strong>enabled</strong> for <code>post</code> and <code>page</code>.</p>
+
+<hr>
+
+<h2>Title and meta template variables</h2>
+
+<p>Placeholders use the form <code>%name%</code>. They are replaced when titles and descriptions are rendered (and in previews where applicable).</p>
+
+<table>
+	<thead>
+		<tr><th>Variable</th><th>Meaning</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><code>%post_title%</code></td><td>Current post or page title (or “No title” if empty). In dropdowns this is the primary “post title” pill.</td></tr>
+		<tr><td><code>%title%</code></td><td>Same as <code>%post_title%</code> (alias).</td></tr>
+		<tr><td><code>%site_name%</code></td><td>Site title from <strong>Settings → General</strong>.</td></tr>
+		<tr><td><code>%sitename%</code></td><td>Alias for <code>%site_name%</code>.</td></tr>
+		<tr><td><code>%site_description%</code></td><td>Tagline from <strong>Settings → General</strong>.</td></tr>
+		<tr><td><code>%sitedesc%</code></td><td>Alias for <code>%site_description%</code>.</td></tr>
+		<tr><td><code>%separator%</code></td><td>The separator set under <strong>Titles &amp; Meta</strong> (falls back to <code>|</code> if unset in the replacement map before settings load).</td></tr>
+		<tr><td><code>%page%</code></td><td>On the front end, when the main query is paginated (<code>paged</code> / <code>page</code> query var), expands to a localized “Page <em>x</em> of <em>y</em>” string; otherwise empty. In some preview contexts it may stay empty.</td></tr>
+		<tr><td><code>%date%</code></td><td>Current date, formatted with the site’s date format option.</td></tr>
+		<tr><td><code>%excerpt%</code></td><td>Manual excerpt if set; otherwise a trimmed plain-text excerpt from post content (about 30 words).</td></tr>
+	</tbody>
+</table>
+
+<p><code>%post_title%</code>, <code>%title%</code>, <code>%excerpt%</code>, and related post fields only apply when a specific post context exists (e.g. singular content). Homepage and archive templates rely on site-wide variables unless the plugin resolves a dedicated context for that URL.</p>
+
+<hr>
+
+<h2>Homepage vs blog index</h2>
+
+<ul>
+	<li>If the front page is a <strong>static page</strong>, that page uses the <strong>page</strong> title and meta description templates (and any per-page SEO overrides).</li>
+	<li>The <strong>Homepage description</strong> field applies to the <strong>posts page</strong> when it is <strong>not</strong> the front page (the classic “blog home” at <code>is_home()</code> and not <code>is_front_page()</code>).</li>
+</ul>
+
+<hr>
+
+<h2>Post and page editor: SEO Settings</h2>
+
+<p>For every <strong>public</strong> post type, the editor includes a <strong>Mantis SEO</strong> meta box with an <strong>SEO Settings</strong> button. That opens a slide-out panel with:</p>
+
+<table>
+	<thead>
+		<tr><th>Tab</th><th>Fields</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><strong>Meta</strong></td><td>Focus keyword (reference only—not output as HTML meta), SEO title, meta description, canonical URL, <strong>Noindex</strong> / <strong>Nofollow</strong> checkboxes.</td></tr>
+		<tr><td><strong>Facebook</strong></td><td>Open Graph title, description, image URL.</td></tr>
+		<tr><td><strong>X</strong></td><td>X card title, description, image URL.</td></tr>
+	</tbody>
+</table>
+
+<p>A <strong>snippet preview</strong> shows roughly how a search result might look, with character counts for title and description.</p>
+
+<p>You can use <strong>Save SEO</strong> to persist meta via AJAX without reloading. Classic <strong>Update</strong> / <strong>Publish</strong> also saves the same fields. If SEO title or meta description match the effective global template exactly, the plugin may clear the stored override so the default template applies.</p>
+
+<h3>Focus keyword</h3>
+
+<p>The focus keyword is saved for your own workflow; it is <strong>not</strong> emitted as a <code>&lt;meta&gt;</code> tag.</p>
+
+<hr>
+
+<h2>Categories and tags</h2>
+
+<p>On <strong>Categories</strong> and <strong>Tags</strong> add/edit screens, Mantis adds:</p>
+
+<ul>
+	<li>Focus keyword</li>
+	<li>SEO title</li>
+	<li>Meta description</li>
+	<li><strong>Robots:</strong> Noindex, Nofollow</li>
+</ul>
+
+<p>There are no separate Facebook/X fields for terms; social tags for term archives use global defaults and fallbacks where applicable.</p>
+
+<hr>
+
+<h2>Structured data (JSON-LD)</h2>
+
+<p>The plugin outputs a JSON-LD <strong><code>@graph</code></strong> with stable <code>@id</code> links where appropriate, including:</p>
+
+<ul>
+	<li><strong>WebSite</strong> (optional <strong>SearchAction</strong> for site search)</li>
+	<li><strong>WebPage</strong> for the current document</li>
+	<li><strong>Article</strong> on singular <strong>posts</strong></li>
+	<li><strong>BreadcrumbList</strong></li>
+	<li><strong>Organization</strong> when organization fields are filled in schema settings</li>
+</ul>
+
+<p>Open Graph may include <code>article:published_time</code> and <code>article:modified_time</code> on suitable singular URLs.</p>
+
+<hr>
+
+<h2>XML sitemaps</h2>
+
+<p>With pretty permalinks and the sitemap enabled:</p>
+
+<table>
+	<thead>
+		<tr><th>URL</th><th>Role</th></tr>
+	</thead>
+	<tbody>
+		<tr><td><code>/sitemap_index.xml</code></td><td>Sitemap index</td></tr>
+		<tr><td><code>/sitemap_{post-type}.xml</code></td><td>URLs for one enabled public post type</td></tr>
+	</tbody>
+</table>
+
+<p>Submit the <strong>index</strong> URL in Google Search Console and Bing Webmaster Tools. If another plugin or system already serves sitemaps, disable Mantis’s sitemap here to avoid duplicates.</p>
+
+<hr>
+
+<h2>Redirects</h2>
+
+<p>Manage rules under <strong>Mantis SEO → Redirects</strong>.</p>
+
+<ul>
+	<li><strong>Origin:</strong> URL path (or regex pattern if <strong>regex</strong> is selected).</li>
+	<li><strong>Target:</strong> Full URL <strong>or</strong> site-relative path (for example <code>/docs/getting-started</code>).</li>
+	<li><strong>Type:</strong> 301, 302, 303, 307, 308, 410, or 451.</li>
+</ul>
+
+<p><strong>Regex:</strong> Patterns use <code>~</code> as the internal PCRE delimiter. A literal tilde in the pattern must be written as <code>\~</code>. Invalid regex shows an admin error referring to this rule.</p>
+
+<p>The plugin can <strong>suggest or create redirects</strong> when a published post or page <strong>slug</strong> changes, and trash/delete flows may prompt about redirects where applicable.</p>
+
+<hr>
+
+<h2 id="migration-and-import">Migration and import</h2>
+
+<h3>Yoast SEO</h3>
+
+<p>When Yoast SEO has data and migration has not already run, <strong>Tools</strong> offers <strong>Migrate from Yoast</strong>. That imports compatible global settings, post/term meta, and redirects. <strong>Deactivate Yoast</strong> after migration so you do not output duplicate meta tags and schema.</p>
+
+<h3>Import file formats (Tools → import)</h3>
+
+<p>The importer tries formats in this order:</p>
+
+<ol>
+	<li><strong>Mantis JSON</strong> — A file exported via <strong>Download export file</strong> (<code>mantis_seo_export</code> + <code>settings</code> object).</li>
+	<li><strong>Yoast INI-style export</strong> — Text containing <code>[wpseo…]</code> sections (Yoast’s export format).</li>
+	<li><strong>Yoast Keywords CSV</strong> — Rows that map post IDs to SEO title and meta description; updates per-post <code>_mantis_*</code> meta.</li>
+	<li><strong>Generic CSV</strong> — Rows as <code>key,value</code> or <code>key;value</code> mapped to known Mantis setting keys.</li>
+</ol>
+
+<p>Accepted file extensions include <code>.json</code>, <code>.ini</code>, <code>.txt</code>, and <code>.csv</code> (see the import field’s <code>accept</code> attribute in the admin UI).</p>
+
+<hr>
+
+<h2>Updates (GitHub releases)</h2>
+
+<p>Publishing a <strong>GitHub release</strong> builds an installable zip and attaches <strong><code>mantis-seo.zip</code></strong>. Installed sites can check the latest release and download:</p>
+
+<p><code>https://github.com/chrisegg/mantis-seo/releases/download/{tag}/mantis-seo.zip</code></p>
+
+<p>Use a release tag whose version aligns with the <strong><code>Version:</code></strong> header in the main plugin file for that build. Release notes can appear in WordPress “View version details” when provided.</p>
+
+<hr>
+
+<h2>Uninstall and stored data</h2>
+
+<p>When the plugin is <strong>deleted</strong> via <strong>Plugins → Delete</strong>, <code>uninstall.php</code> runs and:</p>
+
+<ul>
+	<li>Drops the <code>{wpdb_prefix}mantis_redirects</code> table.</li>
+	<li>Deletes all <strong>post meta</strong> and <strong>term meta</strong> rows whose keys start with <code>_mantis_</code>.</li>
+	<li>Deletes options: <code>mantis_settings</code>, <code>mantis_migrated_from_yoast</code>, <code>mantis_redirect_notice</code>.</li>
+</ul>
+
+<p>Other options used internally (for example rewrite migration counters) may remain in the database but are harmless; they do not recreate plugin behavior without the plugin active.</p>
+
+<hr>
+
+<h2>Developer snapshot</h2>
+
+<p>This section is a quick reference, not a full public API.</p>
+
+<table>
+	<thead>
+		<tr><th>Item</th><th>Detail</th></tr>
+	</thead>
+	<tbody>
+		<tr><td>Main settings</td><td>WordPress option <code>mantis_settings</code> (array), merged with defaults in <code>Mantis_SEO_Main::get_settings()</code>.</td></tr>
+		<tr><td>Post/term SEO meta</td><td>Prefix <code>_mantis_</code> (see <code>Mantis_SEO_Meta::META_PREFIX</code>). Examples: <code>_mantis_title</code>, <code>_mantis_description</code>, <code>_mantis_canonical</code>, <code>_mantis_og_title</code>, <code>_mantis_robots_noindex</code>.</td></tr>
+		<tr><td>Redirect storage</td><td>Table <code>{prefix}mantis_redirects</code> (<code>Mantis_SEO_Redirects::TABLE_NAME</code>).</td></tr>
+		<tr><td>Capabilities</td><td>Settings and redirects: <code>manage_options</code>. Saving post SEO: <code>edit_post</code> for that post. Term SEO: <code>edit_term</code>.</td></tr>
+		<tr><td>Text domain</td><td><code>mantis-seo</code></td></tr>
+		<tr><td>Version constant</td><td><code>MANTIS_SEO_VERSION</code> in the bootstrap file</td></tr>
+	</tbody>
+</table>
+
+<p>For coding standards and hooks used internally, follow the existing plugin files and WordPress conventions described in <a href="README.md">README.md</a> under <strong>Development</strong>.</p>

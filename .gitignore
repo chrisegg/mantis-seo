@@ -1,5 +1,0 @@
-# Local deploy configuration - contains secrets, must not be committed
-deploy-config.php
-
-# Deploy log (optional - remove if you want to track logs in git)
-deploy.log

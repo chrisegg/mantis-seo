@@ -28,6 +28,44 @@ class Mantis_SEO_Sitemap {
 		add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ), 0 );
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_action( 'template_redirect', array( $this, 'handle_request' ), 1 );
+		add_filter( 'wp_sitemaps_enabled', array( $this, 'maybe_disable_core_sitemaps' ) );
+		add_filter( 'robots_txt', array( $this, 'add_sitemap_to_robots' ), 10, 2 );
+	}
+
+	/**
+	 * Disable WordPress core sitemaps when Mantis sitemap is enabled (avoid duplicates).
+	 *
+	 * @param bool $enabled Whether core sitemaps are enabled.
+	 * @return bool
+	 */
+	public function maybe_disable_core_sitemaps( $enabled ) {
+		$settings = Mantis_SEO_Main::get_settings();
+		if ( ! empty( $settings['sitemap_enabled'] ) ) {
+			return false;
+		}
+		return $enabled;
+	}
+
+	/**
+	 * Advertise the Mantis sitemap index in robots.txt.
+	 *
+	 * @param string $output    robots.txt body.
+	 * @param bool   $public    Whether the site is public (blog_public).
+	 * @return string
+	 */
+	public function add_sitemap_to_robots( $output, $public ) {
+		if ( ! $public ) {
+			return $output;
+		}
+		$settings = Mantis_SEO_Main::get_settings();
+		if ( empty( $settings['sitemap_enabled'] ) ) {
+			return $output;
+		}
+		$sitemap = home_url( '/sitemap_index.xml' );
+		if ( false !== stripos( $output, 'Sitemap:' ) ) {
+			return $output;
+		}
+		return rtrim( $output ) . "\n\nSitemap: " . $sitemap . "\n";
 	}
 
 	/**
@@ -140,8 +178,13 @@ class Mantis_SEO_Sitemap {
 			$providers[ $key ] = new Mantis_SEO_Sitemap_Posts( $post_type );
 		}
 
-		$providers['categories'] = new Mantis_SEO_Sitemap_Terms( 'category' );
-		$providers['tags']       = new Mantis_SEO_Sitemap_Terms( 'post_tag' );
+		// Omit archives that are globally noindexed so the sitemap matches robots.
+		if ( empty( $settings['noindex_category'] ) ) {
+			$providers['categories'] = new Mantis_SEO_Sitemap_Terms( 'category' );
+		}
+		if ( empty( $settings['noindex_tag'] ) ) {
+			$providers['tags'] = new Mantis_SEO_Sitemap_Terms( 'post_tag' );
+		}
 
 		return apply_filters( 'mantis_sitemap_providers', $providers );
 	}

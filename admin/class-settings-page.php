@@ -133,13 +133,13 @@ class Mantis_SEO_Settings_Page {
 				$count = 0;
 				foreach ( $imported['_post_updates'] as $post_id => $meta ) {
 					if ( ! empty( $meta['focus_keyword'] ) ) {
-						update_post_meta( (int) $post_id, '_mantis_focus_keyword', $meta['focus_keyword'] );
+						update_post_meta( (int) $post_id, '_mantis_focus_keyword', sanitize_text_field( $meta['focus_keyword'] ) );
 					}
 					if ( ! empty( $meta['title'] ) ) {
-						update_post_meta( (int) $post_id, '_mantis_title', $meta['title'] );
+						update_post_meta( (int) $post_id, '_mantis_title', sanitize_text_field( $meta['title'] ) );
 					}
 					if ( isset( $meta['description'] ) && '' !== $meta['description'] ) {
-						update_post_meta( (int) $post_id, '_mantis_description', $meta['description'] );
+						update_post_meta( (int) $post_id, '_mantis_description', sanitize_textarea_field( $meta['description'] ) );
 					}
 					$count++;
 				}
@@ -147,11 +147,10 @@ class Mantis_SEO_Settings_Page {
 				exit;
 			}
 
-			$imported = wp_parse_args( $imported, Mantis_SEO_Main::get_default_settings() );
-			$saved    = Mantis_SEO_Main::save_settings( $imported );
-			if ( ! $saved ) {
-				throw new Exception( __( 'Failed to save settings.', 'mantis-seo' ) );
-			}
+			// Always run through the same sanitizer as options.php saves.
+			$imported = $this->sanitize_settings( is_array( $imported ) ? $imported : array() );
+			Mantis_SEO_Main::save_settings( $imported );
+			// update_option() returns false when the value is unchanged; that is not a failure.
 
 			wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'settings-updated' => 1 ), $redirect_url ) );
 			exit;
@@ -454,9 +453,9 @@ class Mantis_SEO_Settings_Page {
 		$text_fields = array(
 			'title_home', 'title_post', 'title_page', 'separator',
 			'metadesc_home', 'metadesc_post', 'metadesc_page',
-			'og_default_image', 'twitter_card_type',
+			'twitter_card_type',
 			'google_verify', 'bing_verify',
-			'schema_organization_name', 'schema_organization_url', 'schema_organization_logo',
+			'schema_organization_name',
 		);
 
 		foreach ( $text_fields as $field ) {
@@ -469,16 +468,28 @@ class Mantis_SEO_Settings_Page {
 			}
 		}
 
-		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
-		foreach ( $bool_fields as $field ) {
-			$sanitized[ $field ] = ! empty( $input[ $field ] );
-		}
-
-		$social_fields = array( 'schema_same_as_facebook', 'schema_same_as_instagram', 'schema_same_as_x', 'schema_same_as_linkedin' );
-		foreach ( $social_fields as $field ) {
+		$url_fields = array(
+			'og_default_image',
+			'schema_organization_url',
+			'schema_organization_logo',
+			'schema_same_as_facebook',
+			'schema_same_as_instagram',
+			'schema_same_as_x',
+			'schema_same_as_linkedin',
+		);
+		foreach ( $url_fields as $field ) {
 			if ( isset( $input[ $field ] ) ) {
 				$sanitized[ $field ] = esc_url_raw( $input[ $field ] );
 			}
+		}
+
+		if ( isset( $sanitized['twitter_card_type'] ) && ! in_array( $sanitized['twitter_card_type'], array( 'summary', 'summary_large_image' ), true ) ) {
+			$sanitized['twitter_card_type'] = 'summary_large_image';
+		}
+
+		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
+		foreach ( $bool_fields as $field ) {
+			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
 
 		if ( isset( $input['sitemap_post_types'] ) && is_array( $input['sitemap_post_types'] ) ) {
