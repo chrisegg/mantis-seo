@@ -129,9 +129,19 @@ class Mantis_SEO_Meta {
 		} elseif ( is_category() || is_tag() || is_tax() ) {
 			$object_id = get_queried_object_id();
 			$meta     = $this->get_taxonomy_meta( $object_id, $meta );
-		} elseif ( is_home() && ! is_front_page() ) {
-			$meta['description'] = $this->replace_vars( $settings['metadesc_home'] );
-			$meta['canonical']   = get_permalink( get_option( 'page_for_posts' ) );
+		} elseif ( is_home() ) {
+			// Blog index: "Your latest posts" front page, or a dedicated posts page.
+			$title_tpl = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) )
+				? $settings['title_home']
+				: '%site_name% - %site_description%';
+			$meta['document_title'] = $this->replace_vars( $title_tpl );
+			$meta['description']    = $this->replace_vars( $settings['metadesc_home'] );
+			if ( is_front_page() ) {
+				$meta['canonical'] = home_url( '/' );
+			} else {
+				$posts_page = (int) get_option( 'page_for_posts' );
+				$meta['canonical'] = $posts_page ? get_permalink( $posts_page ) : home_url( '/' );
+			}
 		} elseif ( is_author() && $settings['noindex_author'] ) {
 			$meta['robots'][] = 'noindex';
 		} elseif ( is_date() && $settings['noindex_date'] ) {
@@ -214,11 +224,11 @@ class Mantis_SEO_Meta {
 	 */
 	private function get_taxonomy_meta( $term_id, $meta ) {
 		$settings = Mantis_SEO_Main::get_settings();
-		$title = self::get_term_meta( $term_id, 'title' );
+		$title       = self::get_term_meta( $term_id, 'title' );
 		$description = self::get_term_meta( $term_id, 'description' );
 
-		if ( ! empty( $title ) ) {
-			// Title for taxonomies is output via filter - WP doesn't have a standard way, so we'd need to hook wp_title or similar.
+		if ( ! empty( trim( (string) $title ) ) ) {
+			$meta['document_title'] = $title;
 		}
 		if ( ! empty( $description ) ) {
 			$meta['description'] = $description;
@@ -243,7 +253,8 @@ class Mantis_SEO_Meta {
 			);
 		}
 
-		$meta['canonical'] = get_term_link( $term_id );
+		$term_link = get_term_link( $term_id );
+		$meta['canonical'] = ( ! is_wp_error( $term_link ) && is_string( $term_link ) ) ? $term_link : '';
 
 		return $meta;
 	}
@@ -289,15 +300,18 @@ class Mantis_SEO_Meta {
 		);
 
 		if ( is_singular() ) {
-			$post = get_post( get_queried_object_id() );
-			if ( $post ) {
-				$published = get_the_date( 'c', $post );
-				$modified  = get_the_modified_date( 'c', $post );
-				if ( $published ) {
-					$og['article:published_time'] = $published;
-				}
-				if ( $modified ) {
-					$og['article:modified_time'] = $modified;
+			// article:* timestamps only when og:type is article (posts).
+			if ( is_singular( 'post' ) ) {
+				$post = get_post( get_queried_object_id() );
+				if ( $post ) {
+					$published = get_the_date( 'c', $post );
+					$modified  = get_the_modified_date( 'c', $post );
+					if ( $published ) {
+						$og['article:published_time'] = $published;
+					}
+					if ( $modified ) {
+						$og['article:modified_time'] = $modified;
+					}
 				}
 			}
 			if ( empty( $og['image'] ) ) {
@@ -351,7 +365,14 @@ class Mantis_SEO_Meta {
 			}
 			return $this->replace_vars( self::get_raw_title_template_for_post( $post ), $post );
 		}
-		if ( is_home() && ! is_front_page() ) {
+		if ( is_category() || is_tag() || is_tax() ) {
+			$custom = self::get_term_meta( get_queried_object_id(), 'title' );
+			if ( ! empty( trim( (string) $custom ) ) ) {
+				return $custom;
+			}
+			return $title;
+		}
+		if ( is_home() ) {
 			$settings = Mantis_SEO_Main::get_settings();
 			$template = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) ) ? $settings['title_home'] : '%site_name% - %site_description%';
 			return $this->replace_vars( $template );
@@ -372,6 +393,17 @@ class Mantis_SEO_Meta {
 				return $parts;
 			}
 			$parts['title'] = $this->replace_vars( self::get_raw_title_template_for_post( $post ), $post );
+			unset( $parts['tagline'], $parts['site'] );
+		} elseif ( is_category() || is_tag() || is_tax() ) {
+			$custom = self::get_term_meta( get_queried_object_id(), 'title' );
+			if ( ! empty( trim( (string) $custom ) ) ) {
+				$parts['title'] = $custom;
+				unset( $parts['tagline'], $parts['site'] );
+			}
+		} elseif ( is_home() ) {
+			$settings = Mantis_SEO_Main::get_settings();
+			$template = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) ) ? $settings['title_home'] : '%site_name% - %site_description%';
+			$parts['title'] = $this->replace_vars( $template );
 			unset( $parts['tagline'], $parts['site'] );
 		}
 		return $parts;

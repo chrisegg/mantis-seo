@@ -120,6 +120,7 @@ class Mantis_SEO_Metabox {
 			'meta'    => __( 'Meta', 'mantis-seo' ),
 			'og'      => __( 'Facebook', 'mantis-seo' ),
 			'twitter' => __( 'X', 'mantis-seo' ),
+			'schema'  => __( 'Schema', 'mantis-seo' ),
 		);
 		$first = true;
 		foreach ( array_keys( $fields ) as $tab_id ) {
@@ -146,10 +147,32 @@ class Mantis_SEO_Metabox {
 			if ( 'meta' === $tab_id ) {
 				$this->render_metabox_snippet_preview( $preview_title, $preview_desc, $preview_url );
 			}
+			if ( 'schema' === $tab_id ) {
+				$schema_settings_url = admin_url( 'admin.php?page=mantis-seo&mantis_tab=mantis-schema' );
+				echo '<p class="description">';
+				printf(
+					wp_kses(
+						/* translators: %s: URL to Schema settings tab */
+						__( 'Mantis outputs JSON-LD for this URL. Global defaults are under <a href="%s">Mantis SEO → Schema</a>. Use “Default for this content type” to follow those settings.', 'mantis-seo' ),
+						array(
+							'a' => array(
+								'href' => array(),
+							),
+						)
+					),
+					esc_url( $schema_settings_url )
+				);
+				echo '</p>';
+			}
 			foreach ( $tab_fields as $key => $label ) {
 				$stored   = Mantis_SEO_Meta::get_post_meta( $post->ID, $key );
 				$meta_key = self::META_PREFIX . $key;
 				$placeholder = '';
+
+				if ( in_array( $key, array( 'schema_page_type', 'schema_article_type' ), true ) ) {
+					$this->render_schema_type_field( $post, $key, $label, $stored, $meta_key );
+					continue;
+				}
 
 				if ( in_array( $key, array( 'robots_noindex', 'robots_nofollow' ), true ) ) {
 					if ( 'robots_noindex' === $key ) {
@@ -338,7 +361,42 @@ class Mantis_SEO_Metabox {
 				'twitter_description' => __( 'X Description', 'mantis-seo' ),
 				'twitter_image'       => __( 'X Image URL', 'mantis-seo' ),
 			),
+			'schema'  => array(
+				'schema_page_type'    => __( 'Page type', 'mantis-seo' ),
+				'schema_article_type' => __( 'Article type', 'mantis-seo' ),
+			),
 		);
+	}
+
+	/**
+	 * Schema type dropdown (inherit default or explicit @type).
+	 *
+	 * @param WP_Post $post     Post.
+	 * @param string  $key      Field key without prefix.
+	 * @param string  $label    Label.
+	 * @param string  $stored   Raw meta value.
+	 * @param string  $meta_key Full meta key.
+	 */
+	private function render_schema_type_field( $post, $key, $label, $stored, $meta_key ) {
+		$is_page    = ( 'schema_page_type' === $key );
+		$choices    = $is_page ? Mantis_SEO_Schema_Types::get_page_type_choices() : Mantis_SEO_Schema_Types::get_article_type_choices();
+		$object     = get_post_type_object( $post->post_type );
+		$type_label = $object && isset( $object->labels->singular_name ) ? $object->labels->singular_name : $post->post_type;
+		/* translators: %s: post type singular name (e.g. Post, Page) */
+		$default_opt = sprintf( __( 'Default for %s', 'mantis-seo' ), $type_label );
+		$sel_id      = 'mantis-slideout-' . str_replace( '_', '-', $key );
+		echo '<p>';
+		echo '<label for="' . esc_attr( $sel_id ) . '"><strong>' . esc_html( $label ) . '</strong></label><br />';
+		echo '<select class="large-text" style="width:100%;max-width:100%" id="' . esc_attr( $sel_id ) . '" name="' . esc_attr( $meta_key ) . '">';
+		echo '<option value=""' . selected( (string) $stored, '', false ) . '>' . esc_html( $default_opt ) . '</option>';
+		foreach ( $choices as $val => $opt_label ) {
+			echo '<option value="' . esc_attr( $val ) . '"' . selected( (string) $stored, (string) $val, false ) . '>' . esc_html( $opt_label ) . '</option>';
+		}
+		echo '</select>';
+		if ( 'schema_article_type' === $key ) {
+			echo '<span class="description">' . esc_html__( 'Used only when this content type includes an Article node in JSON-LD (see Schema settings).', 'mantis-seo' ) . '</span>';
+		}
+		echo '</p>';
 	}
 
 	/**
@@ -349,6 +407,25 @@ class Mantis_SEO_Metabox {
 	 * @param string  $checkbox_mode 'isset' for form submit (unchecked = absent), 'ajax' for explicit values.
 	 */
 	private function save_post_seo_fields( $post_id, $post, $checkbox_mode = 'isset' ) {
+		$schema_keys = array( 'schema_page_type', 'schema_article_type' );
+		foreach ( $schema_keys as $field ) {
+			$meta_key = self::META_PREFIX . $field;
+			if ( ! isset( $_POST[ $meta_key ] ) ) {
+				continue;
+			}
+			$raw = sanitize_text_field( wp_unslash( $_POST[ $meta_key ] ) );
+			if ( 'schema_page_type' === $field ) {
+				$value = Mantis_SEO_Schema_Types::sanitize_page_type( $raw );
+			} else {
+				$value = Mantis_SEO_Schema_Types::sanitize_article_type( $raw );
+			}
+			if ( '' === $value ) {
+				delete_post_meta( $post_id, $meta_key );
+			} else {
+				update_post_meta( $post_id, $meta_key, $value );
+			}
+		}
+
 		$fields = array(
 			'focus_keyword', 'title', 'description', 'canonical', 'og_title', 'og_description', 'og_image',
 			'twitter_title', 'twitter_description', 'twitter_image',

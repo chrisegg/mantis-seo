@@ -89,6 +89,7 @@ class Mantis_SEO_Main {
 		require_once MANTIS_SEO_PATH . 'includes/class-redirects.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-redirect-manager.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-meta.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-schema-types.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-schema.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-provider.php';
@@ -153,6 +154,10 @@ class Mantis_SEO_Main {
 				$merged[ $key ] = $defaults[ $key ];
 			}
 		}
+		$merged['schema_type_defaults'] = Mantis_SEO_Schema_Types::merge_settings_defaults(
+			isset( $merged['schema_type_defaults'] ) && is_array( $merged['schema_type_defaults'] ) ? $merged['schema_type_defaults'] : array()
+		);
+
 		self::$settings_cache = $merged;
 		return self::$settings_cache;
 	}
@@ -188,6 +193,7 @@ class Mantis_SEO_Main {
 			'schema_same_as_x'          => '',
 			'schema_same_as_linkedin'   => '',
 			'sitemap_post_types'        => array( 'post', 'page' ),
+			'schema_type_defaults'      => array(),
 		);
 	}
 

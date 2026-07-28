@@ -133,13 +133,13 @@ class Mantis_SEO_Settings_Page {
 				$count = 0;
 				foreach ( $imported['_post_updates'] as $post_id => $meta ) {
 					if ( ! empty( $meta['focus_keyword'] ) ) {
-						update_post_meta( (int) $post_id, '_mantis_focus_keyword', $meta['focus_keyword'] );
+						update_post_meta( (int) $post_id, '_mantis_focus_keyword', sanitize_text_field( $meta['focus_keyword'] ) );
 					}
 					if ( ! empty( $meta['title'] ) ) {
-						update_post_meta( (int) $post_id, '_mantis_title', $meta['title'] );
+						update_post_meta( (int) $post_id, '_mantis_title', sanitize_text_field( $meta['title'] ) );
 					}
 					if ( isset( $meta['description'] ) && '' !== $meta['description'] ) {
-						update_post_meta( (int) $post_id, '_mantis_description', $meta['description'] );
+						update_post_meta( (int) $post_id, '_mantis_description', sanitize_textarea_field( $meta['description'] ) );
 					}
 					$count++;
 				}
@@ -147,11 +147,10 @@ class Mantis_SEO_Settings_Page {
 				exit;
 			}
 
-			$imported = wp_parse_args( $imported, Mantis_SEO_Main::get_default_settings() );
-			$saved    = Mantis_SEO_Main::save_settings( $imported );
-			if ( ! $saved ) {
-				throw new Exception( __( 'Failed to save settings.', 'mantis-seo' ) );
-			}
+			// Always run through the same sanitizer as options.php saves.
+			$imported = $this->sanitize_settings( is_array( $imported ) ? $imported : array() );
+			Mantis_SEO_Main::save_settings( $imported );
+			// update_option() returns false when the value is unchanged; that is not a failure.
 
 			wp_safe_redirect( add_query_arg( array( 'mantis_imported' => 1, 'settings-updated' => 1 ), $redirect_url ) );
 			exit;
@@ -454,9 +453,9 @@ class Mantis_SEO_Settings_Page {
 		$text_fields = array(
 			'title_home', 'title_post', 'title_page', 'separator',
 			'metadesc_home', 'metadesc_post', 'metadesc_page',
-			'og_default_image', 'twitter_card_type',
+			'twitter_card_type',
 			'google_verify', 'bing_verify',
-			'schema_organization_name', 'schema_organization_url', 'schema_organization_logo',
+			'schema_organization_name',
 		);
 
 		foreach ( $text_fields as $field ) {
@@ -469,16 +468,28 @@ class Mantis_SEO_Settings_Page {
 			}
 		}
 
-		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
-		foreach ( $bool_fields as $field ) {
-			$sanitized[ $field ] = ! empty( $input[ $field ] );
-		}
-
-		$social_fields = array( 'schema_same_as_facebook', 'schema_same_as_instagram', 'schema_same_as_x', 'schema_same_as_linkedin' );
-		foreach ( $social_fields as $field ) {
+		$url_fields = array(
+			'og_default_image',
+			'schema_organization_url',
+			'schema_organization_logo',
+			'schema_same_as_facebook',
+			'schema_same_as_instagram',
+			'schema_same_as_x',
+			'schema_same_as_linkedin',
+		);
+		foreach ( $url_fields as $field ) {
 			if ( isset( $input[ $field ] ) ) {
 				$sanitized[ $field ] = esc_url_raw( $input[ $field ] );
 			}
+		}
+
+		if ( isset( $sanitized['twitter_card_type'] ) && ! in_array( $sanitized['twitter_card_type'], array( 'summary', 'summary_large_image' ), true ) ) {
+			$sanitized['twitter_card_type'] = 'summary_large_image';
+		}
+
+		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
+		foreach ( $bool_fields as $field ) {
+			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
 
 		if ( isset( $input['sitemap_post_types'] ) && is_array( $input['sitemap_post_types'] ) ) {
@@ -487,6 +498,17 @@ class Mantis_SEO_Settings_Page {
 			if ( empty( $sanitized['sitemap_post_types'] ) ) {
 				$sanitized['sitemap_post_types'] = array( 'post', 'page' );
 			}
+		}
+
+		if ( isset( $input['schema_type_defaults'] ) && is_array( $input['schema_type_defaults'] ) ) {
+			$sanitized['schema_type_defaults'] = Mantis_SEO_Schema_Types::sanitize_settings_input( $input['schema_type_defaults'] );
+		} else {
+			$prev = get_option( 'mantis_settings', array() );
+			$sanitized['schema_type_defaults'] = Mantis_SEO_Schema_Types::merge_settings_defaults(
+				( is_array( $prev ) && isset( $prev['schema_type_defaults'] ) && is_array( $prev['schema_type_defaults'] ) )
+					? $prev['schema_type_defaults']
+					: array()
+			);
 		}
 
 		return wp_parse_args( $sanitized, Mantis_SEO_Main::get_default_settings() );
@@ -766,6 +788,9 @@ class Mantis_SEO_Settings_Page {
 								</td>
 							</tr>
 						</table>
+						<h2><?php esc_html_e( 'Content types', 'mantis-seo' ); ?></h2>
+						<p class="description"><?php esc_html_e( 'Default schema.org page and article types for each public post type. You can override these for individual posts and pages in the editor (Mantis SEO → Schema tab).', 'mantis-seo' ); ?></p>
+						<?php $this->render_schema_type_defaults_settings( $settings ); ?>
 					</div>
 
 					<div id="mantis-sitemap" class="mantis-tab-panel mantis-sitemap-panel" style="display:none;">
@@ -896,6 +921,80 @@ class Mantis_SEO_Settings_Page {
 				</div>
 			</main>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Schema page/article type defaults per public post type.
+	 *
+	 * @param array $settings Current settings.
+	 */
+	private function render_schema_type_defaults_settings( $settings ) {
+		$defaults   = Mantis_SEO_Schema_Types::merge_settings_defaults( isset( $settings['schema_type_defaults'] ) && is_array( $settings['schema_type_defaults'] ) ? $settings['schema_type_defaults'] : array() );
+		$pt_objects = get_post_types( array( 'public' => true ), 'objects' );
+		$names      = array_keys( $pt_objects );
+		usort(
+			$names,
+			function ( $a, $b ) {
+				$order = array( 'post' => 0, 'page' => 1 );
+				$oa    = isset( $order[ $a ] ) ? $order[ $a ] : 100;
+				$ob    = isset( $order[ $b ] ) ? $order[ $b ] : 100;
+				if ( $oa !== $ob ) {
+					return $oa - $ob;
+				}
+				return strcmp( $a, $b );
+			}
+		);
+		$page_choices   = Mantis_SEO_Schema_Types::get_page_type_choices();
+		$article_choices = Mantis_SEO_Schema_Types::get_article_type_choices();
+		?>
+		<table class="form-table mantis-schema-type-defaults">
+				<?php foreach ( $names as $pt ) : ?>
+					<?php
+					$obj  = $pt_objects[ $pt ];
+					$row  = $defaults[ $pt ] ?? Mantis_SEO_Schema_Types::get_builtin_row( $pt );
+					$lbl  = $obj->labels->singular_name ?? $obj->name;
+					$base = 'mantis_settings[schema_type_defaults][' . $pt . ']';
+					?>
+					<tr>
+						<th scope="row"><?php echo esc_html( $lbl ); ?> <code><?php echo esc_html( $pt ); ?></code></th>
+						<td>
+							<fieldset class="mantis-schema-type-defaults__fieldset">
+								<p>
+									<label for="mantis_schema_pt_<?php echo esc_attr( $pt ); ?>_page"><?php esc_html_e( 'Page type', 'mantis-seo' ); ?></label><br />
+									<select id="mantis_schema_pt_<?php echo esc_attr( $pt ); ?>_page" name="<?php echo esc_attr( $base ); ?>[page_type]" class="regular-text">
+										<?php foreach ( $page_choices as $val => $opt_label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $row['page_type'], $val ); ?>><?php echo esc_html( $opt_label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</p>
+								<p>
+									<label for="mantis_schema_pt_<?php echo esc_attr( $pt ); ?>_article"><?php esc_html_e( 'Article type', 'mantis-seo' ); ?></label><br />
+									<select id="mantis_schema_pt_<?php echo esc_attr( $pt ); ?>_article" name="<?php echo esc_attr( $base ); ?>[article_type]" class="regular-text">
+										<?php foreach ( $article_choices as $val => $opt_label ) : ?>
+											<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $row['article_type'], $val ); ?>><?php echo esc_html( $opt_label ); ?></option>
+										<?php endforeach; ?>
+									</select>
+								</p>
+								<p>
+									<?php if ( 'post' === $pt ) : ?>
+										<input type="hidden" name="<?php echo esc_attr( $base ); ?>[article_enabled]" value="1" />
+										<label><input type="checkbox" checked="checked" disabled="disabled" /> <?php esc_html_e( 'Article in JSON-LD: always on for posts', 'mantis-seo' ); ?></label>
+									<?php else : ?>
+										<label class="mantis-toggle-row" for="mantis_schema_article_<?php echo esc_attr( $pt ); ?>">
+											<span class="mantis-toggle">
+												<input type="checkbox" id="mantis_schema_article_<?php echo esc_attr( $pt ); ?>" class="mantis-toggle__input" name="<?php echo esc_attr( $base ); ?>[article_enabled]" value="1" <?php checked( ! empty( $row['article_enabled'] ) ); ?> />
+												<span class="mantis-toggle__track" aria-hidden="true"></span>
+											</span>
+											<span class="mantis-toggle-row__text"><span class="mantis-toggle-row__label"><?php esc_html_e( 'Include Article node in JSON-LD', 'mantis-seo' ); ?></span></span>
+										</label>
+									<?php endif; ?>
+								</p>
+							</fieldset>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+		</table>
 		<?php
 	}
 }
