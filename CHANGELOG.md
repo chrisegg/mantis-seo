@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### REST API
+
+- **Per-post SEO meta:** Public post types expose Mantis SEO fields (`_mantis_*`) under the core REST `meta` object so authenticated editors/agents can read and update titles, descriptions, social, robots, and schema overrides via `/wp-json/wp/v2/posts` and `/wp-json/wp/v2/pages` (and other public types). Updates require `edit_post` for the target post.
+
+### Abilities / MCP
+
+- **SEO abilities + opt-in toggles:** When the WordPress Abilities API is available (6.9+ or package), registers `mantis-seo/posts-list-seo`, `mantis-seo/post-get-seo`, `mantis-seo/post-update-seo`, and `mantis-seo/settings-get` with REST + MCP exposure. **Advanced → Abilities & MCP** adds a master switch and per-tool checkboxes (all off by default). No abilities are registered until enabled.
+
 ## 1.0.0-beta-1.1
 
 ### Redirects
