@@ -1,6 +1,6 @@
 # Mantis SEO
 
-**Lightweight SEO for WordPress** — titles & meta, redirects, JSON-LD schema, XML sitemaps, and social tags in one plugin. No upsells, no feature gating.
+**Lightweight SEO for WordPress** — titles & meta, redirects, JSON-LD schema, XML sitemaps, social tags, and AI/GEO discovery in one plugin. No upsells, no feature gating.
 
 - **Plugin URI:** [mantiseo.com](https://mantiseo.com)
 - **Requires:** WordPress 6.0+ · PHP 7.4+
@@ -29,6 +29,12 @@
 - **Per post-type** sitemaps (configurable public post types).
 - Can be **disabled** in settings if you use another sitemap solution.
 
+### AI / GEO
+
+- **`/llms.txt`** curated Markdown map for AI assistants (optional **`/llms-full.txt`** dump).
+- **AI crawler policies** in `robots.txt` (allow/block/inherit per bot: OpenAI, Anthropic, Perplexity, Google-Extended, and more).
+- **Brand facts wizard** creates a citation-ready page and links it first in `llms.txt`.
+
 ### Redirects
 
 - **301, 302, 303, 307, 308, 410,** and **451** redirects stored in a custom database table. **Regex** origins use a `~` delimiter internally—literal `~` in a pattern must be written as `\~`.
@@ -51,8 +57,8 @@
 
 1. Copy the `mantis-seo` folder into `wp-content/plugins/`.
 2. In **Plugins**, activate **Mantis SEO**.
-3. Visit **Mantis SEO** in the admin menu and configure **Titles & Meta**, **Social**, **Schema**, **Sitemap**, and **Advanced**.
-4. After activation or sitemap changes, visit **Settings → Permalinks** and click **Save** once if pretty permalinks or rewrite rules need a refresh (standard WordPress behavior).
+3. Visit **Mantis SEO** in the admin menu and configure **Titles & Meta**, **Social**, **Schema**, **Sitemap**, **AI / GEO**, and **Advanced**.
+4. After activation or sitemap / llms.txt changes, visit **Settings → Permalinks** and click **Save** once if pretty permalinks or rewrite rules need a refresh (standard WordPress behavior).
 
 ---
 
@@ -64,6 +70,7 @@
 | **Social** | Default Open Graph image, X card type (`summary` / `summary_large_image`). |
 | **Schema** | Organization name, URL, logo, and `sameAs` URLs for major networks. |
 | **Sitemap** | Toggle sitemap on/off and choose included post types. |
+| **AI / GEO** | Enable `/llms.txt`, set crawler policies, and run the brand-facts page wizard. |
 | **Post / Page editor** | Open **SEO Settings** in the sidebar; edit templates with pills, preview snippet, **Save SEO** (AJAX) without leaving the screen. |
 | **Redirects** | Add rules from origin path to target URL; choose status code. |
 
@@ -81,6 +88,19 @@ With permalinks enabled and the sitemap turned on:
 | `/sitemap_{post-type}.xml` | Entries for each enabled public post type |
 
 Submit the index URL in Google Search Console and Bing Webmaster Tools.
+
+---
+
+## AI discovery URLs
+
+With permalinks enabled and **AI / GEO → Enable /llms.txt** on:
+
+| URL | Role |
+|-----|------|
+| `/llms.txt` | Curated Markdown map for AI agents |
+| `/llms-full.txt` | Optional expanded Markdown dump (when enabled) |
+
+After enabling, save **Settings → Permalinks** once if these URLs 404.
 
 ---
 
@@ -108,7 +128,7 @@ mantis-seo/
 ├── mantis-seo.php          # Bootstrap, constants, hooks
 ├── uninstall.php
 ├── admin/                  # Settings UI, metabox, redirects admin
-├── includes/               # Meta, schema, sitemap, redirects, Yoast importer
+├── includes/               # Meta, schema, sitemap, redirects, AI/llms.txt, Yoast importer
 ├── assets/                 # admin.css, template editor & metabox JS
 └── languages/              # POT for translations
 ```

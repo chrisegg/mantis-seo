@@ -4,7 +4,7 @@
 
 ---
 
-**Mantis SEO** is a lightweight SEO plugin for WordPress: titles and meta descriptions, canonical URLs and robots directives, Open Graph and X (Twitter) cards, JSON-LD structured data, XML sitemaps, and redirects in one package—without upsells or feature gating.
+**Mantis SEO** is a lightweight SEO plugin for WordPress: titles and meta descriptions, canonical URLs and robots directives, Open Graph and X (Twitter) cards, JSON-LD structured data, XML sitemaps, redirects, and AI/GEO discovery (`llms.txt` and crawler policies) in one package—without upsells or feature gating.
 
 - **Website:** [mantiseo.com](https://mantiseo.com)
 - **Requirements:** WordPress 6.0 or newer, PHP 7.4 or newer (see the `Version:` and `Requires at least` headers in the main plugin file for the authoritative current values).
@@ -22,6 +22,7 @@ For a short project overview, installation checklist, and repository layout, see
 | **Social** | Default Open Graph image, X card type, and per-content OG/X title, description, and image URLs. |
 | **JSON-LD** | Linked `@graph` (WebSite with optional SearchAction, WebPage, Article on posts, BreadcrumbList, optional Organization). |
 | **Sitemaps** | Index and per–post-type XML sitemaps; can be disabled if you use another sitemap solution. |
+| **AI / GEO** | `/llms.txt` (and optional `/llms-full.txt`), AI crawler `robots.txt` policies, guided brand-facts page wizard. |
 | **Redirects** | Custom rules (plain or regex), multiple HTTP statuses, optional auto-redirect on slug changes. |
 | **Tools** | Yoast SEO migration, settings export/import. |
 
@@ -32,8 +33,8 @@ If **Settings → Reading → “Discourage search engines from indexing this si
 ## Installation and first steps
 
 1. Install the plugin (upload the `mantis-seo` folder to `wp-content/plugins/` or install from a release zip), then activate **Mantis SEO** under **Plugins**.
-2. Open **Mantis SEO** in the WordPress admin and work through **Titles & Meta**, **Social**, **Schema**, **Sitemap**, and **Advanced** as needed.
-3. After activation or if sitemap URLs return 404s, open **Settings → Permalinks** and click **Save Changes** once so rewrite rules refresh (normal WordPress behavior).
+2. Open **Mantis SEO** in the WordPress admin and work through **Titles & Meta**, **Social**, **Schema**, **Sitemap**, **AI / GEO**, and **Advanced** as needed.
+3. After activation or if sitemap / `llms.txt` URLs return 404s, open **Settings → Permalinks** and click **Save Changes** once so rewrite rules refresh (normal WordPress behavior).
 
 ---
 
@@ -47,6 +48,7 @@ The main settings UI uses these panels (see `get_settings_panel_ids()` in the pl
 | **Social** | **Default Open Graph image** (URL, with media picker); **X card type** (`summary` or `summary_large_image`). |
 | **Schema** | **Organization** name, URL, logo URL, and profile URLs used for `sameAs` (Facebook, Instagram, X, LinkedIn). |
 | **Sitemap** | Turn the XML sitemap **on or off**; choose which **public post types** appear in sitemaps. |
+| **AI / GEO** | Enable **`/llms.txt`** (and optional **`/llms-full.txt`**); site summary; priority pages and extra links; **AI crawler** allow/block/inherit policies; **brand facts page** wizard. |
 | **Advanced** | Site verification values for **Google** and **Bing** (stored and output as verification meta tags). |
 | **Tools** | **Migrate from Yoast SEO** when Yoast data is detected; **export** settings as JSON; **import** from several file formats (see [Migration and import](#migration-and-import)). |
 
@@ -152,6 +154,33 @@ Submit the **index** URL in Google Search Console and Bing Webmaster Tools. If a
 
 ---
 
+## AI / GEO
+
+Use the **AI / GEO** tab to help assistants find accurate brand facts (sometimes called generative engine optimization).
+
+### llms.txt
+
+When enabled, Mantis serves:
+
+| URL | Role |
+|-----|------|
+| `/llms.txt` | Short curated Markdown map (site summary, brand-facts page, priority pages, optional extra links) |
+| `/llms-full.txt` | Optional longer Markdown dump of the facts page and selected priority pages |
+
+`robots.txt` can include a comment pointing at `/llms.txt`. After enabling, save **Permalinks** once if the URLs 404.
+
+### AI crawler policies
+
+Optional groups in `robots.txt` for known AI user-agents. Each bot can be **Allow**, **Block**, or **No specific rule**. Defaults favor allowing search/citation bots (for example OAI-SearchBot, Claude-SearchBot, PerplexityBot) while leaving most training crawlers without a forced rule (or blocking common scrapers such as CCBot / Bytespider).
+
+Training vs search is a policy choice: blocking GPTBot does not by itself block ChatGPT search indexing via OAI-SearchBot.
+
+### Brand facts page wizard
+
+The wizard creates (or updates) a published WordPress page with citation-friendly sections (who you are, who you serve, offers, key facts, preferred citation, contact). Mantis stores the page ID in settings, lists it first under **Brand facts for AI** in `llms.txt`, and can copy the summary into the llms.txt site summary when empty.
+
+---
+
 ## Redirects
 
 Manage rules under **Mantis SEO → Redirects**.
@@ -217,6 +246,7 @@ This section is a quick reference, not a full public API.
 | Post/term SEO meta | Prefix `_mantis_` (see `Mantis_SEO_Meta::META_PREFIX`). Examples: `_mantis_title`, `_mantis_description`, `_mantis_canonical`, `_mantis_og_title`, `_mantis_robots_noindex`. |
 | Redirect storage | Table `{prefix}mantis_redirects` (`Mantis_SEO_Redirects::TABLE_NAME`). |
 | Capabilities | Settings and redirects: `manage_options`. Saving post SEO: `edit_post` for that post. Term SEO: `edit_term`. |
+| AI discovery | `Mantis_SEO_LLMs_Txt`, `Mantis_SEO_AI_Bots`, `Mantis_SEO_AI_Page`. Settings keys: `ai_llms_*`, `ai_page_id`, `ai_robots_enabled`, `ai_bot_policies`. |
 | Text domain | `mantis-seo` |
 | Version constant | `MANTIS_SEO_VERSION` in the bootstrap file |
 

@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Mantis_SEO_Settings_Page {
 
 	/**
+	 * Prefill data for the AI page wizard form.
+	 *
+	 * @var array|null
+	 */
+	private $ai_wizard_defaults = null;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -36,6 +43,7 @@ class Mantis_SEO_Settings_Page {
 			'mantis-social',
 			'mantis-schema',
 			'mantis-sitemap',
+			'mantis-ai',
 			'mantis-advanced',
 			'mantis-tools',
 		);
@@ -487,7 +495,16 @@ class Mantis_SEO_Settings_Page {
 			$sanitized['twitter_card_type'] = 'summary_large_image';
 		}
 
-		$bool_fields = array( 'noindex_author', 'noindex_date', 'noindex_category', 'noindex_tag', 'sitemap_enabled' );
+		$bool_fields = array(
+			'noindex_author',
+			'noindex_date',
+			'noindex_category',
+			'noindex_tag',
+			'sitemap_enabled',
+			'ai_llms_enabled',
+			'ai_llms_full_enabled',
+			'ai_robots_enabled',
+		);
 		foreach ( $bool_fields as $field ) {
 			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
@@ -508,6 +525,39 @@ class Mantis_SEO_Settings_Page {
 				( is_array( $prev ) && isset( $prev['schema_type_defaults'] ) && is_array( $prev['schema_type_defaults'] ) )
 					? $prev['schema_type_defaults']
 					: array()
+			);
+		}
+
+		if ( isset( $input['ai_llms_summary'] ) ) {
+			$sanitized['ai_llms_summary'] = sanitize_textarea_field( $input['ai_llms_summary'] );
+		}
+		if ( isset( $input['ai_llms_extra_links'] ) ) {
+			$sanitized['ai_llms_extra_links'] = sanitize_textarea_field( $input['ai_llms_extra_links'] );
+		}
+
+		$prev_settings = get_option( 'mantis_settings', array() );
+		if ( ! is_array( $prev_settings ) ) {
+			$prev_settings = array();
+		}
+
+		if ( isset( $input['ai_page_id'] ) ) {
+			$sanitized['ai_page_id'] = absint( $input['ai_page_id'] );
+		} else {
+			$sanitized['ai_page_id'] = isset( $prev_settings['ai_page_id'] ) ? absint( $prev_settings['ai_page_id'] ) : 0;
+		}
+
+		if ( isset( $input['ai_llms_page_ids'] ) && is_array( $input['ai_llms_page_ids'] ) ) {
+			$sanitized['ai_llms_page_ids'] = array_values( array_filter( array_map( 'absint', $input['ai_llms_page_ids'] ) ) );
+		} else {
+			// Checkbox group omitted when empty — treat as none selected.
+			$sanitized['ai_llms_page_ids'] = array();
+		}
+
+		if ( isset( $input['ai_bot_policies'] ) && is_array( $input['ai_bot_policies'] ) ) {
+			$sanitized['ai_bot_policies'] = Mantis_SEO_AI_Bots::sanitize_policies( $input['ai_bot_policies'] );
+		} else {
+			$sanitized['ai_bot_policies'] = Mantis_SEO_AI_Bots::merge_policies(
+				isset( $prev_settings['ai_bot_policies'] ) ? $prev_settings['ai_bot_policies'] : array()
 			);
 		}
 
@@ -616,6 +666,41 @@ class Mantis_SEO_Settings_Page {
 				);
 			}
 		}
+
+		if ( isset( $_GET['mantis_ai_page_created'] ) ) {
+			$page_id = isset( $_GET['mantis_ai_page_id'] ) ? absint( $_GET['mantis_ai_page_id'] ) : 0;
+			$edit    = $page_id ? get_edit_post_link( $page_id, 'raw' ) : '';
+			$view    = $page_id ? get_permalink( $page_id ) : '';
+			$msg     = __( 'AI facts page created and linked in llms.txt.', 'mantis-seo' );
+			if ( $edit && $view ) {
+				$msg = sprintf(
+					/* translators: 1: edit URL, 2: view URL */
+					__( 'AI facts page ready. %1$s · %2$s', 'mantis-seo' ),
+					'<a href="' . esc_url( $edit ) . '">' . esc_html__( 'Edit page', 'mantis-seo' ) . '</a>',
+					'<a href="' . esc_url( $view ) . '" target="_blank" rel="noopener noreferrer">' . esc_html__( 'View page', 'mantis-seo' ) . '</a>'
+				);
+			}
+			$mantis_settings_alert = array(
+				'type'     => 'success',
+				'message'  => $msg,
+				'allow_html'=> true,
+			);
+		}
+
+		if ( isset( $_GET['mantis_ai_page_error'] ) ) {
+			$err = get_transient( 'mantis_ai_page_error' );
+			if ( $err ) {
+				delete_transient( 'mantis_ai_page_error' );
+				$mantis_settings_alert = array(
+					'type'    => 'error',
+					'message' => sprintf(
+						/* translators: %s: error message */
+						__( 'Could not create AI page: %s', 'mantis-seo' ),
+						$err
+					),
+				);
+			}
+		}
 		wp_enqueue_script(
 			'mantis-seo-admin-settings',
 			MANTIS_SEO_URL . 'assets/js/admin-settings.js',
@@ -673,6 +758,7 @@ class Mantis_SEO_Settings_Page {
 							<li><a href="#mantis-social" class="mantis-settings-nav-item" data-panel="mantis-social"><?php esc_html_e( 'Social', 'mantis-seo' ); ?></a></li>
 							<li><a href="#mantis-schema" class="mantis-settings-nav-item" data-panel="mantis-schema"><?php esc_html_e( 'Schema', 'mantis-seo' ); ?></a></li>
 							<li><a href="#mantis-sitemap" class="mantis-settings-nav-item" data-panel="mantis-sitemap"><?php esc_html_e( 'Sitemap', 'mantis-seo' ); ?></a></li>
+							<li><a href="#mantis-ai" class="mantis-settings-nav-item" data-panel="mantis-ai"><?php esc_html_e( 'AI / GEO', 'mantis-seo' ); ?></a></li>
 							<li><a href="#mantis-advanced" class="mantis-settings-nav-item" data-panel="mantis-advanced"><?php esc_html_e( 'Advanced', 'mantis-seo' ); ?></a></li>
 							<li><a href="#mantis-tools" class="mantis-settings-nav-item" data-panel="mantis-tools"><?php esc_html_e( 'Tools', 'mantis-seo' ); ?></a></li>
 						</ul>
@@ -681,7 +767,22 @@ class Mantis_SEO_Settings_Page {
 					<div class="mantis-settings-body__notices" role="status" aria-live="polite"><?php
 					if ( ! empty( $mantis_settings_alert ) ) {
 						$alert_role = 'error' === $mantis_settings_alert['type'] ? 'alert' : 'status';
-						echo '<div class="mantis-settings-feedback mantis-settings-feedback--' . esc_attr( $mantis_settings_alert['type'] ) . '" role="' . esc_attr( $alert_role ) . '"><p>' . esc_html( $mantis_settings_alert['message'] ) . '</p></div>';
+						echo '<div class="mantis-settings-feedback mantis-settings-feedback--' . esc_attr( $mantis_settings_alert['type'] ) . '" role="' . esc_attr( $alert_role ) . '"><p>';
+						if ( ! empty( $mantis_settings_alert['allow_html'] ) ) {
+							echo wp_kses(
+								$mantis_settings_alert['message'],
+								array(
+									'a' => array(
+										'href'   => array(),
+										'target' => array(),
+										'rel'    => array(),
+									),
+								)
+							);
+						} else {
+							echo esc_html( $mantis_settings_alert['message'] );
+						}
+						echo '</p></div>';
 					}
 					?></div>
 					<div id="mantis-titles" class="mantis-tab-panel">
@@ -855,6 +956,8 @@ class Mantis_SEO_Settings_Page {
 						</div>
 					</div>
 
+					<?php $this->render_ai_geo_panel( $settings ); ?>
+
 					<div id="mantis-advanced" class="mantis-tab-panel mantis-advanced-panel" style="display:none;">
 						<h2 class="mantis-advanced-panel__section-title"><?php esc_html_e( 'Indexing', 'mantis-seo' ); ?></h2>
 						<section class="mantis-settings-card mantis-advanced-noindex-card" aria-labelledby="mantis-advanced-noindex-heading">
@@ -918,9 +1021,257 @@ class Mantis_SEO_Settings_Page {
 					<button type="submit" name="mantis_import" value="1" class="button button-primary mantis-tools-action-btn"><?php esc_html_e( 'Import', 'mantis-seo' ); ?></button>
 				</div>
 			</form>
+			<?php $this->render_ai_wizard_form(); ?>
 				</div>
 			</main>
 		</div>
+		<?php
+	}
+
+	/**
+	 * AI / GEO settings panel: llms.txt, crawler policies, guided facts page.
+	 *
+	 * @param array $settings Current settings.
+	 */
+	private function render_ai_geo_panel( $settings ) {
+		$ai_page_id   = isset( $settings['ai_page_id'] ) ? absint( $settings['ai_page_id'] ) : 0;
+		$ai_page      = $ai_page_id ? get_post( $ai_page_id ) : null;
+		$llms_pages   = isset( $settings['ai_llms_page_ids'] ) && is_array( $settings['ai_llms_page_ids'] ) ? $settings['ai_llms_page_ids'] : array();
+		$bot_policies = Mantis_SEO_AI_Bots::merge_policies( isset( $settings['ai_bot_policies'] ) ? $settings['ai_bot_policies'] : array() );
+		$bot_defs     = Mantis_SEO_AI_Bots::get_bot_definitions();
+		$pages        = get_posts(
+			array(
+				'post_type'              => 'page',
+				'post_status'            => 'publish',
+				'numberposts'            => 200,
+				'orderby'                => 'title',
+				'order'                  => 'ASC',
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			)
+		);
+		$brand_default = ! empty( $settings['schema_organization_name'] )
+			? $settings['schema_organization_name']
+			: get_bloginfo( 'name' );
+		?>
+		<div id="mantis-ai" class="mantis-tab-panel mantis-ai-panel" style="display:none;">
+			<input type="hidden" name="mantis_settings[ai_page_id]" value="<?php echo esc_attr( (string) $ai_page_id ); ?>" />
+			<h2 class="mantis-ai-panel__page-title"><?php esc_html_e( 'AI / GEO', 'mantis-seo' ); ?></h2>
+			<p class="description"><?php esc_html_e( 'Help AI assistants discover accurate facts about your brand: publish a curated llms.txt, set crawler policies, and create a citation-ready facts page.', 'mantis-seo' ); ?></p>
+
+			<div class="mantis-ai-stack">
+				<section class="mantis-settings-card" aria-labelledby="mantis-ai-llms-heading">
+					<h3 id="mantis-ai-llms-heading" class="mantis-settings-card__title"><?php esc_html_e( 'llms.txt discovery', 'mantis-seo' ); ?></h3>
+					<p class="mantis-settings-card__lead"><?php esc_html_e( 'A short Markdown map at /llms.txt that points AI agents to your best brand facts and key pages.', 'mantis-seo' ); ?></p>
+					<div class="mantis-settings-card__body">
+						<label class="mantis-toggle-row" for="mantis_ai_llms_enabled">
+							<span class="mantis-toggle-row__text">
+								<span class="mantis-toggle-row__label"><?php esc_html_e( 'Enable /llms.txt', 'mantis-seo' ); ?></span>
+							</span>
+							<span class="mantis-toggle">
+								<input type="checkbox" id="mantis_ai_llms_enabled" class="mantis-toggle__input" name="mantis_settings[ai_llms_enabled]" value="1" <?php checked( ! empty( $settings['ai_llms_enabled'] ) ); ?> />
+								<span class="mantis-toggle__track" aria-hidden="true"></span>
+							</span>
+						</label>
+						<label class="mantis-toggle-row" for="mantis_ai_llms_full_enabled">
+							<span class="mantis-toggle-row__text">
+								<span class="mantis-toggle-row__label"><?php esc_html_e( 'Also serve /llms-full.txt', 'mantis-seo' ); ?></span>
+							</span>
+							<span class="mantis-toggle">
+								<input type="checkbox" id="mantis_ai_llms_full_enabled" class="mantis-toggle__input" name="mantis_settings[ai_llms_full_enabled]" value="1" <?php checked( ! empty( $settings['ai_llms_full_enabled'] ) ); ?> />
+								<span class="mantis-toggle__track" aria-hidden="true"></span>
+							</span>
+						</label>
+						<?php if ( ! empty( $settings['ai_llms_enabled'] ) ) : ?>
+							<p class="mantis-sitemap-view-link">
+								<a href="<?php echo esc_url( home_url( '/llms.txt' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View llms.txt', 'mantis-seo' ); ?></a>
+								<?php if ( ! empty( $settings['ai_llms_full_enabled'] ) ) : ?>
+									· <a href="<?php echo esc_url( home_url( '/llms-full.txt' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View llms-full.txt', 'mantis-seo' ); ?></a>
+								<?php endif; ?>
+							</p>
+						<?php endif; ?>
+						<p>
+							<label for="mantis_ai_llms_summary"><strong><?php esc_html_e( 'Site summary for AI', 'mantis-seo' ); ?></strong></label><br />
+							<textarea id="mantis_ai_llms_summary" name="mantis_settings[ai_llms_summary]" class="large-text" rows="3" placeholder="<?php esc_attr_e( 'One or two sentences describing what this site/organization is.', 'mantis-seo' ); ?>"><?php echo esc_textarea( $settings['ai_llms_summary'] ?? '' ); ?></textarea>
+						</p>
+						<p>
+							<strong><?php esc_html_e( 'Priority pages in llms.txt', 'mantis-seo' ); ?></strong><br />
+							<span class="description"><?php esc_html_e( 'Homepage is always included. Select additional published pages (About, Pricing, FAQ, etc.).', 'mantis-seo' ); ?></span>
+						</p>
+						<ul class="mantis-sitemap-type-list mantis-ai-page-pick-list" role="list">
+							<?php foreach ( $pages as $page ) : ?>
+								<?php
+								$pid = (int) $page->ID;
+								$on  = in_array( $pid, array_map( 'absint', $llms_pages ), true );
+								?>
+								<li class="mantis-sitemap-type-list__item">
+									<label class="mantis-toggle-row" for="mantis_ai_llms_page_<?php echo esc_attr( (string) $pid ); ?>">
+										<span class="mantis-toggle-row__text">
+											<span class="mantis-toggle-row__label"><?php echo esc_html( get_the_title( $page ) ); ?></span>
+										</span>
+										<span class="mantis-toggle">
+											<input type="checkbox" id="mantis_ai_llms_page_<?php echo esc_attr( (string) $pid ); ?>" class="mantis-toggle__input" name="mantis_settings[ai_llms_page_ids][]" value="<?php echo esc_attr( (string) $pid ); ?>" <?php checked( $on ); ?> />
+											<span class="mantis-toggle__track" aria-hidden="true"></span>
+										</span>
+									</label>
+								</li>
+							<?php endforeach; ?>
+							<?php if ( empty( $pages ) ) : ?>
+								<li class="mantis-sitemap-type-list__item"><span class="description"><?php esc_html_e( 'No published pages yet.', 'mantis-seo' ); ?></span></li>
+							<?php endif; ?>
+						</ul>
+						<p>
+							<label for="mantis_ai_llms_extra_links"><strong><?php esc_html_e( 'Optional extra links', 'mantis-seo' ); ?></strong></label><br />
+							<span class="description"><?php esc_html_e( 'One per line: Title | https://example.com/path | optional note', 'mantis-seo' ); ?></span>
+							<textarea id="mantis_ai_llms_extra_links" name="mantis_settings[ai_llms_extra_links]" class="large-text code" rows="4" placeholder="<?php esc_attr_e( 'Docs | https://example.com/docs | Product documentation', 'mantis-seo' ); ?>"><?php echo esc_textarea( $settings['ai_llms_extra_links'] ?? '' ); ?></textarea>
+						</p>
+					</div>
+				</section>
+
+				<section class="mantis-settings-card" aria-labelledby="mantis-ai-robots-heading">
+					<h3 id="mantis-ai-robots-heading" class="mantis-settings-card__title"><?php esc_html_e( 'AI crawler policies', 'mantis-seo' ); ?></h3>
+					<p class="mantis-settings-card__lead"><?php esc_html_e( 'Separate search/citation bots from training crawlers. Allow search bots if you want to appear in AI answers; training is a separate rights choice.', 'mantis-seo' ); ?></p>
+					<div class="mantis-settings-card__body">
+						<label class="mantis-toggle-row" for="mantis_ai_robots_enabled">
+							<span class="mantis-toggle-row__text">
+								<span class="mantis-toggle-row__label"><?php esc_html_e( 'Add AI rules to robots.txt', 'mantis-seo' ); ?></span>
+							</span>
+							<span class="mantis-toggle">
+								<input type="checkbox" id="mantis_ai_robots_enabled" class="mantis-toggle__input" name="mantis_settings[ai_robots_enabled]" value="1" <?php checked( ! empty( $settings['ai_robots_enabled'] ) ); ?> />
+								<span class="mantis-toggle__track" aria-hidden="true"></span>
+							</span>
+						</label>
+						<table class="form-table mantis-ai-bots-table">
+							<?php foreach ( $bot_defs as $bot_id => $bot ) : ?>
+								<tr>
+									<th scope="row">
+										<label for="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>"><?php echo esc_html( $bot['label'] ); ?></label>
+										<p class="description"><?php echo esc_html( $bot['description'] ); ?></p>
+									</th>
+									<td>
+										<select id="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>" name="mantis_settings[ai_bot_policies][<?php echo esc_attr( $bot_id ); ?>]">
+											<option value="allow" <?php selected( $bot_policies[ $bot_id ], 'allow' ); ?>><?php esc_html_e( 'Allow', 'mantis-seo' ); ?></option>
+											<option value="block" <?php selected( $bot_policies[ $bot_id ], 'block' ); ?>><?php esc_html_e( 'Block', 'mantis-seo' ); ?></option>
+											<option value="inherit" <?php selected( $bot_policies[ $bot_id ], 'inherit' ); ?>><?php esc_html_e( 'No specific rule', 'mantis-seo' ); ?></option>
+										</select>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+						</table>
+					</div>
+				</section>
+
+				<section class="mantis-settings-card" aria-labelledby="mantis-ai-page-heading">
+					<h3 id="mantis-ai-page-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Brand facts page for AI', 'mantis-seo' ); ?></h3>
+					<p class="mantis-settings-card__lead"><?php esc_html_e( 'Create a citation-ready page AI bots can quote: who you are, what you offer, and how to name you. It is linked first in llms.txt.', 'mantis-seo' ); ?></p>
+					<div class="mantis-settings-card__body">
+						<?php if ( $ai_page instanceof WP_Post ) : ?>
+							<p>
+								<?php
+								printf(
+									/* translators: %s: page title */
+									esc_html__( 'Linked page: %s', 'mantis-seo' ),
+									esc_html( get_the_title( $ai_page ) )
+								);
+								?>
+								—
+								<a href="<?php echo esc_url( get_edit_post_link( $ai_page_id, 'raw' ) ); ?>"><?php esc_html_e( 'Edit', 'mantis-seo' ); ?></a>
+								·
+								<a href="<?php echo esc_url( get_permalink( $ai_page_id ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View', 'mantis-seo' ); ?></a>
+							</p>
+						<?php else : ?>
+							<p class="description"><?php esc_html_e( 'No AI facts page linked yet. Use the wizard below to create one.', 'mantis-seo' ); ?></p>
+						<?php endif; ?>
+						<div id="mantis-ai-wizard-cell" class="mantis-ai-wizard-slot"></div>
+					</div>
+				</section>
+			</div>
+		</div>
+		<?php
+		$this->store_ai_wizard_defaults( $settings, $brand_default, ( $ai_page instanceof WP_Post ) );
+	}
+
+	/**
+	 * Prefill values for the external wizard form (rendered after the settings form).
+	 *
+	 * @param array  $settings      Current settings.
+	 * @param string $brand_default Default brand name.
+	 * @param bool   $has_page      Whether an AI page is already linked.
+	 */
+	private function store_ai_wizard_defaults( $settings, $brand_default, $has_page ) {
+		$this->ai_wizard_defaults = array(
+			'brand'    => $brand_default,
+			'summary'  => $settings['ai_llms_summary'] ?? '',
+			'has_page' => $has_page,
+		);
+	}
+
+	/**
+	 * AI page wizard form (placed outside options.php form; JS moves it into the AI tab).
+	 */
+	private function render_ai_wizard_form() {
+		$defaults = is_array( $this->ai_wizard_defaults ) ? $this->ai_wizard_defaults : array(
+			'brand'    => get_bloginfo( 'name' ),
+			'summary'  => '',
+			'has_page' => false,
+		);
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" id="mantis-ai-wizard-form" class="mantis-ai-wizard-form" style="display:none;">
+			<?php wp_nonce_field( 'mantis_create_ai_page' ); ?>
+			<input type="hidden" name="mantis_create_ai_page" value="1" />
+			<div class="mantis-ai-wizard-form__fields">
+				<p>
+					<label for="mantis_ai_brand"><strong><?php esc_html_e( 'Brand / organization name', 'mantis-seo' ); ?></strong></label><br />
+					<input type="text" id="mantis_ai_brand" name="mantis_ai_brand" class="large-text" value="<?php echo esc_attr( $defaults['brand'] ); ?>" required />
+				</p>
+				<p>
+					<label for="mantis_ai_summary"><strong><?php esc_html_e( 'What you are (1–2 sentences)', 'mantis-seo' ); ?></strong></label><br />
+					<textarea id="mantis_ai_summary" name="mantis_ai_summary" class="large-text" rows="3" required placeholder="<?php esc_attr_e( 'We make … for …', 'mantis-seo' ); ?>"><?php echo esc_textarea( $defaults['summary'] ); ?></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_audience"><strong><?php esc_html_e( 'Who you serve', 'mantis-seo' ); ?></strong></label><br />
+					<textarea id="mantis_ai_audience" name="mantis_ai_audience" class="large-text" rows="2" placeholder="<?php esc_attr_e( 'Small businesses, developers, …', 'mantis-seo' ); ?>"></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_offers"><strong><?php esc_html_e( 'What you offer', 'mantis-seo' ); ?></strong></label><br />
+					<span class="description"><?php esc_html_e( 'One product or service per line.', 'mantis-seo' ); ?></span>
+					<textarea id="mantis_ai_offers" name="mantis_ai_offers" class="large-text" rows="4" placeholder="<?php esc_attr_e( "SEO plugin\nConsulting\nHosting", 'mantis-seo' ); ?>"></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_facts"><strong><?php esc_html_e( 'Key facts', 'mantis-seo' ); ?></strong></label><br />
+					<span class="description"><?php esc_html_e( 'Numbers, founding year, locations, guarantees — one per line.', 'mantis-seo' ); ?></span>
+					<textarea id="mantis_ai_facts" name="mantis_ai_facts" class="large-text" rows="4"></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_citation"><strong><?php esc_html_e( 'Preferred citation', 'mantis-seo' ); ?></strong></label><br />
+					<textarea id="mantis_ai_citation" name="mantis_ai_citation" class="large-text" rows="2" placeholder="<?php esc_attr_e( 'Prefer the brand name “…” and link to https://…', 'mantis-seo' ); ?>"></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_contact"><strong><?php esc_html_e( 'Contact', 'mantis-seo' ); ?></strong></label><br />
+					<textarea id="mantis_ai_contact" name="mantis_ai_contact" class="large-text" rows="2" placeholder="<?php esc_attr_e( 'support@example.com', 'mantis-seo' ); ?>"></textarea>
+				</p>
+				<p>
+					<label for="mantis_ai_page_title"><strong><?php esc_html_e( 'Page title', 'mantis-seo' ); ?></strong></label><br />
+					<input type="text" id="mantis_ai_page_title" name="mantis_ai_page_title" class="large-text" placeholder="<?php echo esc_attr( sprintf( /* translators: %s: brand */ __( '%s — facts for AI assistants', 'mantis-seo' ), $defaults['brand'] ) ); ?>" />
+				</p>
+				<p>
+					<label for="mantis_ai_page_slug"><strong><?php esc_html_e( 'Page slug', 'mantis-seo' ); ?></strong></label><br />
+					<input type="text" id="mantis_ai_page_slug" name="mantis_ai_page_slug" class="regular-text" value="for-ai" />
+				</p>
+				<?php if ( ! empty( $defaults['has_page'] ) ) : ?>
+					<p>
+						<label>
+							<input type="checkbox" name="mantis_ai_update_existing" value="1" />
+							<?php esc_html_e( 'Update the existing linked AI page instead of creating a new one', 'mantis-seo' ); ?>
+						</label>
+					</p>
+				<?php endif; ?>
+				<p>
+					<button type="submit" class="button button-primary mantis-tools-action-btn"><?php echo ! empty( $defaults['has_page'] ) ? esc_html__( 'Create or update AI facts page', 'mantis-seo' ) : esc_html__( 'Create AI facts page', 'mantis-seo' ); ?></button>
+				</p>
+			</div>
+		</form>
 		<?php
 	}
 

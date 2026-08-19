@@ -73,11 +73,12 @@ class Mantis_SEO_Main {
 	 */
 	public static function maybe_flush_sitemap_rewrites() {
 		$key    = 'mantis_seo_rewrite_rules_gen';
-		$target = 2;
+		$target = 3; // 3 = llms.txt / llms-full.txt rewrite rules.
 		if ( (int) get_option( $key, 0 ) >= $target ) {
 			return;
 		}
 		Mantis_SEO_Sitemap::register_rewrite_rules();
+		Mantis_SEO_LLMs_Txt::register_rewrite_rules();
 		flush_rewrite_rules();
 		update_option( $key, $target );
 	}
@@ -95,6 +96,9 @@ class Mantis_SEO_Main {
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-provider.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-posts.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-terms.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-ai-bots.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-llms-txt.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-ai-page.php';
 
 		if ( is_admin() ) {
 			require_once MANTIS_SEO_PATH . 'includes/class-yoast-importer.php';
@@ -113,10 +117,13 @@ class Mantis_SEO_Main {
 		$this->components['redirects']          = new Mantis_SEO_Redirects();
 		$this->components['redirect_manager']   = new Mantis_SEO_Redirect_Manager();
 		$this->components['schema']             = new Mantis_SEO_Schema();
-		$this->components['sitemap']  = new Mantis_SEO_Sitemap();
+		$this->components['sitemap']            = new Mantis_SEO_Sitemap();
+		$this->components['ai_bots']            = new Mantis_SEO_AI_Bots();
+		$this->components['llms_txt']           = new Mantis_SEO_LLMs_Txt();
 
 		if ( is_admin() ) {
 			$this->components['admin'] = new Mantis_SEO_Admin();
+			add_action( 'admin_init', array( 'Mantis_SEO_AI_Page', 'maybe_handle_wizard' ) );
 		}
 	}
 
@@ -157,6 +164,15 @@ class Mantis_SEO_Main {
 		$merged['schema_type_defaults'] = Mantis_SEO_Schema_Types::merge_settings_defaults(
 			isset( $merged['schema_type_defaults'] ) && is_array( $merged['schema_type_defaults'] ) ? $merged['schema_type_defaults'] : array()
 		);
+		$merged['ai_bot_policies'] = Mantis_SEO_AI_Bots::merge_policies(
+			isset( $merged['ai_bot_policies'] ) ? $merged['ai_bot_policies'] : array()
+		);
+		if ( isset( $merged['ai_llms_page_ids'] ) && is_array( $merged['ai_llms_page_ids'] ) ) {
+			$merged['ai_llms_page_ids'] = array_values( array_filter( array_map( 'absint', $merged['ai_llms_page_ids'] ) ) );
+		} else {
+			$merged['ai_llms_page_ids'] = array();
+		}
+		$merged['ai_page_id'] = absint( $merged['ai_page_id'] ?? 0 );
 
 		self::$settings_cache = $merged;
 		return self::$settings_cache;
@@ -194,6 +210,14 @@ class Mantis_SEO_Main {
 			'schema_same_as_linkedin'   => '',
 			'sitemap_post_types'        => array( 'post', 'page' ),
 			'schema_type_defaults'      => array(),
+			'ai_llms_enabled'           => true,
+			'ai_llms_full_enabled'      => false,
+			'ai_llms_summary'           => '',
+			'ai_llms_extra_links'       => '',
+			'ai_llms_page_ids'          => array(),
+			'ai_page_id'                => 0,
+			'ai_robots_enabled'         => true,
+			'ai_bot_policies'           => array(),
 		);
 	}
 
@@ -251,11 +275,13 @@ class Mantis_SEO_Main {
 		}
 
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-llms-txt.php';
 		Mantis_SEO_Sitemap::register_rewrite_rules();
+		Mantis_SEO_LLMs_Txt::register_rewrite_rules();
 		global $wp_rewrite;
 		if ( $wp_rewrite instanceof WP_Rewrite ) {
 			flush_rewrite_rules();
-			update_option( 'mantis_seo_rewrite_rules_gen', 2 );
+			update_option( 'mantis_seo_rewrite_rules_gen', 3 );
 		}
 	}
 }
