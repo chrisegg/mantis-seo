@@ -721,8 +721,9 @@ class Mantis_SEO_Settings_Page {
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-seo-settings">
+			<?php Mantis_SEO_Admin::render_indexing_warning(); ?>
 			<?php if ( Mantis_SEO_Yoast_Importer::has_yoast_data() && ! get_option( 'mantis_migrated_from_yoast' ) ) : ?>
-			<div class="notice notice-info inline" style="margin:20px 0;">
+			<div class="mantis-settings-feedback mantis-settings-feedback--info" role="status">
 				<p><strong><?php esc_html_e( 'Yoast SEO detected.', 'mantis-seo' ); ?></strong> <?php esc_html_e( 'You can migrate your SEO settings, post meta, and redirects to Mantis SEO.', 'mantis-seo' ); ?></p>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin.php?page=mantis-seo' ) ); ?>" style="margin-top:10px;">
 					<?php wp_nonce_field( 'mantis_migrate_yoast' ); ?>
@@ -733,7 +734,7 @@ class Mantis_SEO_Settings_Page {
 
 			<?php if ( isset( $_GET['mantis_migrated'] ) && $migrate_result = get_transient( 'mantis_migrate_result' ) ) : ?>
 					<?php delete_transient( 'mantis_migrate_result' ); ?>
-					<div class="notice notice-success inline"><p>
+					<div class="mantis-settings-feedback mantis-settings-feedback--success" role="status"><p>
 						<?php
 						printf(
 							/* translators: 1: posts count, 2: terms count, 3: redirects count */
@@ -1147,14 +1148,16 @@ class Mantis_SEO_Settings_Page {
 								<tr>
 									<th scope="row">
 										<label for="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>"><?php echo esc_html( $bot['label'] ); ?></label>
-										<p class="description"><?php echo esc_html( $bot['description'] ); ?></p>
+										<p id="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>_desc" class="description"><?php echo esc_html( $bot['description'] ); ?></p>
 									</th>
 									<td>
-										<select id="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>" name="mantis_settings[ai_bot_policies][<?php echo esc_attr( $bot_id ); ?>]">
-											<option value="allow" <?php selected( $bot_policies[ $bot_id ], 'allow' ); ?>><?php esc_html_e( 'Allow', 'mantis-seo' ); ?></option>
-											<option value="block" <?php selected( $bot_policies[ $bot_id ], 'block' ); ?>><?php esc_html_e( 'Block', 'mantis-seo' ); ?></option>
-											<option value="inherit" <?php selected( $bot_policies[ $bot_id ], 'inherit' ); ?>><?php esc_html_e( 'No specific rule', 'mantis-seo' ); ?></option>
-										</select>
+										<span class="mantis-select-wrap">
+											<select id="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>" class="mantis-select" name="mantis_settings[ai_bot_policies][<?php echo esc_attr( $bot_id ); ?>]" aria-describedby="mantis_ai_bot_<?php echo esc_attr( $bot_id ); ?>_desc">
+												<option value="allow" <?php selected( $bot_policies[ $bot_id ], 'allow' ); ?>><?php esc_html_e( 'Allow', 'mantis-seo' ); ?></option>
+												<option value="block" <?php selected( $bot_policies[ $bot_id ], 'block' ); ?>><?php esc_html_e( 'Block', 'mantis-seo' ); ?></option>
+												<option value="inherit" <?php selected( $bot_policies[ $bot_id ], 'inherit' ); ?>><?php esc_html_e( 'No specific rule', 'mantis-seo' ); ?></option>
+											</select>
+										</span>
 									</td>
 								</tr>
 							<?php endforeach; ?>

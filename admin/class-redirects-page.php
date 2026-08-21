@@ -143,11 +143,11 @@ class Mantis_SEO_Redirects_Page {
 			451 => __( '451 Unavailable For Legal Reasons', 'mantis-seo' ),
 		);
 
+		$redirect_error = '';
 		if ( isset( $_GET['redirect_error'] ) && 'invalid_regex' === $_GET['redirect_error'] ) {
-			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Invalid regular expression. Check your pattern and escape any ~ as \\~.', 'mantis-seo' ) . '</p></div>';
-		}
-		if ( isset( $_GET['redirect_error'] ) && 'save_failed' === $_GET['redirect_error'] ) {
-			echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Could not save redirect.', 'mantis-seo' ) . '</p></div>';
+			$redirect_error = __( 'Invalid regular expression. Check your pattern and escape any ~ as \\~.', 'mantis-seo' );
+		} elseif ( isset( $_GET['redirect_error'] ) && 'save_failed' === $_GET['redirect_error'] ) {
+			$redirect_error = __( 'Could not save redirect.', 'mantis-seo' );
 		}
 		?>
 		<div class="mantis-seo-app" id="mantis-seo-app">
@@ -155,14 +155,18 @@ class Mantis_SEO_Redirects_Page {
 			<?php require_once MANTIS_SEO_PATH . 'admin/partials/app-header.php'; ?>
 			<main class="mantis-seo-app-main">
 				<div class="mantis-seo-app-content wrap mantis-redirects">
+			<?php Mantis_SEO_Admin::render_indexing_warning(); ?>
+			<?php if ( '' !== $redirect_error ) : ?>
+				<div class="mantis-settings-feedback mantis-settings-feedback--error" role="alert"><p><?php echo esc_html( $redirect_error ); ?></p></div>
+			<?php endif; ?>
 			<?php if ( isset( $_GET['added'] ) ) : ?>
-				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect added.', 'mantis-seo' ); ?></p></div>
+				<div class="mantis-settings-feedback mantis-settings-feedback--success" role="status"><p><?php esc_html_e( 'Redirect added.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( isset( $_GET['updated'] ) ) : ?>
-				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect updated.', 'mantis-seo' ); ?></p></div>
+				<div class="mantis-settings-feedback mantis-settings-feedback--success" role="status"><p><?php esc_html_e( 'Redirect updated.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
 			<?php if ( isset( $_GET['deleted'] ) ) : ?>
-				<div class="notice notice-success"><p><?php esc_html_e( 'Redirect deleted.', 'mantis-seo' ); ?></p></div>
+				<div class="mantis-settings-feedback mantis-settings-feedback--success" role="status"><p><?php esc_html_e( 'Redirect deleted.', 'mantis-seo' ); ?></p></div>
 			<?php endif; ?>
 
 			<div id="mantis-redirect-accordion" class="mantis-redirect-accordion<?php echo $editing ? ' mantis-redirect-accordion-expanded' : ''; ?>">
