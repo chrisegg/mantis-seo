@@ -246,6 +246,28 @@
 
 <hr>
 
+<h2>REST API (per-post SEO meta)</h2>
+
+<p>Per-post SEO fields are registered with <code>show_in_rest</code> for every <strong>public</strong> post type. Authenticated clients that can <code>edit_post</code> may read and update them through the core posts REST routes under the <code>meta</code> object (Application Password recommended).</p>
+
+<p>Example: <code>POST /wp-json/wp/v2/pages/{id}</code> with body:</p>
+
+<pre>{
+  "meta": {
+    "_mantis_title": "Example SEO Title",
+    "_mantis_description": "A concise meta description for search results.",
+    "_mantis_focus_keyword": "example keyword",
+    "_mantis_robots_noindex": "0",
+    "_mantis_robots_nofollow": "0"
+  }
+}</pre>
+
+<p>Registered keys include <code>_mantis_title</code>, <code>_mantis_description</code>, <code>_mantis_focus_keyword</code>, <code>_mantis_canonical</code>, <code>_mantis_robots_noindex</code>, <code>_mantis_robots_nofollow</code>, Open Graph / X fields (<code>_mantis_og_*</code>, <code>_mantis_twitter_*</code>), and schema overrides (<code>_mantis_schema_page_type</code>, <code>_mantis_schema_article_type</code>). See <code>Mantis_SEO_Rest_Meta</code> in <code>includes/class-rest-meta.php</code>. Term SEO meta is not exposed via REST in this version.</p>
+
+<h2>Abilities API / MCP (agent tools)</h2>
+
+<p>When <code>wp_register_ability()</code> is available, <code>Mantis_SEO_Abilities</code> can register category <code>mantis-seo</code> and abilities <code>mantis-seo/posts-list-seo</code>, <code>mantis-seo/post-get-seo</code>, <code>mantis-seo/post-update-seo</code>, and <code>mantis-seo/settings-get</code> (REST + MCP when the adapter is present). Enable them under <strong>Mantis SEO → Advanced → Abilities &amp; MCP</strong> (master switch + per-tool opt-in; all off by default). Updates require <code>edit_post</code>. On older WordPress without the Abilities API, registration is skipped.</p>
+
 <h2>Developer snapshot</h2>
 
 <p>This section is a quick reference, not a full public API.</p>
@@ -257,6 +279,7 @@
 	<tbody>
 		<tr><td>Main settings</td><td>WordPress option <code>mantis_settings</code> (array), merged with defaults in <code>Mantis_SEO_Main::get_settings()</code>.</td></tr>
 		<tr><td>Post/term SEO meta</td><td>Prefix <code>_mantis_</code> (see <code>Mantis_SEO_Meta::META_PREFIX</code>). Examples: <code>_mantis_title</code>, <code>_mantis_description</code>, <code>_mantis_canonical</code>, <code>_mantis_og_title</code>, <code>_mantis_robots_noindex</code>.</td></tr>
+		<tr><td>REST (post SEO)</td><td>Core <code>wp/v2</code> post/page <code>meta</code> keys above; <code>edit_post</code> required to update. See <strong>REST API (per-post SEO meta)</strong>.</td></tr>
 		<tr><td>Redirect storage</td><td>Table <code>{prefix}mantis_redirects</code> (<code>Mantis_SEO_Redirects::TABLE_NAME</code>).</td></tr>
 		<tr><td>Capabilities</td><td>Settings and redirects: <code>manage_options</code>. Saving post SEO: <code>edit_post</code> for that post. Term SEO: <code>edit_term</code>.</td></tr>
 		<tr><td>Text domain</td><td><code>mantis-seo</code></td></tr>

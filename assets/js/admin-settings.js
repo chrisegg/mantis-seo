@@ -57,4 +57,16 @@
 			showPanel(activeTabInput.value);
 		}
 	}
+
+	// MCP tool group select / deselect all.
+	document.querySelectorAll('[data-mantis-mcp-select]').forEach(function (btn) {
+		btn.addEventListener('click', function (e) {
+			e.preventDefault();
+			var group = btn.getAttribute('data-mantis-mcp-select');
+			var on = btn.getAttribute('data-state') === '1';
+			document.querySelectorAll('input[data-mantis-mcp-group="' + group + '"]').forEach(function (input) {
+				input.checked = on;
+			});
+		});
+	});
 })();
