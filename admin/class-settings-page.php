@@ -504,10 +504,15 @@ class Mantis_SEO_Settings_Page {
 			'ai_llms_enabled',
 			'ai_llms_full_enabled',
 			'ai_robots_enabled',
+			'mcp_enabled',
 		);
 		foreach ( $bool_fields as $field ) {
 			$sanitized[ $field ] = ! empty( $input[ $field ] );
 		}
+
+		$sanitized['mcp_abilities'] = Mantis_SEO_Abilities::sanitize_tool_flags(
+			isset( $input['mcp_abilities'] ) ? $input['mcp_abilities'] : array()
+		);
 
 		if ( isset( $input['sitemap_post_types'] ) && is_array( $input['sitemap_post_types'] ) ) {
 			$valid_types = get_post_types( array( 'public' => true ), 'names' );
@@ -1003,6 +1008,7 @@ class Mantis_SEO_Settings_Page {
 								<td><input type="text" id="mantis_bing_verify" name="mantis_settings[bing_verify]" value="<?php echo esc_attr( $settings['bing_verify'] ); ?>" class="large-text" /></td>
 							</tr>
 						</table>
+						<?php $this->render_mcp_abilities_settings( $settings ); ?>
 					</div>
 
 					<?php $this->render_settings_tools_panel(); ?>
@@ -1276,6 +1282,122 @@ class Mantis_SEO_Settings_Page {
 			</div>
 		</form>
 		<?php
+	}
+
+	/**
+	 * MCP / Abilities opt-in controls (Advanced tab).
+	 *
+	 * @param array $settings Current settings.
+	 */
+	private function render_mcp_abilities_settings( $settings ) {
+		$api_ok       = Mantis_SEO_Abilities::api_available();
+		$mcp_enabled  = ! empty( $settings['mcp_enabled'] );
+		$tool_flags   = Mantis_SEO_Abilities::sanitize_tool_flags(
+			isset( $settings['mcp_abilities'] ) ? $settings['mcp_abilities'] : array()
+		);
+		$definitions  = Mantis_SEO_Abilities::get_tool_definitions();
+		$readonly     = array();
+		$write        = array();
+		foreach ( $definitions as $slug => $def ) {
+			if ( ! empty( $def['readonly'] ) ) {
+				$readonly[ $slug ] = $def;
+			} else {
+				$write[ $slug ] = $def;
+			}
+		}
+		?>
+		<h2 class="mantis-advanced-panel__section-title"><?php esc_html_e( 'Abilities &amp; MCP', 'mantis-seo' ); ?></h2>
+		<section class="mantis-settings-card" aria-labelledby="mantis-mcp-heading">
+			<h3 id="mantis-mcp-heading" class="mantis-settings-card__title"><?php esc_html_e( 'AI agent access', 'mantis-seo' ); ?></h3>
+			<p class="mantis-settings-card__lead">
+				<?php esc_html_e( 'Expose Mantis SEO tools to the WordPress Abilities API and MCP adapter (for example Cursor). Everything is off by default. Turn on MCP, then enable only the tools you want agents to use.', 'mantis-seo' ); ?>
+			</p>
+			<?php if ( ! $api_ok ) : ?>
+				<p class="description">
+					<?php esc_html_e( 'The Abilities API is not available on this site. Use WordPress 6.9 or newer (or install the Abilities API package). You can still save these preferences for when the API is available. Core REST post meta (_mantis_*) continues to work without Abilities.', 'mantis-seo' ); ?>
+				</p>
+			<?php endif; ?>
+			<ul class="mantis-sitemap-type-list" role="list">
+				<li class="mantis-sitemap-type-list__item">
+					<label class="mantis-toggle-row" for="mantis_mcp_enabled">
+						<span class="mantis-toggle-row__text">
+							<span class="mantis-toggle-row__label"><?php esc_html_e( 'Enable MCP / Abilities', 'mantis-seo' ); ?></span>
+							<span class="description" style="display:block;margin-top:0.25em;"><?php esc_html_e( 'Master switch. When off, no Mantis SEO abilities are registered.', 'mantis-seo' ); ?></span>
+						</span>
+						<span class="mantis-toggle">
+							<input type="checkbox" id="mantis_mcp_enabled" class="mantis-toggle__input" name="mantis_settings[mcp_enabled]" value="1" <?php checked( $mcp_enabled ); ?> />
+							<span class="mantis-toggle__track" aria-hidden="true"></span>
+						</span>
+					</label>
+				</li>
+			</ul>
+
+			<div class="mantis-mcp-tools" data-mantis-mcp-tools>
+				<div class="mantis-mcp-tools__group">
+					<div class="mantis-mcp-tools__group-head">
+						<h4 class="mantis-settings-card__title" style="margin:1.25em 0 0.5em;font-size:1em;"><?php esc_html_e( 'Read-only tools', 'mantis-seo' ); ?></h4>
+						<p class="mantis-mcp-tools__bulk">
+							<button type="button" class="button-link" data-mantis-mcp-select="readonly" data-state="1"><?php esc_html_e( 'Select all', 'mantis-seo' ); ?></button>
+							<span aria-hidden="true"> · </span>
+							<button type="button" class="button-link" data-mantis-mcp-select="readonly" data-state="0"><?php esc_html_e( 'Deselect all', 'mantis-seo' ); ?></button>
+						</p>
+					</div>
+					<ul class="mantis-sitemap-type-list" role="list">
+						<?php foreach ( $readonly as $slug => $def ) : ?>
+							<?php
+							$input_id = 'mantis_mcp_ability_' . sanitize_html_class( $slug );
+							$on       = ! empty( $tool_flags[ $slug ] );
+							?>
+							<li class="mantis-sitemap-type-list__item">
+								<label class="mantis-toggle-row" for="<?php echo esc_attr( $input_id ); ?>">
+									<span class="mantis-toggle-row__text">
+										<span class="mantis-toggle-row__label"><?php echo esc_html( $def['label'] ); ?></span>
+										<span class="description" style="display:block;margin-top:0.25em;"><?php echo esc_html( $def['description'] ); ?></span>
+										<code style="display:inline-block;margin-top:0.35em;font-size:11px;">mantis-seo/<?php echo esc_html( $slug ); ?></code>
+									</span>
+									<span class="mantis-toggle">
+										<input type="checkbox" id="<?php echo esc_attr( $input_id ); ?>" class="mantis-toggle__input" name="mantis_settings[mcp_abilities][<?php echo esc_attr( $slug ); ?>]" value="1" data-mantis-mcp-group="readonly" <?php checked( $on ); ?> />
+										<span class="mantis-toggle__track" aria-hidden="true"></span>
+									</span>
+								</label>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+
+				<div class="mantis-mcp-tools__group">
+					<div class="mantis-mcp-tools__group-head">
+						<h4 class="mantis-settings-card__title" style="margin:1.25em 0 0.5em;font-size:1em;"><?php esc_html_e( 'Write tools', 'mantis-seo' ); ?></h4>
+						<p class="mantis-mcp-tools__bulk">
+							<button type="button" class="button-link" data-mantis-mcp-select="write" data-state="1"><?php esc_html_e( 'Select all', 'mantis-seo' ); ?></button>
+							<span aria-hidden="true"> · </span>
+							<button type="button" class="button-link" data-mantis-mcp-select="write" data-state="0"><?php esc_html_e( 'Deselect all', 'mantis-seo' ); ?></button>
+						</p>
+					</div>
+					<ul class="mantis-sitemap-type-list" role="list">
+						<?php foreach ( $write as $slug => $def ) : ?>
+							<?php
+							$input_id = 'mantis_mcp_ability_' . sanitize_html_class( $slug );
+							$on       = ! empty( $tool_flags[ $slug ] );
+							?>
+							<li class="mantis-sitemap-type-list__item">
+								<label class="mantis-toggle-row" for="<?php echo esc_attr( $input_id ); ?>">
+									<span class="mantis-toggle-row__text">
+										<span class="mantis-toggle-row__label"><?php echo esc_html( $def['label'] ); ?></span>
+										<span class="description" style="display:block;margin-top:0.25em;"><?php echo esc_html( $def['description'] ); ?></span>
+										<code style="display:inline-block;margin-top:0.35em;font-size:11px;">mantis-seo/<?php echo esc_html( $slug ); ?></code>
+									</span>
+									<span class="mantis-toggle">
+										<input type="checkbox" id="<?php echo esc_attr( $input_id ); ?>" class="mantis-toggle__input" name="mantis_settings[mcp_abilities][<?php echo esc_attr( $slug ); ?>]" value="1" data-mantis-mcp-group="write" <?php checked( $on ); ?> />
+										<span class="mantis-toggle__track" aria-hidden="true"></span>
+									</span>
+								</label>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				</div>
+			</div>
+		</section>		<?php
 	}
 
 	/**

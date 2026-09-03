@@ -150,6 +150,8 @@ Use a release **tag** whose version (with or without a leading `v`) matches **`V
 - Follow WordPress coding standards and capability checks (`manage_options` for settings, `edit_post` for metabox saves).
 - Text domain: **`mantis-seo`**.
 - Version constant: **`MANTIS_SEO_VERSION`** in the main plugin file.
+- Per-post SEO fields are available on the WordPress REST API under `meta` (`_mantis_*` keys). See [DOCUMENTATION.md](DOCUMENTATION.md#rest-api-per-post-seo-meta).
+- Agent tools: Abilities API / MCP abilities (`mantis-seo/*`) when supported. See [DOCUMENTATION.md](DOCUMENTATION.md#abilities-api--mcp-agent-tools).
 
 ---
 

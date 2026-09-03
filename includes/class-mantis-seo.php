@@ -92,6 +92,8 @@ class Mantis_SEO_Main {
 		require_once MANTIS_SEO_PATH . 'includes/class-meta.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-schema-types.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-schema.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-rest-meta.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-abilities.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-provider.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-posts.php';
@@ -114,6 +116,8 @@ class Mantis_SEO_Main {
 	 */
 	private function init_components() {
 		$this->components['meta']              = new Mantis_SEO_Meta();
+		$this->components['rest_meta']          = new Mantis_SEO_Rest_Meta();
+		$this->components['abilities']          = new Mantis_SEO_Abilities();
 		$this->components['redirects']          = new Mantis_SEO_Redirects();
 		$this->components['redirect_manager']   = new Mantis_SEO_Redirect_Manager();
 		$this->components['schema']             = new Mantis_SEO_Schema();
@@ -173,6 +177,10 @@ class Mantis_SEO_Main {
 			$merged['ai_llms_page_ids'] = array();
 		}
 		$merged['ai_page_id'] = absint( $merged['ai_page_id'] ?? 0 );
+		$merged['mcp_abilities'] = Mantis_SEO_Abilities::sanitize_tool_flags(
+			isset( $merged['mcp_abilities'] ) ? $merged['mcp_abilities'] : array()
+		);
+		$merged['mcp_enabled'] = ! empty( $merged['mcp_enabled'] );
 
 		self::$settings_cache = $merged;
 		return self::$settings_cache;
@@ -218,6 +226,13 @@ class Mantis_SEO_Main {
 			'ai_page_id'                => 0,
 			'ai_robots_enabled'         => true,
 			'ai_bot_policies'           => array(),
+			'mcp_enabled'               => false,
+			'mcp_abilities'             => array(
+				'posts-list-seo'  => false,
+				'post-get-seo'    => false,
+				'post-update-seo' => false,
+				'settings-get'    => false,
+			),
 		);
 	}
 

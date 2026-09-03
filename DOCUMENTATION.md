@@ -49,7 +49,7 @@ The main settings UI uses these panels (see `get_settings_panel_ids()` in the pl
 | **Schema** | **Organization** name, URL, logo URL, and profile URLs used for `sameAs` (Facebook, Instagram, X, LinkedIn). |
 | **Sitemap** | Turn the XML sitemap **on or off**; choose which **public post types** appear in sitemaps. |
 | **AI / GEO** | Enable **`/llms.txt`** (and optional **`/llms-full.txt`**); site summary; priority pages and extra links; **AI crawler** allow/block/inherit policies; **brand facts page** wizard. |
-| **Advanced** | Site verification values for **Google** and **Bing** (stored and output as verification meta tags). |
+| **Advanced** | Site verification values for **Google** and **Bing**; **Abilities & MCP** master switch and per-tool opt-in for AI agents. |
 | **Tools** | **Migrate from Yoast SEO** when Yoast data is detected; **export** settings as JSON; **import** from several file formats (see [Migration and import](#migration-and-import)). |
 
 ### Default templates (reference)
@@ -236,6 +236,71 @@ Other options used internally (for example rewrite migration counters) may remai
 
 ---
 
+## REST API (per-post SEO meta)
+
+Per-post SEO fields are registered with `show_in_rest` for every **public** post type (same set as the editor metabox). Authenticated clients that can `edit_post` for a given post may read and update them through the core posts REST routes under the `meta` object.
+
+**Auth:** Use an Application Password (or another REST-capable auth method) for a user who can edit the target posts.
+
+**Endpoints (examples):**
+
+- List/read: `GET /wp-json/wp/v2/pages/{id}` or `GET /wp-json/wp/v2/posts/{id}`
+- Update: `POST` / `PUT` / `PATCH` the same URL with a `meta` payload
+
+**Example update body:**
+
+```json
+{
+  "meta": {
+    "_mantis_title": "Example SEO Title",
+    "_mantis_description": "A concise meta description for search results.",
+    "_mantis_focus_keyword": "example keyword",
+    "_mantis_robots_noindex": "0",
+    "_mantis_robots_nofollow": "0"
+  }
+}
+```
+
+**Registered meta keys** (all strings; robots flags are `"1"` or `"0"`):
+
+| Key | Purpose |
+|-----|---------|
+| `_mantis_focus_keyword` | Focus keyword |
+| `_mantis_title` | SEO title override (empty = use global template) |
+| `_mantis_description` | Meta description override (empty = use global template) |
+| `_mantis_canonical` | Canonical URL |
+| `_mantis_robots_noindex` | `"1"` = noindex, `"0"` = index |
+| `_mantis_robots_nofollow` | `"1"` = nofollow, `"0"` = follow |
+| `_mantis_og_title` | Open Graph title |
+| `_mantis_og_description` | Open Graph description |
+| `_mantis_og_image` | Open Graph image URL |
+| `_mantis_twitter_title` | X title |
+| `_mantis_twitter_description` | X description |
+| `_mantis_twitter_image` | X image URL |
+| `_mantis_schema_page_type` | Schema.org page `@type` (empty = default; allowlisted values only) |
+| `_mantis_schema_article_type` | Schema.org article `@type` (empty = default; allowlisted values only) |
+
+Registration lives in `Mantis_SEO_Rest_Meta` (`includes/class-rest-meta.php`). Term SEO meta is **not** exposed via REST in this version.
+
+---
+
+## Abilities API / MCP (agent tools)
+
+When `wp_register_ability()` is available (WordPress 6.9+ or the Abilities API package), `Mantis_SEO_Abilities` (`includes/class-abilities.php`) can register category `mantis-seo` and these abilities (also exposed for MCP when the WordPress MCP adapter is present):
+
+| Ability | Purpose |
+|---------|---------|
+| `mantis-seo/posts-list-seo` | List posts/pages with SEO summary; `missing_only` finds gaps |
+| `mantis-seo/post-get-seo` | One post: content excerpt + current SEO + resolved title/description |
+| `mantis-seo/post-update-seo` | Write SEO fields (`force` to overwrite existing title/description) |
+| `mantis-seo/settings-get` | Read global title/metadesc templates (readonly) |
+
+**Enable in admin:** **Mantis SEO → Advanced → Abilities & MCP**. Turn on **Enable MCP / Abilities**, then opt in to each tool (read-only and write groups). Everything defaults to **off**; nothing is registered until both the master switch and the specific tool are enabled.
+
+Updates require `edit_post` for the target post. On older WordPress without the Abilities API, registration is skipped and core REST `meta` remains available.
+
+---
+
 ## Developer snapshot
 
 This section is a quick reference, not a full public API.
@@ -244,6 +309,8 @@ This section is a quick reference, not a full public API.
 |------|--------|
 | Main settings | WordPress option `mantis_settings` (array), merged with defaults in `Mantis_SEO_Main::get_settings()`. |
 | Post/term SEO meta | Prefix `_mantis_` (see `Mantis_SEO_Meta::META_PREFIX`). Examples: `_mantis_title`, `_mantis_description`, `_mantis_canonical`, `_mantis_og_title`, `_mantis_robots_noindex`. |
+| REST (post SEO) | Core `wp/v2` post/page `meta` keys above; `edit_post` required to update. See **REST API (per-post SEO meta)**. |
+| Abilities / MCP | Settings: `mcp_enabled`, `mcp_abilities` (per-tool flags). Abilities register only when enabled. See **Abilities API / MCP**. |
 | Redirect storage | Table `{prefix}mantis_redirects` (`Mantis_SEO_Redirects::TABLE_NAME`). |
 | Capabilities | Settings and redirects: `manage_options`. Saving post SEO: `edit_post` for that post. Term SEO: `edit_term`. |
 | AI discovery | `Mantis_SEO_LLMs_Txt`, `Mantis_SEO_AI_Bots`, `Mantis_SEO_AI_Page`. Settings keys: `ai_llms_*`, `ai_page_id`, `ai_robots_enabled`, `ai_bot_policies`. |
