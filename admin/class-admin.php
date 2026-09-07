@@ -27,7 +27,7 @@ class Mantis_SEO_Admin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-		add_action( 'admin_notices', array( $this, 'notice_search_engines_discouraged' ) );
+		add_action( 'in_admin_header', array( $this, 'suppress_admin_notices' ), 1000 );
 
 		$this->settings_page = new Mantis_SEO_Settings_Page();
 		new Mantis_SEO_Redirects_Page();
@@ -35,9 +35,40 @@ class Mantis_SEO_Admin {
 	}
 
 	/**
-	 * Warn when Settings → Reading has "Discourage search engines" enabled (blog_public = 0).
+	 * Whether the current screen is a Mantis SEO admin page.
+	 *
+	 * @return bool
 	 */
-	public function notice_search_engines_discouraged() {
+	public static function is_mantis_admin_page() {
+		if ( ! is_admin() ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page slug check.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+		return in_array( $page, array( 'mantis-seo', 'mantis-redirects' ), true );
+	}
+
+	/**
+	 * Hide core / third-party admin notices above the Mantis app chrome.
+	 *
+	 * Keeps the settings UI clean; Mantis-owned alerts render inside the page body.
+	 */
+	public function suppress_admin_notices() {
+		if ( ! self::is_mantis_admin_page() ) {
+			return;
+		}
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+		remove_all_actions( 'user_admin_notices' );
+		remove_all_actions( 'network_admin_notices' );
+	}
+
+	/**
+	 * Warn when Settings → Reading has "Discourage search engines" enabled (blog_public = 0).
+	 *
+	 * Rendered inside Mantis pages (not via admin_notices) so it sits below the app header.
+	 */
+	public static function render_indexing_warning() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
@@ -52,7 +83,7 @@ class Mantis_SEO_Admin {
 			esc_html__( 'Settings → Reading', 'mantis-seo' )
 		);
 
-		echo '<div class="notice notice-error"><p>';
+		echo '<div class="mantis-settings-feedback mantis-settings-feedback--error" role="alert"><p>';
 		echo '<strong>' . esc_html__( 'Mantis SEO — Serious indexing issue', 'mantis-seo' ) . '</strong> — ';
 		printf(
 			wp_kses(

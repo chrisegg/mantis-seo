@@ -14,6 +14,8 @@
 	var panels = document.querySelectorAll('.mantis-settings-body .mantis-tab-panel');
 	var importForm = document.getElementById('mantis-import-form');
 	var importCell = document.getElementById('mantis-import-cell');
+	var aiWizardForm = document.getElementById('mantis-ai-wizard-form');
+	var aiWizardCell = document.getElementById('mantis-ai-wizard-cell');
 	var activeTabInput = document.getElementById('mantis-settings-active-tab');
 
 	function showPanel(targetId) {
@@ -36,6 +38,12 @@
 		} else if (importForm) {
 			importForm.style.display = 'none';
 		}
+		if (targetId === 'mantis-ai' && aiWizardForm && aiWizardCell) {
+			aiWizardCell.appendChild(aiWizardForm);
+			aiWizardForm.style.display = 'block';
+		} else if (aiWizardForm) {
+			aiWizardForm.style.display = 'none';
+		}
 	}
 
 	navItems.forEach(function (item) {
@@ -48,6 +56,8 @@
 
 	if (window.location.search.indexOf('mantis_import_error') !== -1) {
 		showPanel('mantis-tools');
+	} else if (window.location.search.indexOf('mantis_ai_page_') !== -1) {
+		showPanel('mantis-ai');
 	} else {
 		var params = new URLSearchParams(window.location.search);
 		var tabParam = params.get('mantis_tab');

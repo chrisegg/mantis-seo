@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.0.0-beta-1.2
+
+### AI / GEO
+
+- **New settings tab:** **AI / GEO** for optimizing discovery by AI assistants and crawlers.
+- **llms.txt:** Serves a curated Markdown map at `/llms.txt` (optional `/llms-full.txt`) with site summary, brand-facts page, priority pages, and extra links.
+- **AI crawler policies:** Optional `robots.txt` rules for search vs training bots (OAI-SearchBot, GPTBot, Claude-*, Perplexity*, Google-Extended, and others).
+- **Brand facts wizard:** Guided form creates (or updates) a citation-ready WordPress page and links it first in `llms.txt`.
 
 ### REST API
 
