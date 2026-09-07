@@ -351,6 +351,7 @@ class Mantis_SEO_Redirects {
 	 *
 	 * Plain origins match with or without a trailing slash (e.g. /old-page and /old-page/).
 	 * Regex patterns are tested against both slash variants of the request path.
+	 * The exact requested path is tried first so it wins when both slash forms exist.
 	 *
 	 * @param string $path Request path (e.g. /old-page/).
 	 * @return array|null Redirect row or null.
@@ -363,19 +364,7 @@ class Mantis_SEO_Redirects {
 			return $plain;
 		}
 
-		$regex_redirects = self::get_regex_redirect_rows();
-		if ( ! empty( $regex_redirects ) ) {
-			foreach ( $regex_redirects as $redirect ) {
-				foreach ( $candidates as $candidate ) {
-					$hit = self::match_regex_redirect( $redirect, $candidate );
-					if ( $hit ) {
-						return $hit;
-					}
-				}
-			}
-		}
-
-		return null;
+		return self::get_regex_match( $candidates );
 	}
 
 	/**
@@ -438,6 +427,34 @@ class Mantis_SEO_Redirects {
 		foreach ( $candidates as $candidate ) {
 			if ( isset( $by_origin[ $candidate ] ) ) {
 				return $by_origin[ $candidate ];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * First regex redirect that matches a path candidate.
+	 *
+	 * Candidates are tried in order (exact request path first) so a later rule
+	 * that matches the exact path wins over an earlier rule that only matches
+	 * the trailing-slash variant.
+	 *
+	 * @param string[] $candidates Paths to match, preferred order.
+	 * @return array|null
+	 */
+	private static function get_regex_match( $candidates ) {
+		$regex_redirects = self::get_regex_redirect_rows();
+		if ( empty( $regex_redirects ) ) {
+			return null;
+		}
+
+		foreach ( $candidates as $candidate ) {
+			foreach ( $regex_redirects as $redirect ) {
+				$hit = self::match_regex_redirect( $redirect, $candidate );
+				if ( $hit ) {
+					return $hit;
+				}
 			}
 		}
 
