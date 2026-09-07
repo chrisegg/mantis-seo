@@ -31,7 +31,7 @@
 
 ### Redirects
 
-- **301, 302, 303, 307, 308, 410,** and **451** redirects stored in a custom database table. **Regex** origins use a `~` delimiter internally—literal `~` in a pattern must be written as `\~`.
+- **301, 302, 303, 307, 308, 410,** and **451** redirects stored in a custom database table. **Plain** origins match with or without a trailing slash. **Regex** origins use a `~` delimiter internally—literal `~` in a pattern must be written as `\~`.
 - **Redirect manager** under **Mantis SEO → Redirects**.
 - **Automatic redirect** when a published post or page slug changes.
 - **Trash / delete** flows integrate with redirect prompts where applicable.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Redirects
+
+- **Trailing slashes:** A single plain redirect now matches both `/page-name` and `/page-name/`. Regex rules are tested against both slash variants of the request path, so you no longer need a second rule for the trailing-slash form.
+
 ### REST API
 
 - **Per-post SEO meta:** Public post types expose Mantis SEO fields (`_mantis_*`) under the core REST `meta` object so authenticated editors/agents can read and update titles, descriptions, social, robots, and schema overrides via `/wp-json/wp/v2/posts` and `/wp-json/wp/v2/pages` (and other public types). Updates require `edit_post` for the target post.
