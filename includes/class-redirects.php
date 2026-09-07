@@ -349,47 +349,142 @@ class Mantis_SEO_Redirects {
 	/**
 	 * Find matching redirect for request path.
 	 *
+	 * Plain origins match with or without a trailing slash (e.g. /old-page and /old-page/).
+	 * Regex patterns are tested against both slash variants of the request path.
+	 * The exact requested path is tried first so it wins when both slash forms exist.
+	 *
 	 * @param string $path Request path (e.g. /old-page/).
 	 * @return array|null Redirect row or null.
 	 */
 	public static function get_match( $path ) {
-		global $wpdb;
-		$table = self::get_table_name();
-		$path  = self::normalize_origin( $path );
+		$candidates = self::origin_match_candidates( $path );
 
-		// Plain redirects first (exact match).
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix + constant only.
-		$sql   = $wpdb->prepare( "SELECT * FROM $table WHERE format = 'plain' AND origin = %s LIMIT 1", $path );
-		$plain = $wpdb->get_row( $sql, ARRAY_A );
-
+		$plain = self::get_plain_match( $candidates );
 		if ( $plain ) {
 			return $plain;
 		}
 
-		// Regex redirects (cached).
-		$regex_redirects = self::get_regex_redirect_rows();
-		if ( ! empty( $regex_redirects ) ) {
-			foreach ( $regex_redirects as $redirect ) {
-				$wrapped = self::regex_pcre( $redirect['origin'] );
-				$matched = preg_match( $wrapped, $path );
-				if ( false === $matched || PREG_NO_ERROR !== preg_last_error() ) {
-					continue;
-				}
-				if ( 1 !== (int) $matched ) {
-					continue;
-				}
-				$target = preg_replace( $wrapped, $redirect['target'], $path );
-				if ( null === $target || false === $target || PREG_NO_ERROR !== preg_last_error() ) {
-					continue;
-				}
-				if ( $target !== $path ) {
-					$redirect['target'] = $target;
-				}
-				return $redirect;
+		return self::get_regex_match( $candidates );
+	}
+
+	/**
+	 * Paths to try when matching a request (with and without trailing slash).
+	 *
+	 * The original path is first so an exact stored origin still wins when both
+	 * slash variants exist as separate rules.
+	 *
+	 * @param string $path Request path.
+	 * @return string[] Unique candidates.
+	 */
+	public static function origin_match_candidates( $path ) {
+		$path = self::normalize_origin( $path );
+		if ( '/' === $path ) {
+			return array( '/' );
+		}
+
+		$unslashed = untrailingslashit( $path );
+		if ( '' === $unslashed ) {
+			return array( '/' );
+		}
+		$slashed = trailingslashit( $unslashed );
+
+		$candidates = array( $path );
+		foreach ( array( $unslashed, $slashed ) as $variant ) {
+			if ( ! in_array( $variant, $candidates, true ) ) {
+				$candidates[] = $variant;
+			}
+		}
+
+		return $candidates;
+	}
+
+	/**
+	 * First plain redirect whose origin is one of the path candidates.
+	 *
+	 * @param string[] $candidates Paths to match, preferred order.
+	 * @return array|null
+	 */
+	private static function get_plain_match( $candidates ) {
+		global $wpdb;
+
+		if ( empty( $candidates ) ) {
+			return null;
+		}
+
+		$table        = self::get_table_name();
+		$placeholders = implode( ', ', array_fill( 0, count( $candidates ), '%s' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix + constant; IN list size matches $candidates.
+		$sql  = $wpdb->prepare( "SELECT * FROM $table WHERE format = 'plain' AND origin IN ($placeholders)", ...$candidates );
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		if ( empty( $rows ) ) {
+			return null;
+		}
+
+		$by_origin = array();
+		foreach ( $rows as $row ) {
+			$by_origin[ $row['origin'] ] = $row;
+		}
+		foreach ( $candidates as $candidate ) {
+			if ( isset( $by_origin[ $candidate ] ) ) {
+				return $by_origin[ $candidate ];
 			}
 		}
 
 		return null;
+	}
+
+	/**
+	 * First regex redirect that matches a path candidate.
+	 *
+	 * Candidates are tried in order (exact request path first) so a later rule
+	 * that matches the exact path wins over an earlier rule that only matches
+	 * the trailing-slash variant.
+	 *
+	 * @param string[] $candidates Paths to match, preferred order.
+	 * @return array|null
+	 */
+	private static function get_regex_match( $candidates ) {
+		$regex_redirects = self::get_regex_redirect_rows();
+		if ( empty( $regex_redirects ) ) {
+			return null;
+		}
+
+		foreach ( $candidates as $candidate ) {
+			foreach ( $regex_redirects as $redirect ) {
+				$hit = self::match_regex_redirect( $redirect, $candidate );
+				if ( $hit ) {
+					return $hit;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Apply one regex redirect to a candidate path.
+	 *
+	 * @param array  $redirect Redirect row.
+	 * @param string $path     Candidate request path.
+	 * @return array|null Row (target may be rewritten) or null.
+	 */
+	private static function match_regex_redirect( $redirect, $path ) {
+		$wrapped = self::regex_pcre( $redirect['origin'] );
+		$matched = preg_match( $wrapped, $path );
+		if ( false === $matched || PREG_NO_ERROR !== preg_last_error() ) {
+			return null;
+		}
+		if ( 1 !== (int) $matched ) {
+			return null;
+		}
+		$target = preg_replace( $wrapped, $redirect['target'], $path );
+		if ( null === $target || false === $target || PREG_NO_ERROR !== preg_last_error() ) {
+			return null;
+		}
+		if ( $target !== $path ) {
+			$redirect['target'] = $target;
+		}
+		return $redirect;
 	}
 
 	/**

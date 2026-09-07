@@ -193,6 +193,7 @@ class Mantis_SEO_Redirects_Page {
 									<option value="plain" <?php selected( $form_format, 'plain' ); ?>><?php esc_html_e( 'Plain', 'mantis-seo' ); ?></option>
 									<option value="regex" <?php selected( $form_format, 'regex' ); ?>><?php esc_html_e( 'Regex', 'mantis-seo' ); ?></option>
 								</select>
+								<p class="description"><?php esc_html_e( 'Plain origins match with or without a trailing slash (for example /old-page and /old-page/).', 'mantis-seo' ); ?></p>
 							</td>
 						</tr>
 						<tr>
