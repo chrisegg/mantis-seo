@@ -38,7 +38,7 @@
 ### Redirects
 
 - **301, 302, 303, 307, 308, 410,** and **451** redirects stored in a custom database table. **Plain** origins match with or without a trailing slash. **Regex** origins use a `~` delimiter internally—literal `~` in a pattern must be written as `\~`.
-- **Redirect manager** under **Mantis SEO → Redirects**.
+- **Redirect manager** under **Mantis SEO → Redirects**, with search and 20 rules per page.
 - **Automatic redirect** when a published post or page slug changes.
 - **Trash / delete** flows integrate with redirect prompts where applicable.
 
@@ -72,7 +72,7 @@
 | **Sitemap** | Toggle sitemap on/off and choose included post types. |
 | **AI / GEO** | Enable `/llms.txt`, set crawler policies, and run the brand-facts page wizard. |
 | **Post / Page editor** | Open **SEO Settings** in the sidebar; edit templates with pills, preview snippet, **Save SEO** (AJAX) without leaving the screen. |
-| **Redirects** | Add rules from origin path to target URL; choose status code. |
+| **Redirects** | Add rules from origin path to target URL; choose status code. Search and paginate the list (20 per page). |
 
 **Homepage vs blog index:** If the front page is a **static page**, that page uses the **page** templates. The **Homepage description** setting applies to the **posts page** when it is not the front page (`is_home()` && ! `is_front_page()`).
 

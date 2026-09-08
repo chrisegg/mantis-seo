@@ -19,7 +19,7 @@ class Mantis_SEO_Redirects_Page {
 	 *
 	 * @var int
 	 */
-	const REDIRECTS_PER_PAGE = 50;
+	const REDIRECTS_PER_PAGE = 20;
 
 	/**
 	 * Constructor.
@@ -44,6 +44,82 @@ class Mantis_SEO_Redirects_Page {
 	}
 
 	/**
+	 * Current list query args (search and page), for redirects after POST.
+	 *
+	 * @return array
+	 */
+	private function get_current_list_args() {
+		$args = array();
+		$s    = $this->get_search_term();
+		if ( '' !== $s ) {
+			$args['s'] = $s;
+		}
+		$paged = $this->get_requested_page();
+		if ( $paged > 1 ) {
+			$args['paged'] = $paged;
+		}
+		return $args;
+	}
+
+	/**
+	 * Sanitized search term from the request.
+	 *
+	 * @return string
+	 */
+	private function get_search_term() {
+		if ( ! isset( $_REQUEST['s'] ) ) {
+			return '';
+		}
+		$search = sanitize_text_field( wp_unslash( $_REQUEST['s'] ) );
+		if ( strlen( $search ) > 200 ) {
+			$search = substr( $search, 0, 200 );
+		}
+		return $search;
+	}
+
+	/**
+	 * Requested list page number.
+	 *
+	 * @return int
+	 */
+	private function get_requested_page() {
+		if ( ! isset( $_REQUEST['paged'] ) ) {
+			return 1;
+		}
+		return max( 1, (int) $_REQUEST['paged'] );
+	}
+
+	/**
+	 * Admin list URL.
+	 *
+	 * @param array $args Query args: s, paged, edit, added, updated, deleted, redirect_error.
+	 * @return string
+	 */
+	private function get_list_url( $args = array() ) {
+		$query = array( 'page' => 'mantis-redirects' );
+
+		if ( isset( $args['s'] ) && is_string( $args['s'] ) && '' !== $args['s'] ) {
+			$query['s'] = $args['s'];
+		}
+
+		if ( ! empty( $args['paged'] ) && (int) $args['paged'] > 1 ) {
+			$query['paged'] = (int) $args['paged'];
+		}
+
+		if ( ! empty( $args['edit'] ) ) {
+			$query['edit'] = (int) $args['edit'];
+		}
+
+		foreach ( array( 'added', 'updated', 'deleted', 'redirect_error' ) as $flag ) {
+			if ( ! empty( $args[ $flag ] ) ) {
+				$query[ $flag ] = $args[ $flag ];
+			}
+		}
+
+		return add_query_arg( $query, admin_url( 'admin.php' ) );
+	}
+
+	/**
 	 * Handle form actions.
 	 */
 	public function handle_actions() {
@@ -55,11 +131,13 @@ class Mantis_SEO_Redirects_Page {
 			return;
 		}
 
+		$list_url = $this->get_list_url( $this->get_current_list_args() );
+
 		// Delete.
 		if ( isset( $_POST['mantis_redirect_delete'] ) && isset( $_POST['mantis_redirect_id'] ) ) {
 			check_admin_referer( 'mantis_redirect_delete' );
 			Mantis_SEO_Redirects::delete( (int) $_POST['mantis_redirect_id'] );
-			wp_safe_redirect( add_query_arg( 'deleted', 1, admin_url( 'admin.php?page=mantis-redirects' ) ) );
+			wp_safe_redirect( add_query_arg( 'deleted', 1, $list_url ) );
 			exit;
 		}
 
@@ -99,6 +177,79 @@ class Mantis_SEO_Redirects_Page {
 	}
 
 	/**
+	 * Render list pagination at the bottom of the table.
+	 *
+	 * @param int    $list_page    Current page.
+	 * @param int    $total_pages  Total pages.
+	 * @param int    $total_items  Matching item count.
+	 * @param int    $offset       Query offset.
+	 * @param string $search       Active search term.
+	 */
+	private function render_list_footer( $list_page, $total_pages, $total_items, $offset, $search ) {
+		if ( $total_items <= 0 ) {
+			return;
+		}
+
+		$from = $offset + 1;
+		$to   = min( $offset + self::REDIRECTS_PER_PAGE, $total_items );
+
+		echo '<div class="mantis-redirects-footer">';
+
+		echo '<p class="mantis-redirects-count">';
+		if ( '' !== $search ) {
+			printf(
+				/* translators: 1: first item number, 2: last item number, 3: total matching redirects */
+				esc_html__( 'Showing %1$s–%2$s of %3$s matching redirects', 'mantis-seo' ),
+				esc_html( number_format_i18n( $from ) ),
+				esc_html( number_format_i18n( $to ) ),
+				esc_html( number_format_i18n( $total_items ) )
+			);
+		} else {
+			printf(
+				/* translators: 1: first item number, 2: last item number, 3: total redirects */
+				esc_html__( 'Showing %1$s–%2$s of %3$s redirects', 'mantis-seo' ),
+				esc_html( number_format_i18n( $from ) ),
+				esc_html( number_format_i18n( $to ) ),
+				esc_html( number_format_i18n( $total_items ) )
+			);
+		}
+		echo '</p>';
+
+		if ( $total_pages > 1 ) {
+			$big  = 999999999;
+			$base = $this->get_list_url(
+				array(
+					's'     => $search,
+					'paged' => $big,
+				)
+			);
+			$base = str_replace( (string) $big, '%#%', esc_url( $base ) );
+
+			$links = paginate_links(
+				array(
+					'base'      => $base,
+					'format'    => '',
+					'current'   => $list_page,
+					'total'     => $total_pages,
+					'prev_text' => __( 'Previous', 'mantis-seo' ),
+					'next_text' => __( 'Next', 'mantis-seo' ),
+					'type'      => 'list',
+					'end_size'  => 1,
+					'mid_size'  => 2,
+				)
+			);
+
+			if ( $links ) {
+				echo '<nav class="mantis-redirects-pagination" aria-label="' . esc_attr__( 'Redirects pagination', 'mantis-seo' ) . '">';
+				echo wp_kses_post( $links );
+				echo '</nav>';
+			}
+		}
+
+		echo '</div>';
+	}
+
+	/**
 	 * Render redirects page.
 	 */
 	public function render() {
@@ -106,15 +257,22 @@ class Mantis_SEO_Redirects_Page {
 			return;
 		}
 
-		$total_redirects = Mantis_SEO_Redirects::count_all();
-		$list_page       = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
+		$search          = $this->get_search_term();
+		$total_all       = Mantis_SEO_Redirects::count_all();
+		$total_redirects = '' !== $search ? Mantis_SEO_Redirects::count_all( $search ) : $total_all;
+		$list_page       = $this->get_requested_page();
 		$total_pages     = $total_redirects > 0 ? max( 1, (int) ceil( $total_redirects / self::REDIRECTS_PER_PAGE ) ) : 1;
 		$list_page       = min( $list_page, $total_pages );
 		$offset          = ( $list_page - 1 ) * self::REDIRECTS_PER_PAGE;
-		$redirects       = Mantis_SEO_Redirects::get_all( self::REDIRECTS_PER_PAGE, $offset );
+		$redirects       = Mantis_SEO_Redirects::get_all( self::REDIRECTS_PER_PAGE, $offset, $search );
 		$edit_id         = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0;
-		$editing   = $edit_id ? Mantis_SEO_Redirects::get_by_id( $edit_id ) : null;
-		$prefill   = isset( $_GET['origin'] ) ? sanitize_text_field( wp_unslash( $_GET['origin'] ) ) : '';
+		$editing         = $edit_id ? Mantis_SEO_Redirects::get_by_id( $edit_id ) : null;
+		$prefill         = isset( $_GET['origin'] ) ? sanitize_text_field( wp_unslash( $_GET['origin'] ) ) : '';
+		$show_search     = $total_all > 0 || '' !== $search;
+		$list_base_args  = array(
+			's'     => $search,
+			'paged' => $list_page,
+		);
 
 		if ( $editing ) {
 			$form_origin = $editing['origin'];
@@ -214,7 +372,7 @@ class Mantis_SEO_Redirects_Page {
 					<p class="submit">
 						<button type="submit" class="button button-primary"><?php echo $editing ? esc_html__( 'Update Redirect', 'mantis-seo' ) : esc_html__( 'Add Redirect', 'mantis-seo' ); ?></button>
 						<?php if ( $editing ) : ?>
-							<a href="<?php echo esc_url( admin_url( 'admin.php?page=mantis-redirects' ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></a>
+							<a href="<?php echo esc_url( $this->get_list_url( $list_base_args ) ); ?>" class="button"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></a>
 						<?php else : ?>
 							<button type="button" class="button mantis-redirect-accordion-close"><?php esc_html_e( 'Cancel', 'mantis-seo' ); ?></button>
 						<?php endif; ?>
@@ -225,27 +383,30 @@ class Mantis_SEO_Redirects_Page {
 			</div>
 
 			<div class="mantis-redirects-list">
-			<?php if ( $total_redirects <= 0 ) : ?>
+			<?php if ( $show_search ) : ?>
+				<form method="get" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="mantis-redirects-search" role="search">
+					<input type="hidden" name="page" value="mantis-redirects" />
+					<label for="mantis-redirects-search" class="screen-reader-text"><?php esc_html_e( 'Search redirects', 'mantis-seo' ); ?></label>
+					<input
+						type="search"
+						id="mantis-redirects-search"
+						name="s"
+						value="<?php echo esc_attr( $search ); ?>"
+						placeholder="<?php echo esc_attr__( 'Search origin or target…', 'mantis-seo' ); ?>"
+						autocomplete="off"
+					/>
+					<button type="submit" class="button button-primary"><?php esc_html_e( 'Search', 'mantis-seo' ); ?></button>
+					<?php if ( '' !== $search ) : ?>
+						<a class="button" href="<?php echo esc_url( $this->get_list_url() ); ?>"><?php esc_html_e( 'Clear', 'mantis-seo' ); ?></a>
+					<?php endif; ?>
+				</form>
+			<?php endif; ?>
+
+			<?php if ( $total_all <= 0 && '' === $search ) : ?>
 				<p><?php esc_html_e( 'No redirects yet.', 'mantis-seo' ); ?></p>
+			<?php elseif ( $total_redirects <= 0 ) : ?>
+				<p><?php esc_html_e( 'No redirects match your search.', 'mantis-seo' ); ?></p>
 			<?php else : ?>
-				<?php
-				if ( $total_pages > 1 ) {
-					echo '<div class="tablenav top"><div class="tablenav-pages">';
-					echo wp_kses_post(
-						paginate_links(
-							array(
-								'base'      => add_query_arg( 'paged', '%#%', admin_url( 'admin.php?page=mantis-redirects' ) ),
-								'format'    => '',
-								'prev_text' => __( '&laquo;', 'mantis-seo' ),
-								'next_text' => __( '&raquo;', 'mantis-seo' ),
-								'total'     => $total_pages,
-								'current'   => $list_page,
-							)
-						)
-					);
-					echo '</div></div>';
-				}
-				?>
 				<table class="wp-list-table widefat fixed striped">
 					<thead>
 						<tr>
@@ -264,7 +425,7 @@ class Mantis_SEO_Redirects_Page {
 								<td><?php echo esc_html( $r['type'] ); ?></td>
 								<td><?php echo esc_html( $r['format'] ); ?></td>
 								<td>
-									<a href="<?php echo esc_url( add_query_arg( 'edit', $r['id'], admin_url( 'admin.php?page=mantis-redirects' ) ) ); ?>"><?php esc_html_e( 'Edit', 'mantis-seo' ); ?></a>
+									<a href="<?php echo esc_url( $this->get_list_url( array_merge( $list_base_args, array( 'edit' => $r['id'] ) ) ) ); ?>"><?php esc_html_e( 'Edit', 'mantis-seo' ); ?></a>
 									|
 									<form method="post" style="display:inline;" onsubmit="return confirm('<?php esc_attr_e( 'Delete this redirect?', 'mantis-seo' ); ?>');">
 										<?php wp_nonce_field( 'mantis_redirect_delete' ); ?>
@@ -277,6 +438,7 @@ class Mantis_SEO_Redirects_Page {
 						<?php endforeach; ?>
 					</tbody>
 				</table>
+				<?php $this->render_list_footer( $list_page, $total_pages, $total_redirects, $offset, $search ); ?>
 			<?php endif; ?>
 			</div>
 				</div>

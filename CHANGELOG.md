@@ -12,6 +12,8 @@
 ### Redirects
 
 - **Trailing slashes:** A single plain redirect now matches both `/page-name` and `/page-name/`. Regex rules are tested against both slash variants of the request path, so you no longer need a second rule for the trailing-slash form.
+- **Admin list:** The redirects table shows **20** rules per page, with Previous/Next pagination under the table.
+- **Search:** Filter the list by origin, target, type, or format.
 
 ### REST API
 

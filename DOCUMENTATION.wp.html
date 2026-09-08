@@ -193,6 +193,8 @@
 	<li><strong>Origin:</strong> URL path (or regex pattern if <strong>regex</strong> is selected). Plain origins match with or without a trailing slash (a rule for <code>/old-page</code> also matches <code>/old-page/</code>, and the reverse). If both forms are stored, the exact requested path wins.</li>
 	<li><strong>Target:</strong> Full URL <strong>or</strong> site-relative path (for example <code>/docs/getting-started</code>).</li>
 	<li><strong>Type:</strong> 301, 302, 303, 307, 308, 410, or 451.</li>
+	<li><strong>List:</strong> Up to <strong>20</strong> rules per page. Pagination sits under the table.</li>
+	<li><strong>Search:</strong> Filter by origin, target, type, or format.</li>
 </ul>
 
 <p><strong>Regex:</strong> Patterns use <code>~</code> as the internal PCRE delimiter. A literal tilde in the pattern must be written as <code>\~</code>. Invalid regex shows an admin error referring to this rule. Request paths are also tried with and without a trailing slash (exact path first), so a pattern that anchors on one form still matches the other.</p>
