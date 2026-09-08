@@ -188,6 +188,8 @@ Manage rules under **Mantis SEO → Redirects**.
 - **Origin:** URL path (or regex pattern if **regex** is selected). Plain origins match with or without a trailing slash (a rule for `/old-page` also matches `/old-page/`, and the reverse). If both forms are stored, the exact requested path wins.  
 - **Target:** Full URL **or** site-relative path (for example `/docs/getting-started`).  
 - **Type:** 301, 302, 303, 307, 308, 410, or 451.  
+- **List:** Up to **20** rules per page. Pagination sits under the table.  
+- **Search:** Filter by origin, target, type, or format.  
 
 **Regex:** Patterns use `~` as the internal PCRE delimiter. A literal tilde in the pattern must be written as `\~`. Invalid regex shows an admin error referring to this rule. Request paths are also tried with and without a trailing slash (exact path first), so a pattern that anchors on one form still matches the other.
 

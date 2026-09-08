@@ -194,34 +194,64 @@ class Mantis_SEO_Redirects {
 	}
 
 	/**
-	 * Get redirects (optionally paginated).
+	 * Prepared WHERE clause for admin redirect search, or empty string.
+	 *
+	 * Matches origin, target, format, and type.
+	 *
+	 * @param string $search Raw search term.
+	 * @return string
+	 */
+	private static function prepared_search_where( $search ) {
+		global $wpdb;
+		$search = is_string( $search ) ? trim( $search ) : '';
+		if ( '' === $search ) {
+			return '';
+		}
+		if ( strlen( $search ) > 200 ) {
+			$search = substr( $search, 0, 200 );
+		}
+		$like = '%' . $wpdb->esc_like( $search ) . '%';
+		return $wpdb->prepare(
+			' WHERE (origin LIKE %s OR target LIKE %s OR format LIKE %s OR CAST(type AS CHAR) LIKE %s)',
+			$like,
+			$like,
+			$like,
+			$like
+		);
+	}
+
+	/**
+	 * Get redirects (optionally paginated and filtered).
 	 *
 	 * @param int|null $limit  Max rows, or null for all.
 	 * @param int      $offset Offset for LIMIT.
+	 * @param string   $search Optional origin/target/type/format search.
 	 * @return array
 	 */
-	public static function get_all( $limit = null, $offset = 0 ) {
+	public static function get_all( $limit = null, $offset = 0, $search = '' ) {
 		global $wpdb;
 		$table = self::get_table_name();
-		$sql   = "SELECT * FROM $table ORDER BY format ASC, origin ASC";
+		$sql   = "SELECT * FROM $table" . self::prepared_search_where( $search ) . ' ORDER BY format ASC, origin ASC';
 		if ( null !== $limit ) {
 			$sql .= $wpdb->prepare( ' LIMIT %d OFFSET %d', max( 1, (int) $limit ), max( 0, (int) $offset ) );
 		}
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only; search clause is prepared.
 		$rows = $wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 
 	/**
-	 * Total redirect count.
+	 * Total redirect count (optionally matching a search).
 	 *
+	 * @param string $search Optional origin/target/type/format search.
 	 * @return int
 	 */
-	public static function count_all() {
+	public static function count_all( $search = '' ) {
 		global $wpdb;
 		$table = self::get_table_name();
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only.
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM $table" );
+		$sql   = "SELECT COUNT(*) FROM $table" . self::prepared_search_where( $search );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name from $wpdb->prefix + constant only; search clause is prepared.
+		return (int) $wpdb->get_var( $sql );
 	}
 
 	/**

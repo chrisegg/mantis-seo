@@ -1234,6 +1234,129 @@ body.mantis-seo_page_mantis-redirects .mantis-seo-app .notice {
 	font-size: 0.875rem;
 }
 
+/* Search */
+.mantis-redirects-search {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0 0 1rem;
+}
+
+.mantis-redirects-search input[type="search"] {
+	flex: 1 1 16rem;
+	min-width: 12rem;
+	max-width: 28rem;
+	padding: 0.5rem 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	background: var(--mantis-card-bg);
+	color: var(--mantis-text);
+	font-size: 0.875rem;
+	line-height: 1.4;
+	box-shadow: none;
+}
+
+.mantis-redirects-search input[type="search"]:focus {
+	outline: none;
+	border-color: var(--mantis-accent);
+	box-shadow: 0 0 0 1px var(--mantis-accent);
+}
+
+.mantis-redirects-search .button {
+	margin: 0;
+	border-radius: var(--mantis-radius-sm);
+	font-weight: 500;
+}
+
+.mantis-redirects-search .button-primary {
+	background: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	color: #10151f;
+	text-shadow: none;
+	box-shadow: none;
+}
+
+.mantis-redirects-search .button-primary:hover,
+.mantis-redirects-search .button-primary:focus {
+	background: var(--mantis-accent-hover);
+	border-color: var(--mantis-accent-hover);
+	color: #10151f;
+	box-shadow: none;
+}
+
+/* Footer: count + pagination under the table */
+.mantis-redirects-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	margin-top: 1rem;
+}
+
+.mantis-redirects-count {
+	margin: 0;
+	color: var(--mantis-text-muted);
+	font-size: 0.8125rem;
+}
+
+.mantis-redirects-pagination ul.page-numbers {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.375rem;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.mantis-redirects-pagination ul.page-numbers li {
+	margin: 0;
+	padding: 0;
+	display: block;
+}
+
+.mantis-redirects-pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.25rem;
+	height: 2.25rem;
+	padding: 0 0.75rem;
+	border: 1px solid var(--mantis-border);
+	border-radius: var(--mantis-radius-sm);
+	background: var(--mantis-card-bg);
+	color: var(--mantis-text);
+	text-decoration: none;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	line-height: 1;
+	box-sizing: border-box;
+}
+
+.mantis-redirects-pagination a.page-numbers:hover,
+.mantis-redirects-pagination a.page-numbers:focus {
+	border-color: var(--mantis-accent);
+	color: var(--mantis-accent);
+	background: var(--mantis-accent-muted);
+	box-shadow: none;
+}
+
+.mantis-redirects-pagination .page-numbers.current {
+	background: var(--mantis-accent);
+	border-color: var(--mantis-accent);
+	color: #10151f;
+}
+
+.mantis-redirects-pagination .page-numbers.dots {
+	border: none;
+	background: transparent;
+	min-width: 1.25rem;
+	padding: 0 0.25rem;
+	color: var(--mantis-text-muted);
+}
+
 /* Table – modern data grid */
 .mantis-redirects .wp-list-table {
 	border: none;
