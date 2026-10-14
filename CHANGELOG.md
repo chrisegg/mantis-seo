@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Sitemap
+
+- **Underscored post types and taxonomies:** Child sitemaps for post types or taxonomies with an underscore in their name (for example `my_type`, served at `/sitemap_my_types.xml`) returned 404 because the type was split on the first underscore to find a page number. Only a trailing `_<number>` is treated as a page now, and that page number is honoured when the generic rewrite rule catches a paged URL.
+
 ## 1.0.0-beta-1.2
 
 ### AI / GEO
