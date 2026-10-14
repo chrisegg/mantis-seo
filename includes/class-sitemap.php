@@ -233,9 +233,13 @@ class Mantis_SEO_Sitemap {
 	private function render_sitemap( $providers, $type, $page ) {
 		$max_entries = 1000;
 
-		// Parse type like "posts" or "posts_2".
-		$parts = explode( '_', $type, 2 );
-		$base_type = $parts[0];
+		// Parse type like "posts" or "posts_2": only a trailing _<number> is a page, so
+		// post types and taxonomies with underscores in their names (my_type) still resolve.
+		$base_type = $type;
+		if ( preg_match( '/^(.+)_(\d+)$/', $type, $m ) ) {
+			$base_type = $m[1];
+			$page      = max( (int) $page, (int) $m[2] );
+		}
 
 		foreach ( $providers as $name => $provider ) {
 			if ( ! $provider instanceof Mantis_SEO_Sitemap_Provider ) {
