@@ -31,18 +31,39 @@ class Mantis_SEO_Schema {
 		}
 
 		// Avoid JSON_UNESCAPED_SLASHES: unescaped </script> in a string breaks out of the script tag.
+		// JSON_HEX_TAG keeps a decoded "<" in a title from opening a tag inside the script.
 		$json = wp_json_encode(
 			array(
 				'@context' => 'https://schema.org',
-				'@graph'   => $graph,
+				'@graph'   => self::decode_entities( $graph ),
 			),
-			JSON_UNESCAPED_UNICODE
+			JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
 		);
 
 		if ( $json ) {
 			echo "\n<!-- Mantis SEO Schema -->\n";
 			echo '<script type="application/ld+json">' . $json . '</script>' . "\n";
 		}
+	}
+
+	/**
+	 * Turn HTML entities back into characters in every string of the graph.
+	 *
+	 * WordPress stores the site title HTML-escaped and get_the_title() runs
+	 * wptexturize, so values arrive as "Pool &amp; Spa" or "Joe&#8217;s".
+	 * JSON-LD is not HTML: search engines read those entities literally.
+	 *
+	 * @param mixed $value Graph or part of it.
+	 * @return mixed
+	 */
+	public static function decode_entities( $value ) {
+		if ( is_array( $value ) ) {
+			return array_map( array( __CLASS__, 'decode_entities' ), $value );
+		}
+		if ( is_string( $value ) ) {
+			return html_entity_decode( $value, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		}
+		return $value;
 	}
 
 	/**

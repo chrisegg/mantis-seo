@@ -487,7 +487,20 @@ class Mantis_SEO_Meta {
 			return '';
 		}
 		$r = self::build_replacements_map( $post, true );
-		return str_replace( array_keys( $r ), array_values( $r ), $str );
+		return self::tidy( str_replace( array_keys( $r ), array_values( $r ), $str ) );
+	}
+
+	/**
+	 * Collapse the spaces an empty variable leaves behind.
+	 *
+	 * "%post_title% %page% %separator% %site_name%" with no page number
+	 * would otherwise render "About  | Site" with two spaces.
+	 *
+	 * @param string $str Resolved string.
+	 * @return string
+	 */
+	private static function tidy( $str ) {
+		return trim( (string) preg_replace( '/[ \t]{2,}/u', ' ', (string) $str ) );
 	}
 
 	/**
@@ -549,7 +562,7 @@ class Mantis_SEO_Meta {
 			return '';
 		}
 		$replacements = self::get_replacements_for_preview( $post );
-		return str_replace( array_keys( $replacements ), array_values( $replacements ), $str );
+		return self::tidy( str_replace( array_keys( $replacements ), array_values( $replacements ), $str ) );
 	}
 
 	/**
