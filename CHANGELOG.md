@@ -6,6 +6,14 @@
 
 - **Underscored post types and taxonomies:** Child sitemaps for post types or taxonomies with an underscore in their name (for example `my_type`, served at `/sitemap_my_types.xml`) returned 404 because the type was split on the first underscore to find a page number. Only a trailing `_<number>` is treated as a page now, and that page number is honoured when the generic rewrite rule catches a paged URL.
 
+### Titles
+
+- **No double spaces:** Templates like `%post_title% %page% %separator% %site_name%` rendered `About  | Site` with two spaces whenever there was no page number. Resolved titles and descriptions now collapse repeated spaces.
+
+### Schema
+
+- **No HTML entities in JSON-LD:** The site name and page titles arrived HTML-escaped (`Pool &amp; Spa`, `Joe&#8217;s`) and were printed that way in structured data, which search engines read literally. Every string in the graph is decoded before encoding, and `<` and `>` are hex-escaped so a decoded title can't open a tag inside the script.
+
 ## 1.0.0-beta-1.2
 
 ### AI / GEO
