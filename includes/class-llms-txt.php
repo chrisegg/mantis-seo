@@ -333,7 +333,7 @@ class Mantis_SEO_LLMs_Txt {
 		}
 		$title   = get_the_title( $post );
 		$url     = get_permalink( $post );
-		$content = $post->post_content;
+		$content = strip_shortcodes( $post->post_content );
 		$content = preg_replace( '/<!--.*?-->/s', '', $content );
 		$content = wp_strip_all_tags( (string) $content, false );
 		$content = html_entity_decode( $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
