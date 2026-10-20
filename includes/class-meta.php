@@ -28,6 +28,32 @@ class Mantis_SEO_Meta {
 		add_action( 'wp_head', array( $this, 'output_meta' ), 1 );
 		add_filter( 'pre_get_document_title', array( $this, 'filter_title' ), 9999 );
 		add_filter( 'document_title_parts', array( $this, 'filter_title_parts' ), 9999 );
+		add_filter( 'wp_robots', array( $this, 'filter_wp_robots' ), 20 );
+		// Mantis prints the canonical link; core's copy would make two.
+		remove_action( 'wp_head', 'rel_canonical' );
+	}
+
+	/**
+	 * Merge Mantis robots rules into WordPress core's robots tag, so the page has one tag.
+	 *
+	 * @param array $robots Core robots directives.
+	 * @return array
+	 */
+	public function filter_wp_robots( $robots ) {
+		if ( is_admin() ) {
+			return $robots;
+		}
+		$meta = $this->get_meta_output();
+		if ( in_array( 'noindex', (array) $meta['robots'], true ) ) {
+			$robots['noindex'] = true;
+			$robots['follow']  = ! in_array( 'nofollow', (array) $meta['robots'], true );
+			unset( $robots['max-image-preview'] );
+		}
+		if ( in_array( 'nofollow', (array) $meta['robots'], true ) ) {
+			$robots['nofollow'] = true;
+			unset( $robots['follow'] );
+		}
+		return $robots;
 	}
 
 	/**
@@ -40,9 +66,7 @@ class Mantis_SEO_Meta {
 			echo '<meta name="description" content="' . esc_attr( $meta['description'] ) . '">' . "\n";
 		}
 
-		if ( ! empty( $meta['robots'] ) ) {
-			echo '<meta name="robots" content="' . esc_attr( implode( ', ', $meta['robots'] ) ) . '">' . "\n";
-		}
+		// Robots rules are added to core's tag (see filter_wp_robots), not printed twice.
 
 		if ( ! empty( $meta['canonical'] ) ) {
 			echo '<link rel="canonical" href="' . esc_url( $meta['canonical'] ) . '">' . "\n";
@@ -113,6 +137,10 @@ class Mantis_SEO_Meta {
 	 * @return array
 	 */
 	private function get_meta_output() {
+		static $memo = null;
+		if ( null !== $memo && did_action( 'wp' ) ) {
+			return $memo;
+		}
 		$meta = array(
 			'description' => '',
 			'robots'      => array(),
@@ -158,9 +186,23 @@ class Mantis_SEO_Meta {
 			$meta['canonical'] = $this->get_canonical_url();
 		}
 
+		/**
+		 * Filter the SEO meta for the current request (title, description, robots, canonical,
+		 * og_* / twitter_* overrides) before Open Graph and X tags are built from it.
+		 *
+		 * @param array $meta Meta.
+		 */
+		$meta = apply_filters( 'mantis_seo_meta', $meta );
+		if ( ! empty( $meta['document_title'] ) ) {
+			$meta['document_title'] = self::tidy( $meta['document_title'] );
+		}
+
 		$meta['og'] = $this->build_og( $meta );
 		$meta['twitter'] = $this->build_twitter( $meta, $settings );
 
+		if ( did_action( 'wp' ) ) {
+			$memo = $meta;
+		}
 		return $meta;
 	}
 
@@ -358,6 +400,10 @@ class Mantis_SEO_Meta {
 	 * @return string
 	 */
 	public function filter_title( $title ) {
+		$meta = $this->get_meta_output();
+		if ( ! empty( $meta['document_title'] ) ) {
+			return $meta['document_title'];
+		}
 		if ( is_singular() ) {
 			$post = get_post( get_queried_object_id() );
 			if ( ! $post ) {
@@ -387,6 +433,10 @@ class Mantis_SEO_Meta {
 	 * @return array
 	 */
 	public function filter_title_parts( $parts ) {
+		$meta = $this->get_meta_output();
+		if ( ! empty( $meta['document_title'] ) ) {
+			return array( 'title' => $meta['document_title'] );
+		}
 		if ( is_singular() ) {
 			$post = get_post( get_queried_object_id() );
 			if ( ! $post ) {
@@ -491,16 +541,18 @@ class Mantis_SEO_Meta {
 	}
 
 	/**
-	 * Collapse the spaces an empty variable leaves behind.
+	 * Collapse the spaces an empty variable leaves behind, and drop a dangling separator.
 	 *
 	 * "%post_title% %page% %separator% %site_name%" with no page number
-	 * would otherwise render "About  | Site" with two spaces.
+	 * would otherwise render "About  | Site" with two spaces. An empty tagline
+	 * in "%site_name% %separator% %site_description%" would leave "Site |".
 	 *
 	 * @param string $str Resolved string.
 	 * @return string
 	 */
 	private static function tidy( $str ) {
-		return trim( (string) preg_replace( '/[ \t]{2,}/u', ' ', (string) $str ) );
+		$str = trim( (string) preg_replace( '/[ \t]{2,}/u', ' ', (string) $str ) );
+		return trim( (string) preg_replace( '/\s*[-|–—·:]\s*$/u', '', $str ) );
 	}
 
 	/**
@@ -539,7 +591,7 @@ class Mantis_SEO_Meta {
 			}
 			$replacements['%post_title%'] = $post_title;
 			$replacements['%title%']      = $post_title;
-			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( $post->post_content ), 30 );
+			$replacements['%excerpt%']    = has_excerpt( $post->ID ) ? get_the_excerpt( $post ) : wp_trim_words( wp_strip_all_tags( strip_shortcodes( $post->post_content ) ), 30 );
 		}
 
 		$settings = Mantis_SEO_Main::get_settings();

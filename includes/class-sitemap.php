@@ -28,8 +28,34 @@ class Mantis_SEO_Sitemap {
 		add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ), 0 );
 		add_filter( 'query_vars', array( $this, 'add_query_vars' ) );
 		add_action( 'template_redirect', array( $this, 'handle_request' ), 1 );
+		add_action( 'template_redirect', array( $this, 'redirect_common_sitemap_urls' ), 0 );
 		add_filter( 'wp_sitemaps_enabled', array( $this, 'maybe_disable_core_sitemaps' ) );
 		add_filter( 'robots_txt', array( $this, 'add_sitemap_to_robots' ), 10, 2 );
+	}
+
+	/**
+	 * /sitemap.xml and /wp-sitemap.xml are where people and tools look first: send them to the index.
+	 *
+	 * Only when the Mantis sitemap is on, so a disabled plugin still leaves core's wp-sitemap.xml alone.
+	 * The home path is stripped first so subdirectory installs match too.
+	 */
+	public function redirect_common_sitemap_urls() {
+		$settings = Mantis_SEO_Main::get_settings();
+		if ( empty( $settings['sitemap_enabled'] ) ) {
+			return;
+		}
+
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$path        = trim( (string) wp_parse_url( $request_uri, PHP_URL_PATH ), '/' );
+		$home_path   = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		if ( '' !== $home_path && ( $path === $home_path || 0 === strpos( $path, $home_path . '/' ) ) ) {
+			$path = trim( substr( $path, strlen( $home_path ) ), '/' );
+		}
+
+		if ( in_array( $path, array( 'sitemap.xml', 'wp-sitemap.xml', 'sitemap' ), true ) ) {
+			wp_safe_redirect( home_url( '/sitemap_index.xml' ), 301 );
+			exit;
+		}
 	}
 
 	/**

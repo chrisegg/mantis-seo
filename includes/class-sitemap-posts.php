@@ -67,21 +67,39 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 	}
 
 	/**
+	 * Let other code narrow which posts are listed (for example members-only areas).
+	 *
+	 * @param array $args WP_Query args.
+	 * @return array
+	 */
+	private function query_args( $args ) {
+		/**
+		 * Filter the sitemap query for one post type.
+		 *
+		 * @param array  $args      WP_Query args.
+		 * @param string $post_type Post type.
+		 */
+		return apply_filters( 'mantis_sitemap_posts_query_args', $args, $this->post_type );
+	}
+
+	/**
 	 * Count published posts eligible for the sitemap.
 	 *
 	 * @return int
 	 */
 	private function count_indexable_posts() {
 		$q = new WP_Query(
-			array(
-				'post_type'              => $this->post_type,
-				'post_status'            => 'publish',
-				'posts_per_page'         => 1,
-				'fields'                 => 'ids',
-				'no_found_rows'          => false,
-				'update_post_meta_cache' => false,
-				'update_post_term_cache' => false,
-				'meta_query'             => $this->noindex_meta_query(),
+			$this->query_args(
+				array(
+					'post_type'              => $this->post_type,
+					'post_status'            => 'publish',
+					'posts_per_page'         => 1,
+					'fields'                 => 'ids',
+					'no_found_rows'          => false,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+					'meta_query'             => $this->noindex_meta_query(),
+				)
 			)
 		);
 		return (int) $q->found_posts;
@@ -168,7 +186,7 @@ class Mantis_SEO_Sitemap_Posts implements Mantis_SEO_Sitemap_Provider {
 			'meta_query'     => $this->noindex_meta_query(),
 		);
 
-		$query = new WP_Query( $args );
+		$query = new WP_Query( $this->query_args( $args ) );
 
 		foreach ( $query->posts as $post ) {
 			$links[] = array(

@@ -5,10 +5,24 @@
 ### Sitemap
 
 - **Underscored post types and taxonomies:** Child sitemaps for post types or taxonomies with an underscore in their name (for example `my_type`, served at `/sitemap_my_types.xml`) returned 404 because the type was split on the first underscore to find a page number. Only a trailing `_<number>` is treated as a page now, and that page number is honoured when the generic rewrite rule catches a paged URL.
+- **Common sitemap URLs:** While the Mantis sitemap is enabled, `/sitemap.xml`, `/wp-sitemap.xml`, and `/sitemap` 301 to `/sitemap_index.xml` (including on subdirectory installs).
+- **`mantis_sitemap_posts_query_args` filter:** Other code can narrow which posts of a type are listed.
+
+### llms.txt
+
+- **Shortcodes:** Full-text entries strip shortcodes before tags, so raw `[shortcode]` markup is not left in the file.
 
 ### Titles
 
 - **No double spaces:** Templates like `%post_title% %page% %separator% %site_name%` rendered `About  | Site` with two spaces whenever there was no page number. Resolved titles and descriptions now collapse repeated spaces.
+- **No dangling separator:** An empty tagline in `%site_name% %separator% %site_description%` no longer leaves a trailing `|` or `-`.
+
+### Meta
+
+- **One robots tag:** Noindex and nofollow are merged into WordPress core's `wp_robots` output instead of printing a second `<meta name="robots">`.
+- **One canonical:** Core's `rel_canonical` is removed because Mantis already prints the canonical link.
+- **`mantis_seo_meta` filter:** Other code can adjust the title, description, robots, and canonical for the current request before Open Graph and X tags are built. The document title uses that filtered value.
+- **Excerpts:** The `%excerpt%` variable strips shortcodes before it trims the post content.
 
 ### Schema
 
