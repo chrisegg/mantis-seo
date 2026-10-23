@@ -157,8 +157,12 @@ class Mantis_SEO_Meta {
 		} elseif ( is_category() || is_tag() || is_tax() ) {
 			$object_id = get_queried_object_id();
 			$meta     = $this->get_taxonomy_meta( $object_id, $meta );
+		} elseif ( is_home() && ! is_front_page() && (int) get_option( 'page_for_posts' ) > 0 ) {
+			// A dedicated posts page is a page of its own: its own title, description,
+			// robots and canonical, not a copy of the home page's.
+			$meta = $this->get_singular_meta( (int) get_option( 'page_for_posts' ), $meta );
 		} elseif ( is_home() ) {
-			// Blog index: "Your latest posts" front page, or a dedicated posts page.
+			// Blog index shown on the front page ("Your latest posts").
 			$title_tpl = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) )
 				? $settings['title_home']
 				: '%site_name% - %site_description%';

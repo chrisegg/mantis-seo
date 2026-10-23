@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Titles and meta
+
+- **Dedicated posts page:** When Settings → Reading uses a separate page for posts, that page now gets its own title, meta description, robots and canonical from the page itself. It used to reuse the home page's title template and description, so the blog page and the home page showed the same title in search results.
+
 ## 1.0.0
 
 First production release.
