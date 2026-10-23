@@ -342,7 +342,7 @@ class Mantis_SEO_Meta {
 			'title'       => $og_title,
 			'description' => ! empty( $meta['og_description'] ) ? $meta['og_description'] : ( ! empty( $meta['description'] ) ? $meta['description'] : get_bloginfo( 'description' ) ),
 			'url'         => ! empty( $meta['canonical'] ) ? $meta['canonical'] : $this->get_canonical_url(),
-			'image'       => ! empty( $meta['og_image'] ) ? $meta['og_image'] : $settings['og_default_image'],
+			'image'       => $this->pick_image( array( $meta['og_image'] ?? '', $this->get_queried_post_thumbnail_url(), $meta['twitter_image'] ?? '', $settings['og_default_image'] ?? '' ) ),
 		);
 
 		if ( is_singular() ) {
@@ -358,12 +358,6 @@ class Mantis_SEO_Meta {
 					if ( $modified ) {
 						$og['article:modified_time'] = $modified;
 					}
-				}
-			}
-			if ( empty( $og['image'] ) ) {
-				$thumb = $this->get_queried_post_thumbnail_url();
-				if ( $thumb ) {
-					$og['image'] = $thumb;
 				}
 			}
 		}
@@ -384,17 +378,34 @@ class Mantis_SEO_Meta {
 			'card'        => $settings['twitter_card_type'],
 			'title'       => $twitter_title,
 			'description' => ! empty( $meta['twitter_description'] ) ? $meta['twitter_description'] : ( ! empty( $meta['description'] ) ? $meta['description'] : get_bloginfo( 'description' ) ),
-			'image'       => ! empty( $meta['twitter_image'] ) ? $meta['twitter_image'] : ( ! empty( $meta['og_image'] ) ? $meta['og_image'] : $settings['og_default_image'] ),
+			'image'       => $this->pick_image( array( $meta['twitter_image'] ?? '', $meta['og_image'] ?? '', $this->get_queried_post_thumbnail_url(), $settings['og_default_image'] ?? '' ) ),
 		);
 
-		if ( is_singular() && empty( $twitter['image'] ) ) {
-			$thumb = $this->get_queried_post_thumbnail_url();
-			if ( $thumb ) {
-				$twitter['image'] = $thumb;
+		return $twitter;
+	}
+
+	/**
+	 * First usable image from a list of candidates (URLs or attachment IDs).
+	 * An attachment ID that doesn't exist on this site (e.g. pushed from another
+	 * install) is skipped instead of producing an empty tag.
+	 *
+	 * @param array $candidates In priority order.
+	 * @return string URL or empty.
+	 */
+	private function pick_image( $candidates ) {
+		foreach ( $candidates as $candidate ) {
+			if ( is_numeric( $candidate ) && (int) $candidate > 0 ) {
+				$url = wp_get_attachment_image_url( (int) $candidate, 'full' );
+				if ( $url ) {
+					return (string) $url;
+				}
+				continue;
+			}
+			if ( is_string( $candidate ) && '' !== trim( $candidate ) ) {
+				return trim( $candidate );
 			}
 		}
-
-		return $twitter;
+		return '';
 	}
 
 	/**

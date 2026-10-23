@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2
+
+### Social images
+
+- **Featured image fallback:** `og:image` went straight from the post's own Open Graph image to the site default, so the featured-image fallback never ran and every post without a custom OG image shared the site default (Facebook, LinkedIn, Slack and iMessage all read `og:image`). Both tags now use the first image that exists:
+  - `og:image`: post OG image → featured image → post X image → site default.
+  - `twitter:image`: post X image → post OG image → featured image → site default.
+- **Missing attachments:** An image stored as an attachment ID that doesn't exist on the site (for example after copying content from another install) is skipped instead of producing an empty tag.
+
 ## 1.0.1
 
 ### Titles and meta
