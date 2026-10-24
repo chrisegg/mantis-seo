@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3
+
+### Updates
+
+- **Update notices:** WordPress never listed an update. The checker bailed unless the update transient already had a `checked` list, which WordPress 6.0–6.7 does not set on the save that matters, and it did not answer the `update_plugins_github.com` hook the `Update URI` header uses. Both paths now report the latest GitHub release, including from wp-cron.
+- **Private repository:** Unauthenticated requests to this private repo get a 404, so there was never a version to compare. A read-only token in `wp-config.php` (`MANTIS_SEO_GITHUB_TOKEN`) is sent on the release check and the zip download. The Plugins and Updates screens say so when GitHub still refuses the check.
+
 ## 1.0.2
 
 ### Social images

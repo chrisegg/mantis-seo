@@ -143,6 +143,14 @@ Publishing a **GitHub release** triggers [`.github/workflows/release-plugin.yml`
 
 Use a release **tag** whose version (with or without a leading `v`) matches **`Version:`** in `mantis-seo.php` for that release. Release notes on GitHub populate the WordPress “View version details” changelog when present.
 
+This repository is private, so WordPress cannot see releases without a token. On each site, add a fine-grained personal access token that can read this repository's contents to `wp-config.php`:
+
+```php
+define( 'MANTIS_SEO_GITHUB_TOKEN', 'github_pat_...' );
+```
+
+The same token is sent when WordPress downloads `mantis-seo.zip`. Without it, the Plugins screen shows no update and the Updates screen explains why.
+
 ---
 
 ## Development

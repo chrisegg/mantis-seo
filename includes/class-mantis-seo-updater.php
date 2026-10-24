@@ -19,22 +19,92 @@ class Mantis_SEO_Updater {
 	const CACHE_DURATION = 43200;
 
 	/**
-	 * Bootstrap hooks (admin only).
+	 * Bootstrap hooks.
+	 *
+	 * Runs in wp-cron as well as wp-admin. WordPress refreshes plugin updates from cron,
+	 * and cron is not an admin request.
 	 */
 	public static function init() {
-		if ( ! is_admin() ) {
-			return;
-		}
-
+		// Update URI is https://github.com/... so core calls this inside wp_update_plugins().
+		add_filter( 'update_plugins_github.com', array( __CLASS__, 'filter_github_update' ), 10, 4 );
 		add_filter( 'pre_set_site_transient_update_plugins', array( __CLASS__, 'check_for_update' ) );
+		add_filter( 'http_request_args', array( __CLASS__, 'authorize_github_request' ), 10, 2 );
 		add_filter( 'plugins_api', array( __CLASS__, 'plugin_info' ), 10, 3 );
 		add_action(
 			'in_plugin_update_message-' . MANTIS_SEO_BASENAME,
 			array( __CLASS__, 'update_message' )
 		);
+		add_action( 'admin_notices', array( __CLASS__, 'notice_update_check_failed' ) );
 		add_action( 'load-update-core.php', array( __CLASS__, 'clear_release_cache' ) );
 		add_filter( 'upgrader_pre_install', array( __CLASS__, 'prevent_deactivation_during_update' ), 5, 2 );
 		add_action( 'upgrader_process_complete', array( __CLASS__, 'remove_cron_filter_after_update' ), 10, 2 );
+	}
+
+	/**
+	 * Supply update data for the Update URI header (host github.com).
+	 *
+	 * WordPress requires a `version` field. It compares that with the installed plugin
+	 * and only then shows the update notice.
+	 *
+	 * @param array|false $update      Existing update data.
+	 * @param array       $plugin_data Plugin headers.
+	 * @param string      $plugin_file Plugin basename.
+	 * @param string[]    $locales     Installed locales.
+	 * @return array|false
+	 */
+	public static function filter_github_update( $update, $plugin_data, $plugin_file, $locales ) {
+		unset( $plugin_data, $locales );
+		if ( MANTIS_SEO_BASENAME !== $plugin_file ) {
+			return $update;
+		}
+		$payload = self::release_update_payload( $plugin_file );
+		return null === $payload ? $update : $payload;
+	}
+
+	/**
+	 * Add a read token when this private repository is requested.
+	 *
+	 * @param array  $args Request args.
+	 * @param string $url  Request URL.
+	 * @return array
+	 */
+	public static function authorize_github_request( $args, $url ) {
+		$token = self::github_token();
+		if ( '' === $token || ! is_string( $url ) || ! self::is_our_github_url( $url ) ) {
+			return $args;
+		}
+		if ( ! isset( $args['headers'] ) || ! is_array( $args['headers'] ) ) {
+			$args['headers'] = array();
+		}
+		$args['headers']['Authorization'] = 'Bearer ' . $token;
+		return $args;
+	}
+
+	/**
+	 * Warn on the Plugins and Updates screens when GitHub refused the release check.
+	 */
+	public static function notice_update_check_failed() {
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( $screen->id, array( 'plugins', 'update-core' ), true ) ) {
+			return;
+		}
+		$code = get_transient( 'mantis_seo_github_release_error' );
+		if ( false === $code || '' === (string) $code ) {
+			return;
+		}
+		if ( '404' === (string) $code || '401' === (string) $code ) {
+			$message = __( 'Mantis SEO could not see a GitHub release, so no update notice is shown. The repository is private. Add a read-only token to wp-config.php: define( \'MANTIS_SEO_GITHUB_TOKEN\', \'github_pat_...\' );', 'mantis-seo' );
+		} else {
+			$message = sprintf(
+				/* translators: %s: HTTP status code, or 0 when the request failed. */
+				__( 'Mantis SEO could not reach GitHub to check for updates (HTTP %s).', 'mantis-seo' ),
+				(string) $code
+			);
+		}
+		echo '<div class="notice notice-warning"><p>' . esc_html( $message ) . '</p></div>';
 	}
 
 	/**
@@ -86,54 +156,51 @@ class Mantis_SEO_Updater {
 	 * @return object
 	 */
 	public static function check_for_update( $transient ) {
-		if ( empty( $transient->checked ) ) {
+		if ( ! is_object( $transient ) || ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
 			return $transient;
 		}
 
+		$payload = self::release_update_payload( MANTIS_SEO_BASENAME );
+		if ( null === $payload ) {
+			return $transient;
+		}
+		if ( version_compare( $payload['new_version'], MANTIS_SEO_VERSION, '<=' ) ) {
+			return $transient;
+		}
+
+		$transient->response[ MANTIS_SEO_BASENAME ] = (object) $payload;
+		return $transient;
+	}
+
+	/**
+	 * Update payload for one installed copy, or null when GitHub has no release.
+	 *
+	 * @param string $plugin_file Plugin basename.
+	 * @return array<string, string>|null
+	 */
+	private static function release_update_payload( $plugin_file ) {
 		$release = self::get_release_data();
 		if ( ! is_array( $release ) || empty( $release['version'] ) ) {
-			return $transient;
+			return null;
 		}
 
-		$current = MANTIS_SEO_VERSION;
-		$latest  = $release['version'];
-		if ( version_compare( $latest, $current, '<=' ) ) {
-			return $transient;
-		}
+		$headers  = self::plugin_headers();
+		$latest   = $release['version'];
+		$tag_name = isset( $release['tag_name'] ) ? $release['tag_name'] : 'v' . $latest;
+		$req_wp   = ! empty( $headers['requires'] ) ? $headers['requires'] : '6.0';
+		$req_php  = ! empty( $headers['requires_php'] ) ? $headers['requires_php'] : '7.4';
 
-		$headers = self::plugin_headers();
-		$req_wp  = ! empty( $headers['requires'] ) ? $headers['requires'] : '6.0';
-		$req_php = ! empty( $headers['requires_php'] ) ? $headers['requires_php'] : '7.4';
-		if ( version_compare( get_bloginfo( 'version' ), $req_wp, '<' ) || version_compare( PHP_VERSION, $req_php, '<' ) ) {
-			return $transient;
-		}
-
-		$plugin_file = MANTIS_SEO_BASENAME;
-		$tag_name    = isset( $release['tag_name'] ) ? $release['tag_name'] : 'v' . $latest;
-		$package     = self::package_url( $tag_name );
-
-		$changelog_raw = isset( $release['changelog'] ) ? $release['changelog'] : '';
-		if ( '' === trim( wp_strip_all_tags( $changelog_raw ) ) ) {
-			$changelog_raw = self::get_changelog_from_readme();
-		}
-
-		$transient->response[ $plugin_file ] = (object) array(
+		return array(
 			'slug'         => 'mantis-seo',
 			'plugin'       => $plugin_file,
+			'version'      => $latest,
 			'new_version'  => $latest,
 			'url'          => 'https://github.com/' . MANTIS_SEO_GITHUB_REPO,
-			'package'      => $package,
+			'package'      => self::package_url( $tag_name ),
 			'requires'     => $req_wp,
 			'requires_php' => $req_php,
-			'tested'       => ! empty( $headers['tested'] ) ? $headers['tested'] : get_bloginfo( 'version' ),
-			'last_updated' => isset( $release['date'] ) ? $release['date'] : '',
-			'sections'     => array(
-				'description' => self::readme_excerpt_description(),
-				'changelog'   => self::format_changelog_html( $changelog_raw, $latest ),
-			),
+			'tested'       => ! empty( $headers['tested'] ) ? $headers['tested'] : '',
 		);
-
-		return $transient;
 	}
 
 	/**
@@ -217,7 +284,17 @@ class Mantis_SEO_Updater {
 	private static function get_release_data() {
 		$cached = get_transient( self::CACHE_KEY );
 		if ( false !== $cached && is_array( $cached ) ) {
+			delete_transient( 'mantis_seo_github_release_error' );
 			return $cached;
+		}
+
+		$headers = array(
+			'Accept'     => 'application/vnd.github+json',
+			'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
+		);
+		$token = self::github_token();
+		if ( '' !== $token ) {
+			$headers['Authorization'] = 'Bearer ' . $token;
 		}
 
 		$url  = 'https://api.github.com/repos/' . MANTIS_SEO_GITHUB_REPO . '/releases/latest';
@@ -225,16 +302,16 @@ class Mantis_SEO_Updater {
 			$url,
 			array(
 				'timeout' => 15,
-				'headers' => array(
-					'Accept'     => 'application/vnd.github+json',
-					'User-Agent' => 'WordPress/' . get_bloginfo( 'version' ) . '; ' . get_bloginfo( 'url' ),
-				),
+				'headers' => $headers,
 			)
 		);
 
-		if ( is_wp_error( $resp ) || 200 !== (int) wp_remote_retrieve_response_code( $resp ) ) {
+		$code = is_wp_error( $resp ) ? 0 : (int) wp_remote_retrieve_response_code( $resp );
+		if ( is_wp_error( $resp ) || 200 !== $code ) {
+			set_transient( 'mantis_seo_github_release_error', (string) $code, HOUR_IN_SECONDS );
 			return false;
 		}
+		delete_transient( 'mantis_seo_github_release_error' );
 
 		$body = wp_remote_retrieve_body( $resp );
 		$data = json_decode( $body, true );
@@ -258,6 +335,37 @@ class Mantis_SEO_Updater {
 		set_transient( self::CACHE_KEY, $release, self::CACHE_DURATION );
 
 		return $release;
+	}
+
+	/**
+	 * Read-only GitHub token for a private repository.
+	 *
+	 * Set define( 'MANTIS_SEO_GITHUB_TOKEN', 'github_pat_...' ); in wp-config.php.
+	 *
+	 * @return string
+	 */
+	private static function github_token() {
+		$token = '';
+		if ( defined( 'MANTIS_SEO_GITHUB_TOKEN' ) && is_string( MANTIS_SEO_GITHUB_TOKEN ) ) {
+			$token = trim( MANTIS_SEO_GITHUB_TOKEN );
+		}
+		$filtered = apply_filters( 'mantis_seo_github_token', $token );
+		return is_string( $filtered ) ? trim( $filtered ) : '';
+	}
+
+	/**
+	 * Whether a URL is this plugin's GitHub API or release download.
+	 *
+	 * @param string $url URL.
+	 * @return bool
+	 */
+	private static function is_our_github_url( $url ) {
+		$host = (string) wp_parse_url( $url, PHP_URL_HOST );
+		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+		if ( 'api.github.com' === $host && false !== strpos( $path, '/repos/' . MANTIS_SEO_GITHUB_REPO . '/' ) ) {
+			return true;
+		}
+		return 'github.com' === $host && false !== strpos( $path, '/' . MANTIS_SEO_GITHUB_REPO . '/releases/download/' );
 	}
 
 	/**
