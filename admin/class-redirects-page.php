@@ -144,10 +144,11 @@ class Mantis_SEO_Redirects_Page {
 		// Add or update.
 		if ( isset( $_POST['mantis_redirect_save'] ) ) {
 			check_admin_referer( 'mantis_redirect_save' );
-			$origin = isset( $_POST['mantis_redirect_origin'] ) ? sanitize_text_field( wp_unslash( $_POST['mantis_redirect_origin'] ) ) : '';
+			$format = isset( $_POST['mantis_redirect_format'] ) && 'regex' === $_POST['mantis_redirect_format'] ? 'regex' : 'plain';
+			$raw    = isset( $_POST['mantis_redirect_origin'] ) ? wp_unslash( $_POST['mantis_redirect_origin'] ) : '';
+			$origin = Mantis_SEO_Redirects::sanitize_origin( $raw, $format );
 			$target = isset( $_POST['mantis_redirect_target'] ) ? Mantis_SEO_Redirects::sanitize_target( wp_unslash( $_POST['mantis_redirect_target'] ) ) : '';
 			$type   = isset( $_POST['mantis_redirect_type'] ) ? (int) $_POST['mantis_redirect_type'] : 301;
-			$format = isset( $_POST['mantis_redirect_format'] ) && 'regex' === $_POST['mantis_redirect_format'] ? 'regex' : 'plain';
 
 			if ( ! empty( $origin ) && ! empty( $target ) ) {
 				$normalized = Mantis_SEO_Redirects::normalize_origin( $origin );
