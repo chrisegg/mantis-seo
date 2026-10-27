@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Redirects
+
+- **Regex origins:** Lookbehinds (`(?<=`, `(?<!`) and named groups (`(?<name>`) can be saved from the redirects screen. Origins were passed through `sanitize_text_field()` before the format was known, which turned `<` into `&lt;` and then failed regex validation. Regex origins now keep those characters. Plain origins are still sanitized as text. The same helper runs for the form, slug changes, and the Yoast importer.
+
 ## 1.0.3
 
 ### Updates

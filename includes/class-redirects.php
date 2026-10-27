@@ -282,10 +282,10 @@ class Mantis_SEO_Redirects {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		$origin = self::normalize_origin( $origin );
+		$format = 'regex' === $format ? 'regex' : 'plain';
+		$origin = self::normalize_origin( self::sanitize_origin( $origin, $format ) );
 		$target = self::sanitize_target( $target );
 		$type   = self::sanitize_redirect_type( $type );
-		$format = 'regex' === $format ? 'regex' : 'plain';
 
 		if ( empty( $origin ) || empty( $target ) ) {
 			return false;
@@ -328,10 +328,10 @@ class Mantis_SEO_Redirects {
 		$table = self::get_table_name();
 		$id    = (int) $id;
 
-		$origin = self::normalize_origin( $origin );
+		$format = 'regex' === $format ? 'regex' : 'plain';
+		$origin = self::normalize_origin( self::sanitize_origin( $origin, $format ) );
 		$target = self::sanitize_target( $target );
 		$type   = self::sanitize_redirect_type( $type );
-		$format = 'regex' === $format ? 'regex' : 'plain';
 
 		if ( empty( $origin ) || empty( $target ) ) {
 			return false;
@@ -515,6 +515,24 @@ class Mantis_SEO_Redirects {
 			$redirect['target'] = $target;
 		}
 		return $redirect;
+	}
+
+	/**
+	 * Sanitize a redirect origin. Plain origins are text; regex origins keep
+	 * characters like < > that sanitize_text_field() would mangle.
+	 *
+	 * @param string $raw    Unslashed input.
+	 * @param string $format 'plain' or 'regex'.
+	 * @return string
+	 */
+	public static function sanitize_origin( $raw, $format = 'plain' ) {
+		$raw = is_string( $raw ) ? $raw : '';
+		if ( 'regex' !== $format ) {
+			return sanitize_text_field( $raw );
+		}
+		$raw   = wp_check_invalid_utf8( $raw );
+		$clean = preg_replace( "/[\x00-\x1F\x7F]/", '', $raw );
+		return trim( is_string( $clean ) ? $clean : '' );
 	}
 
 	/**
