@@ -566,19 +566,108 @@ class Mantis_SEO_Settings_Page {
 			);
 		}
 
+		$archive_input = array();
+		if ( isset( $input['post_type_archives'] ) ) {
+			$archive_input = $input['post_type_archives'];
+		} elseif ( isset( $prev_settings['post_type_archives'] ) ) {
+			// A save that did not include the fields (no archive types on this site) keeps what was stored.
+			$archive_input = $prev_settings['post_type_archives'];
+		}
+		$sanitized['post_type_archives'] = $this->sanitize_post_type_archives( $archive_input );
+
 		return wp_parse_args( $sanitized, Mantis_SEO_Main::get_default_settings() );
+	}
+
+	/**
+	 * Keep title, description, and noindex only for public post types that have an archive.
+	 *
+	 * @param mixed $input Raw post_type_archives input.
+	 * @return array<string, array{title:string, description:string, noindex:bool}>
+	 */
+	private function sanitize_post_type_archives( $input ) {
+		$clean = array();
+		if ( ! is_array( $input ) ) {
+			return $clean;
+		}
+
+		$archive_types = array_keys( Mantis_SEO_Meta::get_public_archive_post_types() );
+		foreach ( $archive_types as $name ) {
+			if ( ! isset( $input[ $name ] ) || ! is_array( $input[ $name ] ) ) {
+				continue;
+			}
+			$row            = $input[ $name ];
+			$clean[ $name ] = array(
+				'title'       => isset( $row['title'] ) ? sanitize_text_field( $row['title'] ) : '',
+				'description' => isset( $row['description'] ) ? sanitize_textarea_field( $row['description'] ) : '',
+				'noindex'     => ! empty( $row['noindex'] ),
+			);
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Title and meta description for each public post type that has an archive.
+	 *
+	 * @param array $settings Current settings.
+	 */
+	private function render_post_type_archive_settings( $settings ) {
+		$types = Mantis_SEO_Meta::get_public_archive_post_types();
+		$saved = ( isset( $settings['post_type_archives'] ) && is_array( $settings['post_type_archives'] ) ) ? $settings['post_type_archives'] : array();
+		?>
+		<h2><?php esc_html_e( 'Post Type Archives', 'mantis-seo' ); ?></h2>
+		<p class="description"><?php esc_html_e( 'Public post types with an archive page. An empty title uses the archive name, the separator, and the site name. Post types without an archive are not listed. Noindex for these archives is under Advanced.', 'mantis-seo' ); ?></p>
+		<?php if ( empty( $types ) ) : ?>
+			<p class="description"><?php esc_html_e( 'No public post types have an archive.', 'mantis-seo' ); ?></p>
+		<?php else : ?>
+			<div class="mantis-archive-stack">
+				<?php foreach ( $types as $name => $post_type ) : ?>
+					<?php
+					$row       = ( isset( $saved[ $name ] ) && is_array( $saved[ $name ] ) ) ? $saved[ $name ] : array();
+					$pt_label  = ( isset( $post_type->labels->name ) && is_string( $post_type->labels->name ) && '' !== $post_type->labels->name )
+						? $post_type->labels->name
+						: $name;
+					$title_id  = 'mantis_title_pt_' . sanitize_key( $name );
+					$desc_id   = 'mantis_metadesc_pt_' . sanitize_key( $name );
+					$title_val = Mantis_SEO_Meta::archive_title_template( $row['title'] ?? '' );
+					$desc_val  = isset( $row['description'] ) ? (string) $row['description'] : '';
+					$vars      = Mantis_SEO_Meta::get_archive_variable_dropdown_options();
+					?>
+					<section class="mantis-settings-card" aria-labelledby="<?php echo esc_attr( $title_id ); ?>_heading">
+						<h3 id="<?php echo esc_attr( $title_id ); ?>_heading" class="mantis-settings-card__title"><?php echo esc_html( $pt_label ); ?></h3>
+						<table class="form-table">
+							<tr>
+								<th><label for="<?php echo esc_attr( $title_id ); ?>"><?php esc_html_e( 'Archive Title', 'mantis-seo' ); ?></label></th>
+								<td><?php $this->render_title_template_control( $title_id, 'mantis_settings[post_type_archives][' . $name . '][title]', $title_val, false, $vars ); ?></td>
+							</tr>
+							<tr>
+								<th><label for="<?php echo esc_attr( $desc_id ); ?>"><?php esc_html_e( 'Meta Description', 'mantis-seo' ); ?></label></th>
+								<td>
+									<?php $this->render_title_template_control( $desc_id, 'mantis_settings[post_type_archives][' . $name . '][description]', $desc_val, true, $vars ); ?>
+									<p class="description"><?php esc_html_e( 'Leave blank for no meta description. Archive Title is the archive name. Plural Label is the post type plural name.', 'mantis-seo' ); ?></p>
+								</td>
+							</tr>
+						</table>
+					</section>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+		<?php
 	}
 
 	/**
 	 * SEO template field: pills in the UI, hidden input stores %variable% syntax.
 	 *
-	 * @param string $field_id   HTML id for the editor (label `for`).
-	 * @param string $input_name Name attribute, e.g. mantis_settings[title_post].
-	 * @param string $value      Stored template string.
-	 * @param bool   $multiline  Taller editor for descriptions (optional line breaks).
+	 * @param string     $field_id   HTML id for the editor (label `for`).
+	 * @param string     $input_name Name attribute, e.g. mantis_settings[title_post].
+	 * @param string     $value      Stored template string.
+	 * @param bool       $multiline  Taller editor for descriptions (optional line breaks).
+	 * @param array|null $var_labels Insert-menu variables. Null uses the shared list.
 	 */
-	private function render_title_template_control( $field_id, $input_name, $value, $multiline = false ) {
-		$var_labels = Mantis_SEO_Meta::get_variable_dropdown_options();
+	private function render_title_template_control( $field_id, $input_name, $value, $multiline = false, $var_labels = null ) {
+		if ( ! is_array( $var_labels ) ) {
+			$var_labels = Mantis_SEO_Meta::get_variable_dropdown_options();
+		}
 		$classes    = 'mantis-template-editor mantis-template-editor--settings';
 		if ( $multiline ) {
 			$classes .= ' mantis-template-editor--multiline';
@@ -829,6 +918,8 @@ class Mantis_SEO_Settings_Page {
 								<td><?php $this->render_title_template_control( 'mantis_metadesc_page', 'mantis_settings[metadesc_page]', $settings['metadesc_page'], true ); ?></td>
 							</tr>
 						</table>
+
+						<?php $this->render_post_type_archive_settings( $settings ); ?>
 					</div>
 
 					<div id="mantis-social" class="mantis-tab-panel" style="display:none;">
@@ -976,6 +1067,8 @@ class Mantis_SEO_Settings_Page {
 								'noindex_category' => __( 'Category archives', 'mantis-seo' ),
 								'noindex_tag'      => __( 'Tag archives', 'mantis-seo' ),
 							);
+							$archive_post_types = Mantis_SEO_Meta::get_public_archive_post_types();
+							$saved_archives     = ( isset( $settings['post_type_archives'] ) && is_array( $settings['post_type_archives'] ) ) ? $settings['post_type_archives'] : array();
 							?>
 							<ul class="mantis-sitemap-type-list" role="list">
 								<?php foreach ( $noindex_archive_options as $field => $option_label ) : ?>
@@ -990,6 +1083,36 @@ class Mantis_SEO_Settings_Page {
 											</span>
 											<span class="mantis-toggle">
 												<input type="checkbox" id="<?php echo esc_attr( $input_id ); ?>" class="mantis-toggle__input" name="mantis_settings[<?php echo esc_attr( $field ); ?>]" value="1" <?php checked( $on ); ?> />
+												<span class="mantis-toggle__track" aria-hidden="true"></span>
+											</span>
+										</label>
+									</li>
+								<?php endforeach; ?>
+								<?php foreach ( $archive_post_types as $pt_name => $pt_obj ) : ?>
+									<?php
+									$input_id = 'mantis_noindex_pt_' . sanitize_key( $pt_name );
+									$on       = ! empty( $saved_archives[ $pt_name ]['noindex'] );
+									$pt_label = ( isset( $pt_obj->labels->name ) && is_string( $pt_obj->labels->name ) && '' !== $pt_obj->labels->name )
+										? $pt_obj->labels->name
+										: $pt_name;
+									?>
+									<li class="mantis-sitemap-type-list__item">
+										<label class="mantis-toggle-row" for="<?php echo esc_attr( $input_id ); ?>">
+											<span class="mantis-toggle-row__text">
+												<span class="mantis-toggle-row__label">
+													<?php
+													echo esc_html(
+														sprintf(
+															/* translators: %s: post type plural label */
+															__( '%s archive', 'mantis-seo' ),
+															$pt_label
+														)
+													);
+													?>
+												</span>
+											</span>
+											<span class="mantis-toggle">
+												<input type="checkbox" id="<?php echo esc_attr( $input_id ); ?>" class="mantis-toggle__input" name="mantis_settings[post_type_archives][<?php echo esc_attr( $pt_name ); ?>][noindex]" value="1" <?php checked( $on ); ?> />
 												<span class="mantis-toggle__track" aria-hidden="true"></span>
 											</span>
 										</label>

@@ -204,6 +204,7 @@ class Mantis_SEO_Main {
 			'noindex_date'           => true,
 			'noindex_category'       => false,
 			'noindex_tag'             => false,
+			'post_type_archives'     => array(),
 			'og_default_image'       => '',
 			'twitter_card_type'      => 'summary_large_image',
 			'google_verify'           => '',

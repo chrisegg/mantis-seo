@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Titles and meta
+
+- **Post type archives:** A public post type with an archive (for example Case Studies) can have its own title and meta description under Titles & Meta. An empty title uses the archive name, the separator, and the site name. Open Graph and X tags use that title and description. Each of those archives has a noindex toggle under Advanced, with the other archive toggles. Page 2 of an archive keeps its own canonical URL.
+
 ### Redirects
 
 - **Regex origins:** Lookbehinds (`(?<=`, `(?<!`) and named groups (`(?<name>`) can be saved from the redirects screen. Origins were passed through `sanitize_text_field()` before the format was known, which turned `<` into `&lt;` and then failed regex validation. Regex origins now keep those characters. Plain origins are still sanitized as text. The same helper runs for the form, slug changes, and the Yoast importer.
