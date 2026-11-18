@@ -98,6 +98,7 @@ class Mantis_SEO_Main {
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-provider.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-posts.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-sitemap-terms.php';
+		require_once MANTIS_SEO_PATH . 'includes/class-robots.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-ai-bots.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-llms-txt.php';
 		require_once MANTIS_SEO_PATH . 'includes/class-ai-page.php';
@@ -122,6 +123,7 @@ class Mantis_SEO_Main {
 		$this->components['redirect_manager']   = new Mantis_SEO_Redirect_Manager();
 		$this->components['schema']             = new Mantis_SEO_Schema();
 		$this->components['sitemap']            = new Mantis_SEO_Sitemap();
+		$this->components['robots']             = new Mantis_SEO_Robots();
 		$this->components['ai_bots']            = new Mantis_SEO_AI_Bots();
 		$this->components['llms_txt']           = new Mantis_SEO_LLMs_Txt();
 
@@ -226,6 +228,7 @@ class Mantis_SEO_Main {
 			'ai_llms_page_ids'          => array(),
 			'ai_page_id'                => 0,
 			'ai_robots_enabled'         => true,
+			'robots_custom_rules'       => '',
 			'ai_bot_policies'           => array(),
 			'mcp_enabled'               => false,
 			'mcp_abilities'             => array(

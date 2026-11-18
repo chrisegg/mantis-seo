@@ -575,6 +575,10 @@ class Mantis_SEO_Settings_Page {
 		}
 		$sanitized['post_type_archives'] = $this->sanitize_post_type_archives( $archive_input );
 
+		if ( isset( $input['robots_custom_rules'] ) ) {
+			$sanitized['robots_custom_rules'] = Mantis_SEO_Robots::sanitize_rules( $input['robots_custom_rules'] );
+		}
+
 		return wp_parse_args( $sanitized, Mantis_SEO_Main::get_default_settings() );
 	}
 
@@ -823,6 +827,12 @@ class Mantis_SEO_Settings_Page {
 					<?php wp_nonce_field( 'mantis_migrate_yoast' ); ?>
 					<button type="submit" name="mantis_migrate_yoast" value="1" class="button button-primary"><?php esc_html_e( 'Migrate from Yoast', 'mantis-seo' ); ?></button>
 				</form>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( Mantis_SEO_Robots::has_physical_file() ) : ?>
+			<div class="mantis-settings-feedback mantis-settings-feedback--info" role="status">
+				<p><?php esc_html_e( 'A robots.txt file is already in the WordPress directory, so WordPress will not serve the custom rules under Advanced. Remove that file if you want the setting to apply.', 'mantis-seo' ); ?></p>
 			</div>
 			<?php endif; ?>
 
@@ -1119,6 +1129,23 @@ class Mantis_SEO_Settings_Page {
 									</li>
 								<?php endforeach; ?>
 							</ul>
+						</section>
+						<h2><?php esc_html_e( 'robots.txt', 'mantis-seo' ); ?></h2>
+						<section class="mantis-settings-card" aria-labelledby="mantis-robots-custom-heading">
+							<h3 id="mantis-robots-custom-heading" class="mantis-settings-card__title"><?php esc_html_e( 'Custom rules', 'mantis-seo' ); ?></h3>
+							<p class="mantis-settings-card__lead"><?php esc_html_e( 'One Allow, Disallow, or Crawl-delay directive per line. Other lines are removed when you save. These lines are added to the User-agent: * group, before the sitemap line. Mantis also copies them into each AI crawler group it writes, because a crawler with its own group ignores rules that only appear under *.', 'mantis-seo' ); ?></p>
+							<?php if ( Mantis_SEO_Robots::has_physical_file() ) : ?>
+								<div class="mantis-settings-feedback mantis-settings-feedback--info" role="status">
+									<p><?php esc_html_e( 'A robots.txt file is already in the WordPress directory, so WordPress will not serve these rules. Remove that file if you want this setting to apply.', 'mantis-seo' ); ?></p>
+								</div>
+							<?php endif; ?>
+							<p>
+								<label for="mantis_robots_custom_rules"><strong><?php esc_html_e( 'Custom robots.txt rules', 'mantis-seo' ); ?></strong></label>
+							</p>
+							<textarea id="mantis_robots_custom_rules" name="mantis_settings[robots_custom_rules]" class="large-text code" rows="8" placeholder="<?php echo esc_attr( "Disallow: /click/\nCrawl-delay: 10" ); ?>"><?php echo esc_textarea( isset( $settings['robots_custom_rules'] ) ? (string) $settings['robots_custom_rules'] : '' ); ?></textarea>
+							<p class="mantis-sitemap-view-link">
+								<a href="<?php echo esc_url( home_url( '/robots.txt' ) ); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'View robots.txt', 'mantis-seo' ); ?></a>
+							</p>
 						</section>
 						<h2><?php esc_html_e( 'Webmaster Verification', 'mantis-seo' ); ?></h2>
 						<table class="form-table">
