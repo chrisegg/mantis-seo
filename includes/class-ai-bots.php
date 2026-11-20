@@ -180,9 +180,13 @@ class Mantis_SEO_AI_Bots {
 			return $output;
 		}
 
-		$policies = self::merge_policies( isset( $settings['ai_bot_policies'] ) ? $settings['ai_bot_policies'] : array() );
-		$defs     = self::get_bot_definitions();
-		$blocks   = array();
+		$policies     = self::merge_policies( isset( $settings['ai_bot_policies'] ) ? $settings['ai_bot_policies'] : array() );
+		$defs         = self::get_bot_definitions();
+		$custom_lines = array();
+		if ( class_exists( 'Mantis_SEO_Robots' ) ) {
+			$custom_lines = Mantis_SEO_Robots::lines( isset( $settings['robots_custom_rules'] ) ? $settings['robots_custom_rules'] : '' );
+		}
+		$blocks = array();
 
 		foreach ( $policies as $id => $policy ) {
 			if ( 'inherit' === $policy || ! isset( $defs[ $id ] ) ) {
@@ -190,10 +194,17 @@ class Mantis_SEO_AI_Bots {
 			}
 			$ua = $defs[ $id ]['user_agent'];
 			if ( 'allow' === $policy ) {
-				$blocks[] = "User-agent: {$ua}\nAllow: /\n";
+				$group_lines = array( 'Allow: /' );
 			} elseif ( 'block' === $policy ) {
-				$blocks[] = "User-agent: {$ua}\nDisallow: /\n";
+				$group_lines = array( 'Disallow: /' );
+			} else {
+				continue;
 			}
+			// A named group ignores User-agent: *, so the same paths have to be repeated here.
+			if ( ! empty( $custom_lines ) ) {
+				$group_lines = Mantis_SEO_Robots::merge_group_lines( $group_lines, $custom_lines );
+			}
+			$blocks[] = 'User-agent: ' . $ua . "\n" . implode( "\n", $group_lines ) . "\n";
 		}
 
 		if ( empty( $blocks ) ) {

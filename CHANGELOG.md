@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### robots.txt
+
+- **Custom rules:** Advanced has a box for extra `Allow`, `Disallow`, and `Crawl-delay` lines. Saved lines are added to the `User-agent: *` group, before the sitemap line, and copied into each AI crawler group Mantis writes (those crawlers ignore the `*` group). Other lines are dropped. If a real `robots.txt` file is already in the WordPress directory, the settings screen says so, because WordPress will not serve the generated file.
+
+### Titles and meta
+
+- **Post type archives:** A public post type with an archive (for example Case Studies) can have its own title and meta description under Titles & Meta. An empty title uses the archive name, the separator, and the site name. Open Graph and X tags use that title and description. Each of those archives has a noindex toggle under Advanced, with the other archive toggles. Page 2 of an archive keeps its own canonical URL.
+
 ### Redirects
 
 - **Regex origins:** Lookbehinds (`(?<=`, `(?<!`) and named groups (`(?<name>`) can be saved from the redirects screen. Origins were passed through `sanitize_text_field()` before the format was known, which turned `<` into `&lt;` and then failed regex validation. Regex origins now keep those characters. Plain origins are still sanitized as text. The same helper runs for the form, slug changes, and the Yoast importer.

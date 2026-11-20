@@ -843,6 +843,17 @@ body.mantis-seo_page_mantis-redirects .mantis-seo-app .notice {
 	margin-bottom: 0.5rem;
 }
 
+.mantis-archive-stack {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.mantis-archive-stack .form-table {
+	margin-top: 0;
+}
+
 .mantis-ai-stack {
 	display: flex;
 	flex-direction: column;

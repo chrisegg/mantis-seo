@@ -174,6 +174,8 @@ class Mantis_SEO_Meta {
 				$posts_page = (int) get_option( 'page_for_posts' );
 				$meta['canonical'] = $posts_page ? get_permalink( $posts_page ) : home_url( '/' );
 			}
+		} elseif ( is_post_type_archive() ) {
+			$meta = $this->get_post_type_archive_meta( $meta );
 		} elseif ( is_author() && $settings['noindex_author'] ) {
 			$meta['robots'][] = 'noindex';
 		} elseif ( is_date() && $settings['noindex_date'] ) {
@@ -259,6 +261,94 @@ class Mantis_SEO_Meta {
 		$meta['twitter_image']  = $this->get_post_meta( $object_id, 'twitter_image' );
 
 		return $meta;
+	}
+
+	/**
+	 * Title and description for a public post type archive.
+	 *
+	 * Canonical is left empty on purpose. The shared helper adds /page/2/
+	 * (and the unpaged archive URL) so pagination is not collapsed to page 1.
+	 *
+	 * @param array $meta Meta array to fill.
+	 * @return array
+	 */
+	private function get_post_type_archive_meta( $meta ) {
+		$post_type = get_queried_object();
+		if ( ! $post_type instanceof WP_Post_Type ) {
+			return $meta;
+		}
+
+		$settings = Mantis_SEO_Main::get_settings();
+		$saved    = array();
+		if ( isset( $settings['post_type_archives'][ $post_type->name ] ) && is_array( $settings['post_type_archives'][ $post_type->name ] ) ) {
+			$saved = $settings['post_type_archives'][ $post_type->name ];
+		}
+
+		$meta['document_title'] = $this->replace_vars( self::archive_title_template( $saved['title'] ?? '' ) );
+
+		$description = isset( $saved['description'] ) ? trim( (string) $saved['description'] ) : '';
+		if ( '' !== $description ) {
+			$meta['description'] = $this->replace_vars( $description );
+		}
+
+		if ( ! empty( $saved['noindex'] ) ) {
+			$meta['robots'] = array( 'noindex', 'follow' );
+		} else {
+			$meta['robots'] = array( 'index', 'follow' );
+		}
+
+		return $meta;
+	}
+
+	/**
+	 * Default title template for a post type archive with no saved title.
+	 *
+	 * @return string
+	 */
+	public static function default_archive_title_template() {
+		return '%archive_title% %separator% %site_name%';
+	}
+
+	/**
+	 * Title template for a post type archive. Blank settings use the default.
+	 *
+	 * @param string $saved Saved template.
+	 * @return string
+	 */
+	public static function archive_title_template( $saved ) {
+		$saved = trim( (string) $saved );
+		if ( '' === $saved ) {
+			return self::default_archive_title_template();
+		}
+		return $saved;
+	}
+
+	/**
+	 * Public post types that have an archive page.
+	 *
+	 * `has_archive` may be boolean true or a slug string. A query for
+	 * `'has_archive' => true` misses the string form, so this checks the flag itself.
+	 *
+	 * @return array<string, WP_Post_Type>
+	 */
+	public static function get_public_archive_post_types() {
+		$types = get_post_types( array( 'public' => true ), 'objects' );
+		$out   = array();
+		foreach ( $types as $type ) {
+			if ( ! $type instanceof WP_Post_Type || empty( $type->has_archive ) ) {
+				continue;
+			}
+			$out[ $type->name ] = $type;
+		}
+		uasort(
+			$out,
+			static function ( $a, $b ) {
+				$left  = isset( $a->labels->name ) ? (string) $a->labels->name : $a->name;
+				$right = isset( $b->labels->name ) ? (string) $b->labels->name : $b->name;
+				return strcasecmp( $left, $right );
+			}
+		);
+		return $out;
 	}
 
 	/**
@@ -438,6 +528,17 @@ class Mantis_SEO_Meta {
 			$template = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) ) ? $settings['title_home'] : '%site_name% - %site_description%';
 			return $this->replace_vars( $template );
 		}
+		if ( is_post_type_archive() ) {
+			$post_type = get_queried_object();
+			if ( $post_type instanceof WP_Post_Type ) {
+				$settings = Mantis_SEO_Main::get_settings();
+				$saved    = '';
+				if ( isset( $settings['post_type_archives'][ $post_type->name ]['title'] ) ) {
+					$saved = $settings['post_type_archives'][ $post_type->name ]['title'];
+				}
+				return $this->replace_vars( self::archive_title_template( $saved ) );
+			}
+		}
 		return $title;
 	}
 
@@ -470,6 +571,17 @@ class Mantis_SEO_Meta {
 			$template = ! empty( trim( (string) ( $settings['title_home'] ?? '' ) ) ) ? $settings['title_home'] : '%site_name% - %site_description%';
 			$parts['title'] = $this->replace_vars( $template );
 			unset( $parts['tagline'], $parts['site'] );
+		} elseif ( is_post_type_archive() ) {
+			$post_type = get_queried_object();
+			if ( $post_type instanceof WP_Post_Type ) {
+				$settings = Mantis_SEO_Main::get_settings();
+				$saved    = '';
+				if ( isset( $settings['post_type_archives'][ $post_type->name ]['title'] ) ) {
+					$saved = $settings['post_type_archives'][ $post_type->name ]['title'];
+				}
+				$parts['title'] = $this->replace_vars( self::archive_title_template( $saved ) );
+				unset( $parts['tagline'], $parts['site'] );
+			}
 		}
 		return $parts;
 	}
@@ -614,6 +726,24 @@ class Mantis_SEO_Meta {
 			$replacements['%separator%'] = $settings['separator'];
 		}
 
+		if ( function_exists( 'is_post_type_archive' ) && is_post_type_archive() ) {
+			$post_type = get_queried_object();
+			if ( $post_type instanceof WP_Post_Type ) {
+				$plural = ( isset( $post_type->labels->name ) && is_string( $post_type->labels->name ) && '' !== $post_type->labels->name )
+					? $post_type->labels->name
+					: $post_type->name;
+				$archive_title = $plural;
+				if ( function_exists( 'post_type_archive_title' ) ) {
+					$filtered = post_type_archive_title( '', false );
+					if ( is_string( $filtered ) && '' !== trim( $filtered ) ) {
+						$archive_title = $filtered;
+					}
+				}
+				$replacements['%archive_title%'] = $archive_title;
+				$replacements['%pt_plural%']     = $plural;
+			}
+		}
+
 		return $replacements;
 	}
 
@@ -659,6 +789,8 @@ class Mantis_SEO_Meta {
 			'%page%'             => __( 'Page', 'mantis-seo' ),
 			'%date%'             => __( 'Date', 'mantis-seo' ),
 			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
+			'%archive_title%'    => __( 'Archive Title', 'mantis-seo' ),
+			'%pt_plural%'        => __( 'Plural Label', 'mantis-seo' ),
 		);
 	}
 
@@ -677,6 +809,18 @@ class Mantis_SEO_Meta {
 			'%date%'             => __( 'Date', 'mantis-seo' ),
 			'%excerpt%'          => __( 'Excerpt', 'mantis-seo' ),
 		);
+	}
+
+	/**
+	 * Insert menu for post type archive templates: archive variables, then the shared ones.
+	 *
+	 * @return array Map of %var% => label.
+	 */
+	public static function get_archive_variable_dropdown_options() {
+		return array(
+			'%archive_title%' => __( 'Archive Title', 'mantis-seo' ),
+			'%pt_plural%'     => __( 'Plural Label', 'mantis-seo' ),
+		) + self::get_variable_dropdown_options();
 	}
 
 	/**
